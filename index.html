@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cronograma Fechamento Contábil — Arco</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --arco-blue: #114197;
@@ -443,6 +446,37 @@ const MASTERS_ADMINS = ["Natanael Ferreira De Sousa", "Jose Francisco Domingos D
 const EMPRESAS_CHECKLIST = ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"];
 const FERIADOS_2026 = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25"];
 
+// ============================================================
+//  FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyC821Hn_gFHa39G6vVhuzLVMxmPp615C9M",
+  authDomain: "projeto-cronograma-fechamento.firebaseapp.com",
+  databaseURL: "https://projeto-cronograma-fechamento-default-rtdb.firebaseio.com",
+  projectId: "projeto-cronograma-fechamento",
+  storageBucket: "projeto-cronograma-fechamento.firebasestorage.app",
+  messagingSenderId: "468354958800",
+  appId: "1:468354958800:web:469e8bd1ec63df993725d5"
+};
+
+// Inicializa Firebase via CDN (carregado no <head>)
+let _fbApp, _fbDb, _fbRef;
+function inicializarFirebase() {
+  _fbApp = firebase.initializeApp(firebaseConfig);
+  _fbDb   = firebase.database();
+  _fbRef  = _fbDb.ref("cronograma");
+}
+
+// Salva no Firebase (substitui localStorage)
+function salvarDados() {
+  if (!_fbRef) return;
+  _fbRef.set({
+    atividades:  dbAtividades,
+    config:      competencaAtiva,
+    historicos:  dbHistoricos
+  }).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
+}
+
 let dbAtividades = [];
 let dbHistoricos = {};
 let competencaAtiva = { mes: "Maio", ano: "2026" };
@@ -530,35 +564,41 @@ const rotinasExcel = [
   { nome: "Mapa das Aplicações Financeiras", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] }
 ];
 
-function inicializarSistema() {
-  const localData = localStorage.getItem("arco_atividades_db_v12_final_stable");
-  const localConfig = localStorage.getItem("arco_cronograma_config_v11");
-  const localHist = localStorage.getItem("arco_cronograma_hist_v11");
+async function inicializarSistema() {
+  inicializarFirebase();
+  mostrarLoadingInicial(true);
 
-  if (localConfig) competencaAtiva = JSON.parse(localConfig);
-  if (localHist) dbHistoricos = JSON.parse(localHist);
+  try {
+    const snapshot = await _fbRef.once("value");
+    const dados = snapshot.val();
+
+    if (dados) {
+      if (dados.config)     competencaAtiva = dados.config;
+      if (dados.historicos) dbHistoricos    = dados.historicos;
+      if (dados.atividades) dbAtividades    = dados.atividades;
+    }
+
+    if (!dbAtividades || !dbAtividades.length) {
+      dbAtividades = rotinasExcel.map((item, i) => ({
+        id: "atv_" + i + "_" + new Date().getTime(),
+        atividade: item.nome, area: item.area, diaUtil: item.du,
+        previaReceita: item.previa || "Não",
+        responveisLista: item.resps,
+        empresasElegiveis: item.emps || [...EMPRESAS_CHECKLIST],
+        empresas: EMPRESAS_CHECKLIST.map(emp => ({ nome: emp, status: "PENDENTE", dataConclusao: "", obs: "" }))
+      }));
+      salvarDados();
+    }
+  } catch(err) {
+    console.error("Erro Firebase:", err);
+    showToast("⚠️ Erro ao conectar com o banco de dados.");
+  } finally {
+    mostrarLoadingInicial(false);
+  }
 
   const areaCombo = document.getElementById("filter-area");
   const respCombo = document.getElementById("filter-resp");
   const areasUnicasSet = new Set();
-
-  if (localData) {
-    dbAtividades = JSON.parse(localData);
-  } else {
-    dbAtividades = rotinasExcel.map((item, i) => ({
-      id: "atv_" + i + "_" + new Date().getTime(),
-      atividade: item.nome,
-      area: item.area,
-      diaUtil: item.du,
-      previaReceita: item.previa || "Não",
-      responveisLista: item.resps,
-      empresasElegiveis: item.emps || [...EMPRESAS_CHECKLIST],
-      empresas: EMPRESAS_CHECKLIST.map(emp => ({
-        nome: emp, status: "PENDENTE", dataConclusao: "", obs: ""
-      }))
-    }));
-    salvarDados();
-  }
 
   areaCombo.innerHTML = '<option value="todos">📂 Todas as Áreas</option>';
   respCombo.innerHTML = '<option value="todos">👤 Todos Responsáveis</option><option value="A Atribuir">A Atribuir</option>';
@@ -577,8 +617,7 @@ function inicializarSistema() {
   atualizarLabelsCompetencia();
   popularLogin();
 
-  // Auto-login se já existir sessão (nova chave v2)
-  const sessao = localStorage.getItem("arco_sessao_login_v2");
+  const sessao = sessionStorage.getItem("arco_sessao_login_v2");
   if (sessao) {
     try {
       const ss = JSON.parse(sessao);
@@ -590,9 +629,24 @@ function inicializarSistema() {
       }
     } catch(e) {}
   }
-  // Sem sessão válida: mostra login
-  localStorage.removeItem("arco_sessao_login");
   document.getElementById("login-overlay").classList.remove("hidden");
+}
+
+function mostrarLoadingInicial(mostrar) {
+  let el = document.getElementById("loading-inicial");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "loading-inicial";
+    el.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(248,250,252,0.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:'Sora',sans-serif;";
+    el.innerHTML = `
+      <div style="width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:#114197;border-radius:50%;animation:spin .8s linear infinite;"></div>
+      <div style="font-size:15px;font-weight:600;color:#114197;">Carregando dados...</div>
+      <div style="font-size:12px;color:#64748b;">Sincronizando com Firebase</div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `;
+    document.body.appendChild(el);
+  }
+  el.style.display = mostrar ? "flex" : "none";
 }
 
 function popularLogin() {
@@ -634,30 +688,33 @@ function efetuarLogin() {
   if (!area) { alert("Selecione uma área para continuar."); return; }
   if (!resp) { alert("Selecione um responsável (ou modo somente leitura)."); return; }
 
+  // Senha obrigatória para Contabilidade
+  if (area.toLowerCase().includes("contáb") || area.toLowerCase().includes("contab")) {
+    const senha = prompt("🔒 Área Contábil — digite a senha:");
+    if (senha !== "123") { alert("Senha incorreta."); return; }
+  }
+
   if (area === "__ADMIN__") {
     usuarioLogadoAtual = resp;
     subAreaSelecionadaParceira = "__ADMIN__";
   } else if (resp === "__LEITURA__") {
     usuarioLogadoAtual = "Outra Área";
-    subAreaSelecionadaParceira = area; // filtra pela área escolhida
+    subAreaSelecionadaParceira = area;
   } else {
     usuarioLogadoAtual = resp;
     subAreaSelecionadaParceira = area;
   }
 
-  localStorage.setItem("arco_sessao_login_v2", JSON.stringify({
+  sessionStorage.setItem("arco_sessao_login_v2", JSON.stringify({
     usuario: usuarioLogadoAtual, area: subAreaSelecionadaParceira
   }));
-  // limpa chave antiga se existir
-  localStorage.removeItem("arco_sessao_login");
 
   aplicarLoginNaTela();
   showToast("Bem-vindo, " + abreviarNomeCompleto(usuarioLogadoAtual) + "!");
 }
 
 function efetuarLogout() {
-  localStorage.removeItem("arco_sessao_login");
-  localStorage.removeItem("arco_sessao_login_v2");
+  sessionStorage.removeItem("arco_sessao_login_v2");
   location.reload();
 }
 
@@ -697,11 +754,7 @@ function atualizarLabelsCompetencia() {
   document.getElementById("mes-label-top").textContent = `📅 Fechamento de ${competencaAtiva.mes}/${competencaAtiva.ano} (datas em ${prox}/${anoProx})`;
 }
 
-function salvarDados() {
-  localStorage.setItem("arco_atividades_db_v12_final_stable", JSON.stringify(dbAtividades));
-  localStorage.setItem("arco_cronograma_config_v11", JSON.stringify(competencaAtiva));
-  localStorage.setItem("arco_cronograma_hist_v11", JSON.stringify(dbHistoricos));
-}
+// salvarDados já definido acima com Firebase
 
 
 function mudarAba(targetTabId) {
