@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronograma Fechamento Contábil — Arco</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --arco-blue: #114197;
+  --arco-cyan: #009ecc;
+  --arco-orange: #f05323;
+  --arco-yellow: #f8af18;
+  --arco-green: #52b747;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --text: #0f172a;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+  
+  --s-nao: #64748b; --s-nao-bg: #f1f5f9;
+  --s-conc: #52b747; --s-conc-bg: #dcfce7;
+  --s-apl: #f05323; --s-apl-bg: #fee2e2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sora', sans-serif; }
+body { background: var(--bg); color: var(--text); font-size: 14px; padding-bottom: 100px; -webkit-font-smoothing: antialiased; }
+
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 85px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.logo-wrap { display: flex; align-items: center; gap: 12px; margin-left: -10px; }
+.logo-arco { font-size: 28px; font-weight: 800; color: var(--arco-blue); letter-spacing: -0.03em; cursor: pointer; }
+.logo-arco span { color: var(--arco-cyan); }
+.header-sep { width: 1px; height: 24px; background: var(--border); }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+.search-bar { position: relative; }
+.search-input { background: #f1f5f9; border: 1px solid transparent; color: var(--text); padding: 10px 16px 10px 40px; border-radius: 24px; font-size: 13px; outline: none; width: 220px; transition: all .2s; }
+.search-input:focus { background: var(--surface); border-color: var(--arco-blue); box-shadow: 0 0 0 3px rgba(17,65,151,0.03); }
+.search-bar::before { content: "🔍"; position: absolute; left: 16px; top: 11px; font-size: 14px; opacity: 0.4; }
+
+.dashboard-container { max-width: 1650px; margin: 32px auto; padding: 0 40px; }
+
+.progress-wrap { background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 24px; display: flex; align-items: center; gap: 24px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(15,23,42,0.01); }
+.progress-label { font-size: 14px; font-weight: 700; color: var(--text); }
+.prog-bg { flex: 1; height: 10px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--arco-blue), var(--arco-cyan)); border-radius: 6px; width: 0%; transition: width .6s ease; }
+.prog-pct { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 700; color: var(--arco-blue); min-width: 48px; text-align: right; }
+
+.area-health-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 24px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(15,23,42,0.005); }
+.area-health-title { font-size: 13px; font-weight: 700; color: var(--arco-blue); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+.area-health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.area-health-card { background: #f8fafc; border: 1px solid var(--border); padding: 12px 16px; border-radius: 12px; }
+.area-health-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 32px; }
+.kpi { background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 26px; position: relative; box-shadow: 0 4px 20px rgba(15,23,42,0.01); }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--kpi-color, var(--arco-blue)); border-radius: 20px 20px 0 0; }
+.kpi-num { font-size: 38px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--text); line-height: 1; }
+.kpi-label { font-size: 11px; color: var(--muted); margin-top: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+
+.tabs-navigation { display: flex; gap: 12px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+.tab-link { padding: 16px 32px; font-size: 14px; font-weight: 600; color: var(--muted); background: none; border: none; cursor: pointer; position: relative; transition: all 0.15s; }
+.tab-link:hover { color: var(--arco-blue); }
+.tab-link.active { color: var(--arco-blue); font-weight: 700; }
+.tab-link.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--arco-blue); border-radius: 3px 3px 0 0; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.filter-action-block { background: var(--surface); border: 1px solid var(--border); padding: 16px 24px; border-radius: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,0.01); }
+.filter-left-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.filter-btn:hover, .filter-btn.active { background: var(--arco-blue); border-color: var(--arco-blue); color: #fff; }
+.filter-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0 16px; border-radius: 24px; font-size: 13px; font-weight: 600; outline: none; cursor: pointer; height: 40px; transition: all 0.15s; min-width: 180px; }
+.filter-select:focus { border-color: var(--arco-blue); }
+
+.btn-arco { background: var(--arco-blue); color: #fff; border: none; padding: 10px 24px; border-radius: 24px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; height: 40px; }
+.btn-arco:hover { background: #0a2c6b; transform: translateY(-1px); }
+
+.activity-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.005); }
+.activity-header { padding: 22px 32px; display: grid; grid-template-columns: 2.2fr 2.5fr 1.1fr 1.3fr 140px; align-items: center; gap: 12px; cursor: pointer; }
+.act-title { font-size: 15px; font-weight: 700; color: var(--text); display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-title::before { content: "➔"; display: inline-block; transform: rotate(0deg); transition: transform 0.2s; font-size: 12px; color: var(--muted); margin-right: 12px; }
+.activity-card.open .act-title::before { transform: rotate(90deg); color: var(--arco-blue); font-weight: bold; }
+.act-days { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; color: var(--arco-blue); background: #e0f2fe; padding: 6px 14px; border-radius: 20px; width: fit-content; text-align: center; }
+.act-owners-container { display: flex; flex-wrap: nowrap; gap: 4px; overflow: hidden; }
+.owner-circle-tag { background: #114197; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-right: -8px; cursor: default; }
+.act-status-wrapper { display: flex; justify-content: flex-end; }
+.status-pill { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-align: center; }
+.status-pill.ok { background: var(--s-conc-bg); color: var(--s-conc); }
+.status-pill.pendente { background: var(--s-nao-bg); color: var(--s-nao); }
+.status-pill.atrasado { background: var(--s-apl-bg); color: var(--s-apl); }
+
+.subs-panel { display: none; background: #fafafa; border-top: 1px solid var(--border); padding: 20px 32px; }
+.activity-card.open .subs-panel { display: block; }
+.sub-grid-header { display: grid; grid-template-columns: 2fr 1.5fr 4fr; font-size: 11px; font-weight: 700; color: var(--muted); padding-bottom: 12px; border-bottom: 2px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+.sub-row { display: grid; grid-template-columns: 2fr 1.5fr 4fr; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.sub-row:last-child { border-bottom: none; }
+.sub-name { font-weight: 700; color: var(--arco-blue); font-size: 13px; }
+.status-select { appearance: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: 700; outline: none; background: var(--surface); width: 140px; }
+
+.config-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.config-table th { background: #f8fafc; padding: 16px 20px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+.config-table td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.du-edit-input { width: 70px; text-align: center; padding: 6px 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; }
+
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.4); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-overlay.open { display: flex; }
+.modal-card { background: #fff; border-radius: 20px; padding: 32px; width: 580px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); }
+.premium-users-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 350px; overflow-y: auto; padding-right: 4px; margin: 16px 0; }
+.user-select-card { border: 1px solid var(--border); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+.user-select-card.selected { background: #eff6ff; border-color: var(--arco-blue); box-shadow: 0 0 0 1px var(--arco-blue); }
+.user-avatar { width: 32px; height: 32px; background: #e2e8f0; color: var(--arco-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; font-family: 'IBM Plex Mono', monospace; }
+.user-select-card.selected .user-avatar { background: var(--arco-blue); color: #fff; }
+.user-name-label { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.companies-row-tags { display: flex; flex-wrap: wrap; gap: 4px; max-width: 250px; }
+.comp-sigla-tag { background: #f1f5f9; color: var(--arco-blue); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+
+.competence-box-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+.form-card { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.form-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px); transition: all .25s; pointer-events: none; z-index: 9999; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.form-cadastro-atv { display: none; background: var(--surface); border: 1px solid var(--border); padding: 32px; border-radius: 20px; margin-bottom: 32px; }
+.form-cadastro-atv.open { display: block; }
+.companies-badge-btn { background: #f1f5f9; border: 1px solid var(--border); color: var(--arco-blue); font-weight: 700; font-size: 12px; padding: 6px 14px; border-radius: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.companies-badge-btn:hover { background: #e2e8f0; }
+
+/* Balão do responsável (nome abreviado) na própria linha */
+.owners-inline-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.owner-chip { background: linear-gradient(135deg, #eff6ff, #e0f2fe); color: var(--arco-blue); border: 1px solid #c7dbf7; padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(17,65,151,0.05); }
+.owner-chip.unassigned { background: #fff7ed; color: var(--arco-orange); border-color: #fed7aa; }
+
+/* Data conclusão exibida na sub-linha */
+.done-stamp { display: inline-block; margin-left: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--s-conc); background: var(--s-conc-bg); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+
+/* Painel de subtotais & gráfico */
+.subtotal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+.subtotal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(15,23,42,0.01); }
+.subtotal-card h4 { font-size: 12px; font-weight: 700; color: var(--arco-blue); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; display:flex; align-items:center; gap:6px; }
+.subtotal-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 6px 0; font-size: 12px; border-bottom: 1px dashed #eef2f7; }
+.subtotal-row:last-child { border-bottom: none; }
+.subtotal-name { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.subtotal-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.subtotal-bar { width: 70px; height: 6px; background: #f1f5f9; border-radius: 4px; overflow:hidden; }
+.subtotal-bar-fill { height: 100%; background: linear-gradient(90deg, var(--arco-cyan), var(--arco-blue)); border-radius: 4px; }
+.subtotal-pct { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11px; color: var(--arco-blue); min-width: 34px; text-align: right; }
+.scroll-list { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+
+/* Gráfico de barras horizontal por área */
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 32px; box-shadow: 0 2px 10px rgba(15,23,42,0.01); }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--arco-blue); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 18px; }
+.chart-row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 12px; align-items: center; margin-bottom: 10px; font-size: 12px; }
+.chart-label { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-bg { height: 18px; background: #f1f5f9; border-radius: 6px; overflow: hidden; position: relative; }
+.chart-fill { height: 100%; background: linear-gradient(90deg, var(--arco-cyan), var(--arco-blue)); border-radius: 6px; transition: width .5s ease; }
+.chart-val { font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--arco-blue); text-align: right; }
+
+/* Edição Atividades: campo nome bonito + área dropdown */
+.config-table td .nome-edit { width: 100%; padding: 10px 14px; font-weight: 700; font-size: 13px; color: var(--arco-blue); background: #f8fafc; border: 1.5px solid var(--border); border-radius: 10px; transition: all .15s; outline: none; }
+.config-table td .nome-edit:focus { background: #fff; border-color: var(--arco-blue); box-shadow: 0 0 0 3px rgba(17,65,151,0.08); }
+.config-table td .area-edit { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: #fff; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; outline: none; }
+.config-table td .area-edit:focus { border-color: var(--arco-blue); }
+.form-input { padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; outline: none; }
+.form-input:focus { border-color: var(--arco-blue); }
+.chk-grid { display: grid; gap: 6px; }
+.chk-label { font-size: 12px; }
+.grid-cadastro-layout { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+
+/* ===== Tela de Login ===== */
+.login-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #114197 0%, #009ecc 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-overlay.hidden { display: none; }
+.login-card { background: #fff; padding: 44px 40px; border-radius: 24px; width: 440px; max-width: 100%; box-shadow: 0 30px 60px rgba(0,0,0,0.25); }
+.login-logo { font-size: 42px; font-weight: 800; color: var(--arco-blue); letter-spacing: -0.04em; text-align: center; }
+.login-logo span { color: var(--arco-cyan); }
+.login-title { color: var(--text); font-size: 20px; font-weight: 700; text-align: center; margin-top: 8px; }
+.login-sub { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0 28px; }
+.login-card .form-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: block; }
+.login-card select { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border); font-size: 14px; font-weight: 600; color: var(--text); background: #fff; outline: none; font-family: 'Sora', sans-serif; }
+.login-card select:focus { border-color: var(--arco-blue); box-shadow: 0 0 0 3px rgba(17,65,151,0.1); }
+.login-card .btn-arco { width: 100%; justify-content: center; padding: 14px; height: auto; font-size: 14px; margin-top: 12px; }
+.user-badge { display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--arco-blue); border: 1px solid #d0e1fd; }
+.logout-btn { background: #fff; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 700; transition: all .15s; }
+.logout-btn:hover { background: #fee2e2; color: var(--arco-orange); border-color: var(--arco-orange); }
+
+/* Multi-select estilizado p/ Nova Atividade */
+.multi-resp-select { width: 100%; min-height: 160px; padding: 8px; border-radius: 10px; border: 1.5px solid var(--border); background: #fff; font-size: 12px; font-family: 'Sora', sans-serif; outline: none; }
+.multi-resp-select:focus { border-color: var(--arco-blue); box-shadow: 0 0 0 3px rgba(17,65,151,0.08); }
+.multi-resp-select option { padding: 6px 10px; border-radius: 6px; }
+.multi-resp-select option:checked { background: var(--arco-blue) linear-gradient(0deg, var(--arco-blue) 0%, var(--arco-blue) 100%); color: #fff; font-weight: 700; }
+.hint-mini { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+
+
+/* Dropdown custom suspenso (checkbox list) */
+.cdd-wrap { position: relative; }
+.cdd-toggle { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: #fff; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; transition: all .15s; }
+.cdd-toggle:hover, .cdd-toggle.open { border-color: var(--arco-blue); box-shadow: 0 0 0 3px rgba(17,65,151,0.08); }
+.cdd-toggle::after { content: "▼"; font-size: 10px; color: var(--muted); }
+.cdd-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1.5px solid var(--arco-blue); border-radius: 12px; box-shadow: 0 12px 28px rgba(15,23,42,0.12); z-index: 50; max-height: 260px; overflow-y: auto; padding: 6px; }
+.cdd-panel.open { display: block; }
+.cdd-opt { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.cdd-opt:hover { background: #f1f5f9; }
+.cdd-opt input { width: 16px; height: 16px; accent-color: var(--arco-blue); cursor: pointer; }
+.cdd-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.cdd-chip { background: #eff6ff; color: var(--arco-blue); border: 1px solid #c7dbf7; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal-edit-owners">
+  <div class="modal-card">
+    <h3 style="color:var(--arco-blue); font-weight:700; font-size:16px;" id="modal-edit-title">Alterar Analistas Responsáveis</h3>
+    <p style="font-size:12px; color:var(--muted); margin-top:4px;">Marque os donos primários da atividade.</p>
+    <input type="hidden" id="modal-edit-act-id">
+    <div class="premium-users-grid" id="modal-users-grid-root"></div>
+    <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
+      <button class="filter-btn" onclick="fecharModalResponsavel()">Cancelar</button>
+      <button class="btn-arco" onclick="salvarResponsavelLote()">Confirmar Ajuste</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-companies">
+  <div class="modal-card">
+    <h3 style="color:var(--arco-blue); font-weight:700; font-size:16px;">Vincular Marcas Participantes</h3>
+    <input type="hidden" id="modal-comp-act-id">
+    <div class="premium-users-grid" id="modal-companies-grid-root"></div>
+    <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
+      <button class="filter-btn" onclick="fecharModalEmpresas()">Cancelar</button>
+      <button class="btn-arco" onclick="salvarEmpresasElegiveisLote()">Salvar Vínculos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tela de Login ===== -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">arco<span>.</span></div>
+    <div class="login-title">Cronograma de Fechamento</div>
+    <div class="login-sub">Selecione sua área e responsável para acessar.</div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Área</label>
+      <select id="login-area-sel" onchange="filtrarRespsLogin()"></select>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Responsável</label>
+      <select id="login-resp-sel"></select>
+    </div>
+    <button class="btn-arco" onclick="efetuarLogin()">Entrar →</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-arco" onclick="window.location.reload()">arco<span>.</span></div>
+    <div class="header-sep"></div>
+    <div id="user-badge-wrap" style="display:flex; gap:10px; align-items:center;">
+      <span class="user-badge" id="user-badge-text">—</span>
+      <button class="logout-btn" onclick="efetuarLogout()">🚪 Sair</button>
+    </div>
+  </div>
+  
+  <div>
+    <span style="font-weight:700; color:var(--arco-blue); font-size:15px; background:#eff6ff; padding:8px 20px; border-radius:12px; border:1px solid #d0e1fd;" id="mes-label-top">Competência</span>
+  </div>
+</header>
+
+
+<div class="dashboard-container">
+
+  <div class="area-health-box">
+    <div class="area-health-title">📊 Saúde de Entregas por Departamento / Área</div>
+    <div class="area-health-grid" id="area-health-grid-root"></div>
+  </div>
+
+  <div class="progress-wrap">
+    <span class="progress-label">Progresso do Fechamento Geral</span>
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    <span class="prog-pct" id="prog-pct">0%</span>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi" style="--kpi-color: var(--arco-blue);"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">Total de Atividades</div></div>
+    <div class="kpi" style="--kpi-color: var(--arco-green);"><div class="kpi-num" id="k-conc">0</div><div class="kpi-label">Concluídas (OK)</div></div>
+    <div class="kpi" style="--kpi-color: var(--arco-yellow);"><div class="kpi-num" id="k-pend">0</div><div class="kpi-label">Em Andamento</div></div>
+    <div class="kpi" style="--kpi-color: var(--arco-orange);"><div class="kpi-num" id="k-atras">0</div><div class="kpi-label">Atrasadas Hoje</div></div>
+    <div class="kpi" style="--kpi-color: var(--arco-cyan);"><div class="kpi-num" id="k-checklists">0</div><div class="kpi-label">Checklists Vinculados</div></div>
+  </div>
+
+  <div class="subtotal-grid" id="subtotal-grid-root"></div>
+  <div class="chart-card"><div class="chart-title">📈 Conclusão por Área</div><div id="chart-area-root"></div></div>
+
+  <div style="margin-bottom:24px; text-align:right; display:flex; justify-content:flex-end; gap:12px;" id="admin-actions-bar-top">
+    <button class="btn-arco" style="background:#22c55e;" onclick="exportarExcelOficial()">📥 Baixar Relatório Excel</button>
+    <button class="btn-arco" id="btn-nova-atv-gatilho" onclick="toggleFormCadastro()">➕ Criar Atividade</button>
+  </div>
+
+  <div id="form-cadastro-bloco" class="form-cadastro-atv">
+    <h3 style="color:var(--arco-blue); margin-bottom:20px; font-weight:700;">Criar Nova Atividade no Fluxo</h3>
+    <div class="grid-cadastro-layout">
+      <div class="form-group"><label>Nome da Atividade</label><input type="text" id="add-nome" class="form-input" placeholder="Ex: Conciliação Bancária"></div>
+      <div class="form-group">
+        <label>Área Responsável</label>
+        <select id="add-area" class="form-input" style="cursor:pointer;"></select>
+      </div>
+      <div class="form-group"><label>Dia Útil Alvo (D.U.)</label><input type="number" id="add-diautil" class="form-input" value="1"></div>
+    </div>
+    <div class="grid-2" style="margin-top:-10px; margin-bottom:16px;">
+      <div class="form-group">
+        <label>Impacta Prévia da Receita?</label>
+        <select class="filter-select" id="add-previa" style="width:100%;"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+      </div>
+      <div class="form-group">
+        <label>Marcas Vinculadas</label>
+        <div class="cdd-wrap" id="cdd-emp-wrap">
+          <button type="button" class="cdd-toggle" id="cdd-emp-toggle" onclick="toggleCdd('emp')">Selecionar marcas...</button>
+          <div class="cdd-panel" id="cdd-emp-panel"></div>
+        </div>
+        <div class="cdd-chips" id="cdd-emp-chips"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Analistas Responsáveis (lista suspensa)</label>
+      <div class="cdd-wrap" id="cdd-resp-wrap">
+        <button type="button" class="cdd-toggle" id="cdd-resp-toggle" onclick="toggleCdd('resp')">Selecionar responsáveis...</button>
+        <div class="cdd-panel" id="cdd-resp-panel"></div>
+      </div>
+      <div class="cdd-chips" id="cdd-resp-chips"></div>
+      <div class="hint-mini">💡 Clique no campo para abrir a lista. Marque um ou vários. Vazio = "A Atribuir".</div>
+    </div>
+
+    <div style="margin-top:24px; text-align:right;">
+      <button class="filter-btn" onclick="toggleFormCadastro()">Cancelar</button>
+      <button class="btn-arco" onclick="salvarNovaAtividade()">Cadastrar Atividade</button>
+    </div>
+  </div>
+
+  <div class="tabs-navigation" id="main-tabs-header-bar">
+    <button class="tab-link active" onclick="mudarAba('tab-execucao')">📋 Atividades (Acompanhamento)</button>
+    <button class="tab-link" id="tab-link-diasuteis" onclick="mudarAba('tab-diasuteis')">⚙️ Edição Atividades</button>
+    <button class="tab-link" id="tab-link-periodo" onclick="mudarAba('tab-config-periodo')">🗂 Competência & Arquivo</button>
+  </div>
+
+  <div id="tab-execucao" class="tab-content active">
+    <div class="filter-action-block">
+      <div class="filter-left-flow">
+        <button class="filter-btn active" data-f="todos" onclick="filtrarStatus(this, 'todos')">Todas</button>
+        <button class="filter-btn" data-f="OK" onclick="filtrarStatus(this, 'OK')">OK</button>
+        <button class="filter-btn" data-f="PENDENTE" onclick="filtrarStatus(this, 'PENDENTE')">Pendentes</button>
+        <button class="filter-btn" data-f="ATRASADO" onclick="filtrarStatus(this, 'ATRASADO')">Atrasadas</button>
+        
+        <div style="width:1px; height:24px; background:var(--border); margin:0 8px;"></div>
+        
+        <select class="filter-select" id="filter-resp" onchange="filtrarGeral()"><option value="todos">👤 Todos Responsáveis</option></select>
+        <select class="filter-select" id="filter-area" onchange="filtrarGeral()"><option value="todos">📂 Todas as Áreas</option></select>
+        
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:700; color:var(--muted)">Até Vencimento:</span>
+          <input type="date" id="filter-data-limite" class="form-input" style="width:150px; height:40px; border-radius:24px;" onchange="filtrarGeral()">
+        </div>
+      </div>
+      <div class="search-bar"><input class="search-input" type="text" placeholder="🔎 Buscar pelo nome da atividade..." id="search-input" oninput="filtrarGeral()" style="width:320px;"/></div>
+    </div>
+    <div id="activities-root"></div>
+  </div>
+
+  <div id="tab-diasuteis" class="tab-content">
+    <div style="margin-bottom:16px; display:flex; justify-content:flex-end; gap:12px;">
+      <button class="btn-arco" style="background:#475569;" onclick="baixarModeloCargaMassa()">📥 Baixar Modelo Carga</button>
+      <button class="btn-arco" style="background:#1e293b;" onclick="document.getElementById('file-import-trigger').click()">📤 Importar em Massa</button>
+      <input type="file" id="file-import-trigger" style="display:none;" onchange="importarPlanilhaMassa(event)">
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; overflow-x:auto;">
+      <table class="config-table">
+        <thead>
+          <tr>
+            <th>Nome da Atividade</th>
+            <th>Área</th>
+            <th>Responsáveis</th>
+            <th>Marcas Vinculadas</th>
+            <th>Prévia?</th>
+            <th style="width:90px; text-align:center;">D.U.</th>
+            <th>Data Alvo</th>
+            <th style="text-align:right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="table-config-du-root"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-config-periodo" class="tab-content">
+    <div class="form-card">
+      <h2 class="competence-box-title">📅 Seleção de Competência Operacional</h2>
+      <div class="grid-2" style="max-width:750px;">
+        <div class="form-group">
+          <label>MÊS COMPETÊNCIA TRABALHO</label>
+          <select class="filter-select" id="cfg-mes-seletor" style="height:44px; width:100%; padding:0 12px; border-radius:8px;">
+            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option>
+            <option value="Março">Março</option><option value="Abril">Abril</option>
+            <option value="Maio" selected>Maio</option><option value="Junho">Junho</option>
+            <option value="Julho">Julho</option><option value="Agosto">Agosto</option>
+            <option value="Setembro">Setembro</option><option value="Outubro">Outubro</option>
+            <option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ANO OPERACIONAL</label>
+          <input type="number" id="cfg-ano-seletor" class="form-input" value="2026" style="height:44px;">
+        </div>
+      </div>
+      <div style="margin-top:24px; display:flex; gap:12px;">
+        <button class="btn-arco" onclick="salvarNovaConfigPeriodo()">Aplicar Competência</button>
+        <button class="btn-arco" style="background:var(--arco-orange);" onclick="arquivarCompetenciaAtiva()">🔒 Congelar Histórico e Baixar Excel</button>
+      </div>
+    </div>
+    
+    <div class="form-card">
+      <h2 class="competence-box-title">🗂 Fechamentos Mensais Arquivados</h2>
+      <div id="historicos-lista-root" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;"></div>
+      <div id="historico-tabela-root"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROFISSIONAIS_TIME = [
+  "Danielle Mota Dias De Araujo", "Emerson Lacerda Nunes", "Jacyclea Livia De Araujo Bertoldo", 
+  "Jessica Elen Silveira Raulino", "Jhenyffer Maria Cavalcante Pessoa", "Juliana Da Silva Ribeiro", 
+  "Leonardo Candido Felix", "Luis Marcelino Venancio", "Marina Maria Teixeira Cavalcante", 
+  "Mary Nelma Guimaraes", "Mauricio Ferreira Da Silva Junior", "Natanael Ferreira De Sousa", 
+  "Vitoria Mansur Kuntz", "Jose Francisco Domingos Da Silva Junior"
+];
+
+const MASTERS_ADMINS = ["Natanael Ferreira De Sousa", "Jose Francisco Domingos Da Silva Junior"];
+const EMPRESAS_CHECKLIST = ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"];
+const FERIADOS_2026 = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25"];
+
+let dbAtividades = [];
+let dbHistoricos = {};
+let competencaAtiva = { mes: "Maio", ano: "2026" };
+let filtroStatusAtual = "todos";
+let usuarioLogadoAtual = "Outra Área";
+let subAreaSelecionadaParceira = "FP&A";
+
+const rotinasExcel = [
+  { nome: "Reclassificação Orçamentária", area: "FP&A", du: "-5", resps: ["Juliana Da Silva Ribeiro", "Mary Nelma Guimaraes"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC"] },
+  { nome: "Rateio CV", area: "Contábil", du: "-5", resps: ["Luis Marcelino Venancio"], previa: "Sim", emps: ["CBE/SAS", "IS"] },
+  { nome: "Planilha de Fechamento Contigências Mensais", area: "Jurídico", du: "-4", resps: ["Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "RSU - Provisões de principal e encargos", area: "Contábil", du: "-1", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "RSU - Reclassificação de impostos inerentes a saídas", area: "FP&A", du: "-1", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Convênio Itaú Folha", area: "Contábil", du: "1", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE"] },
+  { nome: "Períodos da Folha/Encargos", area: "DP", du: "1", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Marina Maria Teixeira Cavalcante", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Novas Ativações (Patrocínios)", area: "Controladoria", du: "1", resps: ["Vitoria Mansur Kuntz", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Aprop Despesa Antecipada - Protheus/Oracle/Sap", area: "Contábil", du: "1", resps: ["Vitoria Mansur Kuntz", "Jhenyffer Maria Cavalcante Pessoa", "Mary Nelma Guimaraes", "Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Comissão/Trimestral", area: "Contábil", du: "2", resps: ["Marina Maria Teixeira Cavalcante", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "PLR / LDF", area: "Contábil", du: "2", resps: ["Marina Maria Teixeira Cavalcante", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "PLR / STAFF", area: "Contábil", du: "2", resps: ["Marina Maria Teixeira Cavalcante", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Lançamento Depósitos Judiciais", area: "Contábil", du: "2", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS"] },
+  { nome: "Lançamento Contigência e conciliação", area: "Contábil", du: "2", resps: ["Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Rotina de Efetivação", area: "Contábil", du: "2", resps: ["Vitoria Mansur Kuntz", "Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Aprop. Patrocínios", area: "Contábil", du: "2", resps: ["Vitoria Mansur Kuntz", "Mary Nelma Guimaraes", "Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Rodar a rotina de efetivação e integração do Faturamento Protheus", area: "Contábil", du: "2", resps: ["Leonardo Candido Felix"], previa: "Sim", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Importação dos Períodos da Folha", area: "Contábil", du: "2", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Marina Maria Teixeira Cavalcante", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Bases de Faturamento", area: "Fiscal", du: "3", resps: ["Mary Nelma Guimaraes", "Leonardo Candido Felix", "Mauricio Ferreira Da Silva Junior"], previa: "Sim", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Atualização Monetária e Mútuos", area: "Tesouraria", du: "3", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Conciliação Faturamento Global", area: "Contábil", du: "3", resps: ["Mary Nelma Guimaraes", "Mauricio Ferreira Da Silva Junior", "Leonardo Candido Felix", "Vitoria Mansur Kuntz"], previa: "Sim", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Tratativas de pagamentos RV", area: "Contábil", du: "3", resps: ["Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Planilha de Depósitos Judiciais", area: "Tesouraria", du: "3", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS"] },
+  { nome: "Conciliação Bancária", area: "Tesouraria", du: "3", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Conciliação e lançamento Depósitos Judicial", area: "Contábil", du: "3", resps: ["Mauricio Ferreira Da Silva Junior", "Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS"] },
+  { nome: "Fundo Fixo", area: "Financeiro - AP", du: "3", resps: ["Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Equival. Caixas Eskolare", area: "Financeiro - AR", du: "3", resps: ["Juliana Da Silva Ribeiro", "Jhenyffer Maria Cavalcante Pessoa", "Mary Nelma Guimaraes"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Atualização da base de Devolução da Geekie", area: "Faturamento", du: "3", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["GEEKIE"] },
+  { nome: "Lançamento das Reclassificação Orçamentária", area: "Contábil", du: "3", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio", "Mary Nelma Guimaraes"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC"] },
+  { nome: "Lançamento At. Monetária e Mútuos", area: "Contábil", du: "3", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Aging de Contas a Pagar Protheus", area: "Financeiro - AP", du: "4", resps: ["Vitoria Mansur Kuntz", "Mary Nelma Guimaraes", "Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Aging de Contas a Receber Protheus SAS e IS.", area: "Financeiro - AR", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Lançamentos de Provisão/Reversão Cross Sell", area: "Contábil", du: "4", resps: ["Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Reclassificação/Provisão Controladoria", area: "Controladoria", du: "4", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Aplicações Financeiras", area: "Tesouraria", du: "4", resps: ["Juliana Da Silva Ribeiro", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Provisão LNE", area: "Fiscal", du: "4", resps: ["A Atribuir"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Conciliação Aging CR x Contábil - Protheus SAS e IS.", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Lançamento da Devolução da Geekie", area: "Contábil", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["GEEKIE"] },
+  { nome: "PCLD - Protheus", area: "Financeiro - AR", du: "4", resps: ["Leonardo Candido Felix", "Vitoria Mansur Kuntz"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Títulos de Cauções e Garantias (Oracle/Protheus)", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Taxas B2C", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Lançamentos Mútuos C/C APP", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Lançamentos Mútuos C/C (Outros)", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Conciliação Forn, Adto Forn e Viagem - Atech Protheus", area: "Financeiro - AP", du: "4", resps: ["Mauricio Ferreira Da Silva Junior"], previa: "Não", emps: ["ATECH"] },
+  { nome: "Reclassificar as Despesas da Arco Educação para a CBE", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Verificar Razões de Viagens", area: "Contábil", du: "4", resps: ["Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Bases B2C Protheus", area: "Financeiro - AR", du: "4", resps: ["Juliana Da Silva Ribeiro"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Aging dos adiantamento Oracle", area: "Financeiro - AP", du: "4", resps: ["Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Lançamento das Reclassificações/Provisão Controladoria", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Bases B2C Oracle", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Fornecedores Provisão", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Conciliação das Bases B2C", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Lançamento das Aplicações", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Aging de Contas a Pagar Oracle", area: "Financeiro - AP", du: "4", resps: ["Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Aging de Contas a Receber Oracle", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Contas transitórias Oracle", area: "Contábil", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "PCLD - Oracle e SAP", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Rateio Arco Instituto", area: "Contábil", du: "4", resps: ["Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Taxas B2C", area: "Contábil", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Repasse (Pagamentos/Permuta)", area: "Contábil", du: "4", resps: ["Vitoria Mansur Kuntz", "Mary Nelma Guimaraes", "Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Lançamento da PCLD - ORACLE e SAP", area: "Contábil", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Lançamento da PCLD - Protheus SAS/IS", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Superveniências ativas - Trimestre", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Dívidas Controladoria - Trimestre", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Atualização dívida IS para envio à Controladoria", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["IS"] },
+  { nome: "Repasse (Provisão)", area: "Contábil", du: "4", resps: ["Vitoria Mansur Kuntz", "Juliana Da Silva Ribeiro", "Mary Nelma Guimaraes", "Jacyclea Livia De Araujo Bertoldo"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Conciliação Forn, Adto Forn e Viagem - Protheus e SAP", area: "Contábil", du: "4", resps: ["Mauricio Ferreira Da Silva Junior", "Mary Nelma Guimaraes"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Equival. Caixas Pagar me", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Conciliação B2B (SAS&IS)", area: "Financeiro - AR", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["CBE/SAS", "SAE", "IS"] },
+  { nome: "Royalties SAS", area: "Financeiro - AR", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["CBE/SAS"] },
+  { nome: "Conciliação Transitórias Integração", area: "Contábil", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "NANI Oracle (Conferência)", area: "Financeiro - AR", du: "4", resps: ["Jhenyffer Maria Cavalcante Pessoa"], previa: "Não", emps: ["Arco Educação"] },
+  { nome: "Conciliação Mútuo Conta Corrente", area: "Contábil", du: "4", resps: ["Leonardo Candido Felix"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] },
+  { nome: "Integração e Conciliação SAP x Protheus", area: "Contábil", du: "7", resps: ["Mary Nelma Guimaraes"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Integração e Conciliação Oracle x Protheus", area: "Sistemas", du: "8", resps: ["Jhenyffer Maria Cavalcante Pessoa", "Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Integração e Conciliação SAP Hana x Protheus", area: "Sistemas", du: "8", resps: ["Marina Maria Teixeira Cavalcante"], previa: "Não", emps: ["Arco Educação", "CBE/SAS"] },
+  { nome: "Mapa das Aplicações Financeiras", area: "Contábil", du: "4", resps: ["Juliana Da Silva Ribeiro", "Luis Marcelino Venancio"], previa: "Não", emps: ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"] }
+];
+
+function inicializarSistema() {
+  const localData = localStorage.getItem("arco_atividades_db_v12_final_stable");
+  const localConfig = localStorage.getItem("arco_cronograma_config_v11");
+  const localHist = localStorage.getItem("arco_cronograma_hist_v11");
+
+  if (localConfig) competencaAtiva = JSON.parse(localConfig);
+  if (localHist) dbHistoricos = JSON.parse(localHist);
+
+  const areaCombo = document.getElementById("filter-area");
+  const respCombo = document.getElementById("filter-resp");
+  const areasUnicasSet = new Set();
+
+  if (localData) {
+    dbAtividades = JSON.parse(localData);
+  } else {
+    dbAtividades = rotinasExcel.map((item, i) => ({
+      id: "atv_" + i + "_" + new Date().getTime(),
+      atividade: item.nome,
+      area: item.area,
+      diaUtil: item.du,
+      previaReceita: item.previa || "Não",
+      responveisLista: item.resps,
+      empresasElegiveis: item.emps || [...EMPRESAS_CHECKLIST],
+      empresas: EMPRESAS_CHECKLIST.map(emp => ({
+        nome: emp, status: "PENDENTE", dataConclusao: "", obs: ""
+      }))
+    }));
+    salvarDados();
+  }
+
+  areaCombo.innerHTML = '<option value="todos">📂 Todas as Áreas</option>';
+  respCombo.innerHTML = '<option value="todos">👤 Todos Responsáveis</option><option value="A Atribuir">A Atribuir</option>';
+
+  PROFISSIONAIS_TIME.forEach(p => {
+    let fOpt = document.createElement("option"); fOpt.value = p; fOpt.textContent = p;
+    respCombo.appendChild(fOpt);
+  });
+
+  dbAtividades.forEach(a => areasUnicasSet.add(a.area));
+  areasUnicasSet.forEach(area => {
+    let opt = document.createElement("option"); opt.value = area; opt.textContent = area;
+    areaCombo.appendChild(opt);
+  });
+
+  atualizarLabelsCompetencia();
+  popularLogin();
+
+  // Auto-login se já existir sessão (nova chave v2)
+  const sessao = localStorage.getItem("arco_sessao_login_v2");
+  if (sessao) {
+    try {
+      const ss = JSON.parse(sessao);
+      if (ss && ss.usuario) {
+        usuarioLogadoAtual = ss.usuario;
+        subAreaSelecionadaParceira = ss.area || "__ADMIN__";
+        aplicarLoginNaTela();
+        return;
+      }
+    } catch(e) {}
+  }
+  // Sem sessão válida: mostra login
+  localStorage.removeItem("arco_sessao_login");
+  document.getElementById("login-overlay").classList.remove("hidden");
+}
+
+function popularLogin() {
+  const areaSel = document.getElementById("login-area-sel");
+  const respSel = document.getElementById("login-resp-sel");
+  if (!areaSel || !respSel) return;
+  const areasSet = new Set();
+  dbAtividades.forEach(a => areasSet.add(a.area));
+  const areas = Array.from(areasSet).sort();
+  areaSel.innerHTML = '<option value="">— Selecione uma área —</option>'
+    + '<option value="__ADMIN__">🛡 Administrador (acesso total)</option>'
+    + areas.map(a => `<option value="${a}">📂 ${a}</option>`).join("");
+  filtrarRespsLogin();
+}
+
+function filtrarRespsLogin() {
+  const areaSel = document.getElementById("login-area-sel");
+  const respSel = document.getElementById("login-resp-sel");
+  const area = areaSel.value;
+  if (!area) { respSel.innerHTML = '<option value="">— Selecione uma área primeiro —</option>'; return; }
+  if (area === "__ADMIN__") {
+    respSel.innerHTML = MASTERS_ADMINS.map(m => `<option value="${m}">👑 ${m}</option>`).join("");
+    return;
+  }
+  // Responsáveis ligados a essa área + opção de leitura
+  const respSet = new Set();
+  dbAtividades.forEach(a => {
+    if (a.area === area) (a.responveisLista || []).forEach(r => { if (r !== "A Atribuir") respSet.add(r); });
+  });
+  const lista = Array.from(respSet).sort();
+  let opts = lista.map(r => `<option value="${r}">👤 ${r}</option>`).join("");
+  opts += `<option value="__LEITURA__">🔒 Outra pessoa desta área (somente leitura)</option>`;
+  respSel.innerHTML = opts || '<option value="__LEITURA__">🔒 Somente leitura</option>';
+}
+
+function efetuarLogin() {
+  const area = document.getElementById("login-area-sel").value;
+  const resp = document.getElementById("login-resp-sel").value;
+  if (!area) { alert("Selecione uma área para continuar."); return; }
+  if (!resp) { alert("Selecione um responsável (ou modo somente leitura)."); return; }
+
+  if (area === "__ADMIN__") {
+    usuarioLogadoAtual = resp;
+    subAreaSelecionadaParceira = "__ADMIN__";
+  } else if (resp === "__LEITURA__") {
+    usuarioLogadoAtual = "Outra Área";
+    subAreaSelecionadaParceira = area; // filtra pela área escolhida
+  } else {
+    usuarioLogadoAtual = resp;
+    subAreaSelecionadaParceira = area;
+  }
+
+  localStorage.setItem("arco_sessao_login_v2", JSON.stringify({
+    usuario: usuarioLogadoAtual, area: subAreaSelecionadaParceira
+  }));
+  // limpa chave antiga se existir
+  localStorage.removeItem("arco_sessao_login");
+
+  aplicarLoginNaTela();
+  showToast("Bem-vindo, " + abreviarNomeCompleto(usuarioLogadoAtual) + "!");
+}
+
+function efetuarLogout() {
+  localStorage.removeItem("arco_sessao_login");
+  localStorage.removeItem("arco_sessao_login_v2");
+  location.reload();
+}
+
+function aplicarLoginNaTela() {
+  document.getElementById("login-overlay").classList.add("hidden");
+  let ehMaster = MASTERS_ADMINS.includes(usuarioLogadoAtual) || subAreaSelecionadaParceira === "__ADMIN__";
+
+  const badge = document.getElementById("user-badge-text");
+  if (usuarioLogadoAtual === "Outra Área") {
+    badge.innerHTML = `🔒 Leitura · 📂 ${subAreaSelecionadaParceira}`;
+  } else if (ehMaster) {
+    badge.innerHTML = `👑 ${abreviarNomeCompleto(usuarioLogadoAtual)} · Admin`;
+  } else {
+    badge.innerHTML = `👤 ${abreviarNomeCompleto(usuarioLogadoAtual)} · 📂 ${subAreaSelecionadaParceira}`;
+  }
+
+  document.getElementById("main-tabs-header-bar").style.display = ehMaster ? "flex" : "none";
+  document.getElementById("admin-actions-bar-top").style.display = ehMaster ? "flex" : "none";
+  // Trava os seletores de responsável/área para não-admin (já filtrado pelo login)
+  const fResp = document.getElementById("filter-resp");
+  const fArea = document.getElementById("filter-area");
+  if (fResp) fResp.style.display = ehMaster ? "" : "none";
+  if (fArea) fArea.style.display = ehMaster ? "" : "none";
+
+  mudarAba('tab-execucao');
+  renderizarFormCadastroBase();
+  renderizarPainelAtividades();
+}
+
+// Compat: chamadas legadas
+function processarLoginSeguro() { aplicarLoginNaTela(); }
+
+
+function atualizarLabelsCompetencia() {
+  const mesesL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  let idx = mesesL.indexOf(competencaAtiva.mes); let prox = mesesL[(idx+1)%12]; let anoProx = idx === 11 ? (parseInt(competencaAtiva.ano)+1) : competencaAtiva.ano;
+  document.getElementById("mes-label-top").textContent = `📅 Fechamento de ${competencaAtiva.mes}/${competencaAtiva.ano} (datas em ${prox}/${anoProx})`;
+}
+
+function salvarDados() {
+  localStorage.setItem("arco_atividades_db_v12_final_stable", JSON.stringify(dbAtividades));
+  localStorage.setItem("arco_cronograma_config_v11", JSON.stringify(competencaAtiva));
+  localStorage.setItem("arco_cronograma_hist_v11", JSON.stringify(dbHistoricos));
+}
+
+
+function mudarAba(targetTabId) {
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelectorAll('.tab-link').forEach(tl => tl.classList.remove('active'));
+  document.getElementById(targetTabId).classList.add('active');
+  
+  let gatilho = document.querySelector(`[onclick="mudarAba('${targetTabId}')"]`);
+  if(gatilho) gatilho.classList.add('active');
+}
+
+function ehDiaUtil(data) {
+  if (data.getDay() === 0 || data.getDay() === 6) return false;
+  return !FERIADOS_2026.includes(data.toISOString().split("T")[0]);
+}
+
+function calcularDataPorDiaUtl(diaUtilStr) {
+  let du = parseInt(diaUtilStr);
+  if (isNaN(du)) return null;
+  const mesesLista = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  let mIdxBase = mesesLista.indexOf(competencaAtiva.mes);
+  // Mês ativo = competência fechada; datas correm no MÊS SEGUINTE
+  let mIdx = mIdxBase + 1;
+  let anoCalc = parseInt(competencaAtiva.ano);
+  if (mIdx > 11) { mIdx = 0; anoCalc++; }
+  let dataCorrente;
+  if (du >= 1) {
+    dataCorrente = new Date(anoCalc, mIdx, 1);
+    let cont = 0;
+    while (cont < du) {
+      if (ehDiaUtil(dataCorrente)) cont++;
+      if (cont < du) dataCorrente.setDate(dataCorrente.getDate() + 1);
+    }
+  } else {
+    dataCorrente = new Date(anoCalc, mIdx, 1);
+    dataCorrente.setDate(dataCorrente.getDate() - 1); 
+    let cont = 0; let alvo = Math.abs(du); 
+    while (cont < alvo) {
+      if (ehDiaUtil(dataCorrente)) cont++;
+      if (cont < alvo) dataCorrente.setDate(dataCorrente.getDate() - 1);
+    }
+  }
+  return dataCorrente;
+}
+
+function abreviarNomeCompleto(n) {
+  if (n === "A Atribuir" || n === "Outra Área") return n;
+  let pts = n.split(" "); if (pts.length <= 2) return n;
+  return `${pts[0]} ${pts.slice(1,-1).map(p => p.length>2 ? p[0]+".":'').join(" ")} ${pts[pts.length-1]}`.replace(/\s+/g,' ');
+}
+
+function obterStatusGeralAtividade(act) {
+  let elegiveis = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
+  if(!elegiveis.length) return "OK";
+  let concluidas = elegiveis.filter(e => e.status === "OK").length;
+  if (concluidas === elegiveis.length) return "OK";
+
+  let dataLimite = calcularDataPorDiaUtl(act.diaUtil);
+  let hoje = new Date(); hoje.setHours(0,0,0,0);
+  return (dataLimite && hoje > dataLimite) ? "ATRASADO" : "PENDENTE";
+}
+
+function renderizarPainelAtividades() {
+  const root = document.getElementById("activities-root");
+  const tableDuRoot = document.getElementById("table-config-du-root");
+  const healthGrid = document.getElementById("area-health-grid-root");
+  
+  const buscaTxt = document.getElementById("search-input").value.toLowerCase();
+  const respFiltro = document.getElementById("filter-resp").value;
+  const areaFiltro = document.getElementById("filter-area").value;
+  const dataFiltroVal = document.getElementById("filter-data-limite").value;
+
+  root.innerHTML = ""; tableDuRoot.innerHTML = ""; healthGrid.innerHTML = "";
+  
+  let tAtv = 0, tOK = 0, tPend = 0, tAtras = 0, tChecklists = 0;
+  let ehMaster = MASTERS_ADMINS.includes(usuarioLogadoAtual);
+
+  let areaMetrics = {};
+
+  dbAtividades.forEach(act => {
+    let statusGeral = obterStatusGeralAtividade(act);
+    let dataCivil = calcularDataPorDiaUtl(act.diaUtil);
+    let dataFormatada = dataCivil ? dataCivil.toLocaleDateString("pt-BR") : "—";
+
+    let labelParaMetrica = (act.area.toLowerCase() === "contábil" || act.area.toLowerCase() === "contabilidade") ? "Contabilidade (Interno)" : act.area;
+    if (!areaMetrics[labelParaMetrica]) areaMetrics[labelParaMetrica] = { total: 0, concluidas: 0 };
+    let elegiveisCheck = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
+    areaMetrics[labelParaMetrica].total += elegiveisCheck.length;
+    areaMetrics[labelParaMetrica].concluidas += elegiveisCheck.filter(e => e.status === "OK").length;
+
+    // === Filtro automático por login (5) ===
+    if (!ehMaster) {
+      if (usuarioLogadoAtual === "Outra Área") {
+        // Externo: só vê atividades da própria área selecionada no login
+        if (act.area.toLowerCase() !== subAreaSelecionadaParceira.toLowerCase()) return;
+      } else {
+        // Analista logado: só vê atividades em que está como responsável OU da sua área
+        const ehResp = (act.responveisLista || []).includes(usuarioLogadoAtual);
+        const ehMinhaArea = act.area.toLowerCase() === (subAreaSelecionadaParceira||"").toLowerCase();
+        if (!ehResp && !ehMinhaArea) return;
+      }
+    }
+    if (respFiltro !== "todos" && !act.responveisLista.includes(respFiltro)) return;
+    if (areaFiltro !== "todos" && act.area !== areaFiltro) return;
+    if (dataFiltroVal && dataCivil) {
+      let dLimite = new Date(dataFiltroVal + "T00:00:00");
+      if (dataCivil > dLimite) return;
+    }
+    if (buscaTxt && !act.atividade.toLowerCase().includes(buscaTxt)) return;
+
+    if (ehMaster) {
+      let tagsSiglas = (act.empresasElegiveis || []).map(sig => `<span class="comp-sigla-tag">${sig.substring(0,4)}</span>`).join("");
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="text" class="nome-edit" value="${act.atividade}" onchange="atualizarCampoTexto('${act.id}','atividade',this.value)"></td>
+        <td>${areaSelectHtml(act.area, act.id)}</td>
+        <td><button class="companies-badge-btn" onclick="abrirModalResponsavel('${act.id}')">👤 ${act.responveisLista.length} Analistas</button></td>
+        <td><button class="companies-badge-btn" onclick="abrirModalEmpresas('${act.id}')"><div class="companies-row-tags">${tagsSiglas || 'Nenhuma'}</div></button></td>
+        <td>
+          <select class="filter-select" style="min-width:90px; height:34px;" onchange="atualizarCampoTexto('${act.id}','previaReceita',this.value)">
+            <option value="Não" ${act.previaReceita==='Não'?'selected':''}>Não</option>
+            <option value="Sim" ${act.previaReceita==='Sim'?'selected':''}>Sim</option>
+          </select>
+        </td>
+        <td><input type="number" class="du-edit-input" value="${act.diaUtil}" onchange="atualizarDiaUtilDireto('${act.id}',this.value)"></td>
+        <td style="font-family:'IBM Plex Mono'; font-weight:700; color:var(--arco-blue);">${dataFormatada}</td>
+        <td style="text-align:right;"><button class="filter-btn" style="background:var(--arco-orange); color:#fff; border:none; padding:4px 12px;" onclick="excluirAtividadeDefinitivo('${act.id}',event)">🗑</button></td>
+      `;
+      tableDuRoot.appendChild(tr);
+    }
+
+    if (filtroStatusAtual !== "todos" && statusGeral !== filtroStatusAtual) return;
+
+    tAtv++;
+    if (statusGeral === "OK") tOK++;
+    if (statusGeral === "PENDENTE") tPend++;
+    if (statusGeral === "ATRASADO") tAtras++;
+
+    let temPermissaoEscrita = false;
+    if (ehMaster) {
+      temPermissaoEscrita = true;
+    } else if (usuarioLogadoAtual === "Outra Área") {
+      if (act.area.toLowerCase() === subAreaSelecionadaParceira.toLowerCase()) temPermissaoEscrita = true;
+    } else {
+      if (act.responveisLista.includes(usuarioLogadoAtual)) temPermissaoEscrita = true;
+    }
+
+    let htmlSubRows = act.empresas.map((emp, idx) => {
+      if(!(act.empresasElegiveis || []).includes(emp.nome)) return '';
+      tChecklists++;
+
+      if (temPermissaoEscrita) {
+        let stamp = (emp.status==='OK' && emp.dataConclusao) ? `<span class="done-stamp">✓ ${emp.dataConclusao}</span>` : '';
+        return `
+          <div class="sub-row">
+            <div class="sub-name">🔹 ${emp.nome} ${stamp}</div>
+            <div>
+              <select class="status-select" onchange="alterarStatusLinha('${act.id}', ${idx}, this.value)">
+                <option value="PENDENTE" ${emp.status==='PENDENTE'?'selected':''}>🟡 PENDENTE</option>
+                <option value="OK" ${emp.status==='OK'?'selected':''}>🟢 OK</option>
+              </select>
+            </div>
+            <div>
+              <input type="text" placeholder="Adicionar evidência..." class="form-input" value="${emp.obs||''}" onchange="salvarObsLinha('${act.id}', ${idx}, this.value)"/>
+            </div>
+          </div>
+        `;
+      } else {
+        let stampR = (emp.status==='OK' && emp.dataConclusao) ? `<span class="done-stamp">✓ ${emp.dataConclusao}</span>` : '';
+        return `
+          <div class="sub-row">
+            <div class="sub-name">🔹 ${emp.nome} ${stampR}</div>
+            <div><span class="status-pill ${emp.status==='OK'?'ok':'pendente'}">${emp.status}</span></div>
+            <div><input type="text" class="form-input" disabled value="${emp.obs||'— Apenas leitura'}"></div>
+          </div>
+        `;
+      }
+    }).join("");
+
+    const card = document.createElement("div");
+    card.className = "activity-card";
+    card.id = act.id;
+
+    let tagPre = act.previaReceita === "Sim" ? `<span style="background:purple; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:8px;">PRÉVIA</span>` : '';
+    let circlesHtml = act.responveisLista.map(r => {
+      let nm = abreviarNomeCompleto(r);
+      let cls = (r === "A Atribuir") ? "owner-chip unassigned" : "owner-chip";
+      return `<span class="${cls}" title="${r}">${nm}</span>`;
+    }).join("");
+
+    card.innerHTML = `
+      <div class="activity-header" onclick="toggleCard('${act.id}')">
+        <div class="act-title">${act.atividade} ${tagPre}</div>
+        <div class="owners-inline-row">${circlesHtml}</div>
+        <div style="font-weight:600; color:var(--muted); font-size:13px;">📂 Área: ${act.area}</div>
+        <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0 ? '+'+act.diaUtil : act.diaUtil} (${dataFormatada})</div>
+        <div class="act-status-wrapper"><span class="status-pill ${statusGeral.toLowerCase()}">${statusGeral==='OK'?'🟢 OK':statusGeral==='PENDENTE'?'🟡 PENDENTE':'🔴 ATRASADA'}</span></div>
+      </div>
+      <div class="subs-panel">
+        <div class="sub-grid-header"><div>Marca Relacionada</div><div>Ação Operacional</div><div>Comentários de Comprovação</div></div>
+        ${htmlSubRows}
+      </div>
+    `;
+    root.appendChild(card);
+  });
+
+  Object.keys(areaMetrics).forEach(areaKey => {
+    let item = areaMetrics[areaKey];
+    let pctArea = item.total > 0 ? Math.round((item.concluidas / item.total) * 100) : 0;
+    
+    const block = document.createElement("div");
+    block.className = "area-health-card";
+    block.innerHTML = `
+      <div class="area-health-meta"><span>${areaKey}</span><span style="color:var(--arco-blue);">${pctArea}%</span></div>
+      <div class="prog-bg" style="height:6px;"><div class="prog-fill" style="width:${pctArea}%; background:var(--arco-cyan);"></div></div>
+    `;
+    healthGrid.appendChild(block);
+  });
+
+  document.getElementById("k-total").textContent = tAtv;
+  document.getElementById("k-conc").textContent = tOK;
+  document.getElementById("k-pend").textContent = tPend;
+  document.getElementById("k-atras").textContent = tAtras;
+  document.getElementById("k-checklists").textContent = tChecklists;
+
+  let pctGeral = tAtv > 0 ? Math.round((tOK / tAtv) * 100) : 0;
+  document.getElementById("prog-fill").style.width = pctGeral + "%";
+  document.getElementById("prog-pct").textContent = pctGeral + "%";
+  renderizarSubtotaisEGrafico();
+}
+
+
+function listarAreasUnicas() {
+  let set = new Set(); dbAtividades.forEach(a => set.add(a.area));
+  return Array.from(set).sort();
+}
+function areaSelectHtml(currentArea, actId) {
+  let areas = listarAreasUnicas();
+  if(!areas.includes(currentArea)) areas.push(currentArea);
+  let opts = areas.map(a => `<option value="${a}" ${a===currentArea?'selected':''}>${a}</option>`).join("");
+  return `<select class="area-edit" onchange="atualizarCampoTexto('${actId}','area',this.value); renderizarPainelAtividades();">${opts}<option value="__novo__">➕ Nova área...</option></select>`;
+}
+
+function renderizarSubtotaisEGrafico() {
+  const sgRoot = document.getElementById("subtotal-grid-root");
+  const chartRoot = document.getElementById("chart-area-root");
+  if(!sgRoot || !chartRoot) return;
+
+  let porResp = {}, porEmp = {}, porArea = {};
+
+  dbAtividades.forEach(act => {
+    let elegiveis = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
+    let areaKey = act.area || "—";
+    if(!porArea[areaKey]) porArea[areaKey] = { total:0, ok:0 };
+    porArea[areaKey].total += elegiveis.length;
+    porArea[areaKey].ok += elegiveis.filter(e => e.status==='OK').length;
+
+    elegiveis.forEach(e => {
+      if(!porEmp[e.nome]) porEmp[e.nome] = { total:0, ok:0 };
+      porEmp[e.nome].total++; if(e.status==='OK') porEmp[e.nome].ok++;
+    });
+
+    (act.responveisLista || []).forEach(r => {
+      if(!porResp[r]) porResp[r] = { total:0, ok:0 };
+      porResp[r].total += elegiveis.length;
+      porResp[r].ok += elegiveis.filter(e => e.status==='OK').length;
+    });
+  });
+
+  function renderBlock(title, icon, dict) {
+    let entries = Object.entries(dict).sort((a,b) => b[1].total - a[1].total);
+    let rows = entries.map(([k,v]) => {
+      let pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
+      return `<div class="subtotal-row">
+        <div class="subtotal-name" title="${k}">${k}</div>
+        <div class="subtotal-bar-wrap">
+          <span style="font-size:11px; color:var(--muted); font-family:'IBM Plex Mono';">${v.ok}/${v.total}</span>
+          <div class="subtotal-bar"><div class="subtotal-bar-fill" style="width:${pct}%"></div></div>
+          <span class="subtotal-pct">${pct}%</span>
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="subtotal-card"><h4>${icon} ${title}</h4><div class="scroll-list">${rows||'<small style="color:var(--muted)">Sem dados</small>'}</div></div>`;
+  }
+
+  sgRoot.innerHTML =
+    renderBlock("Por Responsável", "👤", porResp) +
+    renderBlock("Por Empresa/Marca", "🏢", porEmp) +
+    renderBlock("Por Área", "📂", porArea);
+
+  // Gráfico horizontal por área
+  let areaEntries = Object.entries(porArea).sort((a,b) => (b[1].ok/Math.max(b[1].total,1)) - (a[1].ok/Math.max(a[1].total,1)));
+  chartRoot.innerHTML = areaEntries.map(([k,v]) => {
+    let pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
+    return `<div class="chart-row">
+      <div class="chart-label" title="${k}">${k}</div>
+      <div class="chart-bg"><div class="chart-fill" style="width:${pct}%"></div></div>
+      <div class="chart-val">${pct}%</div>
+    </div>`;
+  }).join("") || '<small style="color:var(--muted)">Sem dados</small>';
+}
+
+function toggleCard(id) { document.getElementById(id).classList.toggle("open"); }
+function toggleFormCadastro() { document.getElementById("form-cadastro-bloco").classList.toggle("open"); }
+
+function abrirModalResponsavel(actId) {
+  let atv = dbAtividades.find(a => a.id === actId);
+  document.getElementById("modal-edit-act-id").value = actId;
+  document.getElementById("modal-edit-title").textContent = atv.atividade;
+
+  const root = document.getElementById("modal-users-grid-root");
+  root.innerHTML = PROFISSIONAIS_TIME.map(p => {
+    let sel = atv.responveisLista.includes(p) ? 'selected' : '';
+    let iniciais = p.split(" ").map(w => w[0]).join("").substring(0,2);
+    return `
+      <div class="user-select-card ${sel}" onclick="this.classList.toggle('selected')">
+        <div class="user-avatar">${iniciais}</div>
+        <div class="user-name-label">${p}</div>
+      </div>
+    `;
+  }).join("");
+  document.getElementById("modal-edit-owners").classList.add("open");
+}
+
+function fecharModalResponsavel() { document.getElementById("modal-edit-owners").classList.remove("open"); }
+
+function salvarResponsavelLote() {
+  let actId = document.getElementById("modal-edit-act-id").value;
+  let atv = dbAtividades.find(a => a.id === actId);
+  let cards = document.querySelectorAll("#modal-users-grid-root .user-select-card.selected");
+  let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
+  if(!novos.length) novos.push("A Atribuir");
+  atv.responveisLista = novos;
+  salvarDados(); fecharModalResponsavel(); renderizarPainelAtividades(); showToast("Responsáveis atualizados!");
+}
+
+function abrirModalEmpresas(actId) {
+  let atv = dbAtividades.find(a => a.id === actId);
+  document.getElementById("modal-comp-act-id").value = actId;
+  let elegiveis = atv.empresasElegiveis || [...EMPRESAS_CHECKLIST];
+
+  const root = document.getElementById("modal-companies-grid-root");
+  root.innerHTML = EMPRESAS_CHECKLIST.map(emp => {
+    let sel = elegiveis.includes(emp) ? 'selected' : '';
+    return `
+      <div class="user-select-card ${sel}" onclick="this.classList.toggle('selected')">
+        <div class="user-avatar" style="background:var(--arco-cyan); color:white;">🏢</div>
+        <div class="user-name-label">${emp}</div>
+      </div>
+    `;
+  }).join("");
+  document.getElementById("modal-edit-companies").classList.add("open");
+}
+
+function fecharModalEmpresas() { document.getElementById("modal-edit-companies").classList.remove("open"); }
+
+function salvarEmpresasElegiveisLote() {
+  let actId = document.getElementById("modal-comp-act-id").value;
+  let atv = dbAtividades.find(a => a.id === actId);
+  let cards = document.querySelectorAll("#modal-companies-grid-root .user-select-card.selected");
+  let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
+  atv.empresasElegiveis = novos;
+  salvarDados(); fecharModalEmpresas(); renderizarPainelAtividades(); showToast("Marcas vinculadas!");
+}
+
+function atualizarCampoTexto(id, campo, val) {
+  let atv = dbAtividades.find(a => a.id === id);
+  if(!atv) return;
+  if(campo === 'area' && val === '__novo__') {
+    let nova = prompt("Nome da nova área:"); if(!nova) { renderizarPainelAtividades(); return; }
+    val = nova.trim();
+  }
+  atv[campo] = val; salvarDados(); showToast("Salvo!");
+}
+
+function atualizarDiaUtilDireto(id, val) {
+  let atv = dbAtividades.find(a => a.id === id);
+  if(atv && val.trim()) { atv.diaUtil = String(val); salvarDados(); renderizarPainelAtividades(); showToast("Recalculado!"); }
+}
+
+function alterarStatusLinha(actId, empIdx, status) {
+  let atv = dbAtividades.find(a => a.id === actId);
+  atv.empresas[empIdx].status = status;
+  if(status === "OK") {
+    let d = new Date(); atv.empresas[empIdx].dataConclusao = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
+  } else { atv.empresas[empIdx].dataConclusao = ""; }
+  salvarDados();
+  // Preserva quais cards estão abertos e a posição de rolagem
+  const abertos = Array.from(document.querySelectorAll('.activity-card.open')).map(c => c.id);
+  const scrollY = window.scrollY;
+  renderizarPainelAtividades();
+  abertos.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('open'); });
+  window.scrollTo(0, scrollY);
+  showToast("Status sincronizado!");
+}
+
+function salvarObsLinha(actId, empIdx, txt) {
+  let atv = dbAtividades.find(a => a.id === actId); atv.empresas[empIdx].obs = txt; salvarDados();
+}
+
+let cddRespSelecionados = [];
+let cddEmpSelecionados = [];
+
+function toggleCdd(tipo) {
+  const panel = document.getElementById(`cdd-${tipo}-panel`);
+  const tg = document.getElementById(`cdd-${tipo}-toggle`);
+  document.querySelectorAll('.cdd-panel').forEach(p => { if(p!==panel) p.classList.remove('open'); });
+  document.querySelectorAll('.cdd-toggle').forEach(t => { if(t!==tg) t.classList.remove('open'); });
+  panel.classList.toggle('open'); tg.classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.cdd-wrap')) {
+    document.querySelectorAll('.cdd-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.cdd-toggle').forEach(t => t.classList.remove('open'));
+  }
+});
+
+function popularCddResp() {
+  const panel = document.getElementById("cdd-resp-panel"); if(!panel) return;
+  panel.innerHTML = PROFISSIONAIS_TIME.map(p => `
+    <label class="cdd-opt"><input type="checkbox" value="${p}" ${cddRespSelecionados.includes(p)?'checked':''} onchange="atualizarCddSelecao('resp')"> ${p}</label>
+  `).join("");
+  atualizarCddSelecao('resp');
+}
+function popularCddEmp() {
+  const panel = document.getElementById("cdd-emp-panel"); if(!panel) return;
+  if(!cddEmpSelecionados.length) cddEmpSelecionados = [...EMPRESAS_CHECKLIST];
+  panel.innerHTML = EMPRESAS_CHECKLIST.map(e => `
+    <label class="cdd-opt"><input type="checkbox" value="${e}" ${cddEmpSelecionados.includes(e)?'checked':''} onchange="atualizarCddSelecao('emp')"> ${e}</label>
+  `).join("");
+  atualizarCddSelecao('emp');
+}
+function atualizarCddSelecao(tipo) {
+  const panel = document.getElementById(`cdd-${tipo}-panel`);
+  const sel = Array.from(panel.querySelectorAll('input:checked')).map(i => i.value);
+  if(tipo==='resp') cddRespSelecionados = sel; else cddEmpSelecionados = sel;
+  const chips = document.getElementById(`cdd-${tipo}-chips`);
+  chips.innerHTML = sel.map(v => `<span class="cdd-chip">${tipo==='resp'?abreviarNomeCompleto(v):v}</span>`).join("");
+  const tg = document.getElementById(`cdd-${tipo}-toggle`);
+  tg.textContent = sel.length ? `${sel.length} selecionado(s)` : (tipo==='resp'?'Selecionar responsáveis...':'Selecionar marcas...');
+}
+
+function renderizarFormCadastroBase() {
+  popularCddResp();
+  popularCddEmp();
+  // Dropdown de área (suspenso, com áreas existentes + opção de nova)
+  const areaSel = document.getElementById("add-area");
+  if (areaSel) {
+    const areas = listarAreasUnicas();
+    areaSel.innerHTML = areas.map(a => `<option value="${a}">${a}</option>`).join("")
+      + '<option value="__novo__">➕ Nova área...</option>';
+    areaSel.onchange = function() {
+      if (this.value === "__novo__") {
+        const nova = prompt("Nome da nova área:");
+        if (nova && nova.trim()) {
+          const opt = document.createElement("option");
+          opt.value = nova.trim(); opt.textContent = nova.trim(); opt.selected = true;
+          this.insertBefore(opt, this.lastElementChild);
+          this.value = nova.trim();
+        } else { this.selectedIndex = 0; }
+      }
+    };
+  }
+}
+
+function salvarNovaAtividade() {
+  const nome = document.getElementById("add-nome").value.trim();
+  const area = document.getElementById("add-area").value.trim();
+  const du = document.getElementById("add-diautil").value.trim();
+  const previa = document.getElementById("add-previa").value;
+
+  if(!nome || !area || area === "__novo__" || !du) { alert("Preencha nome, área e dia útil."); return; }
+
+  // Múltiplos responsáveis (dropdown custom)
+  let resps = [...cddRespSelecionados];
+  if(!resps.length) resps.push("A Atribuir");
+  // Múltiplas empresas (dropdown custom)
+  let empsElegiveis = [...cddEmpSelecionados];
+  if(!empsElegiveis.length) empsElegiveis = [...EMPRESAS_CHECKLIST];
+
+  dbAtividades.push({
+    id: "atv_" + new Date().getTime(),
+    atividade: nome, area: area, diaUtil: String(du), previaReceita: previa,
+    responveisLista: resps, empresasElegiveis: empsElegiveis,
+    empresas: EMPRESAS_CHECKLIST.map(emp => ({ nome: emp, status: "PENDENTE", dataConclusao: "", obs: "" }))
+  });
+  salvarDados();
+  document.getElementById("add-nome").value = "";
+  cddRespSelecionados = []; cddEmpSelecionados = [];
+  toggleFormCadastro();
+  inicializarSistema();
+  showToast("Atividade cadastrada com " + resps.length + " responsável(eis)!");
+}
+
+
+function salvarNovaConfigPeriodo() {
+  competencaAtiva.mes = document.getElementById("cfg-mes-seletor").value;
+  competencaAtiva.ano = document.getElementById("cfg-ano-seletor").value;
+  salvarDados(); atualizarLabelsCompetencia(); inicializarSistema(); showToast("Mês ativo alterado!");
+}
+
+function arquivarCompetenciaAtiva() {
+  const chave = competencaAtiva.mes + "_" + competencaAtiva.ano;
+  if(confirm(`Deseja selar o histórico e fazer o download automático do Excel para ${competencaAtiva.mes}/${competencaAtiva.ano}?`)) {
+    dbHistoricos[chave] = {
+      label: competencaAtiva.mes + " / " + competencaAtiva.ano,
+      competencia: { ...competencaAtiva },
+      arquivadoEm: new Date().toLocaleString("pt-BR"),
+      dados: JSON.parse(JSON.stringify(dbAtividades))
+    };
+    
+    // Disparar o download em lote de forma automática contendo todas as evidências juntas
+    exportarExcelOficial();
+    
+    dbAtividades.forEach(act => {
+      act.empresas.forEach(e => { e.status = "PENDENTE"; e.dataConclusao = ""; e.obs = ""; });
+    });
+    salvarDados(); renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
+  }
+}
+
+function renderizarAbasHistorico() {
+  const root = document.getElementById("historicos-lista-root");
+  const chaves = Object.keys(dbHistoricos);
+  if(!chaves.length) { root.innerHTML = "<small style='color:var(--muted);'>Sem arquivos históricos.</small>"; return; }
+  root.innerHTML = chaves.map(k => `<button class="filter-btn" onclick="visualizarHistoricoEspecifico('${k}')">📁 ${dbHistoricos[k].label}</button>`).join("");
+}
+
+function visualizarHistoricoEspecifico(key) {
+  const h = dbHistoricos[key];
+  const tableRoot = document.getElementById("historico-tabela-root");
+  let rows = h.dados.map(act => {
+    let elegiveis = act.empresasElegiveis || [];
+    let resps = (act.responveisLista || []).map(r => `<span class="owner-chip">${abreviarNomeCompleto(r)}</span>`).join(" ");
+    let lines = act.empresas.filter(e => elegiveis.includes(e.nome)).map(e => {
+      let cor = e.status === 'OK' ? 'var(--s-conc)' : 'var(--s-nao)';
+      let bg = e.status === 'OK' ? 'var(--s-conc-bg)' : 'var(--s-nao-bg)';
+      return `
+        <div style="display:grid; grid-template-columns:1.5fr 0.8fr 1.2fr 2fr; gap:12px; padding:8px 16px; font-size:12px; background:#fff; border-bottom:1px solid #edf2f7; align-items:center;">
+          <div style="font-weight:600;">🔹 ${e.nome}</div>
+          <div><span style="background:${bg}; color:${cor}; padding:3px 10px; border-radius:10px; font-weight:700; font-size:11px;">${e.status}</span></div>
+          <div style="font-family:'IBM Plex Mono'; font-size:11px; color:var(--muted);">${e.dataConclusao || '—'}</div>
+          <div style="color:var(--muted); font-style:italic;">${e.obs || '—'}</div>
+        </div>
+      `;
+    }).join("");
+    return `<div style="border:1px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden;">
+      <div style="padding:12px 16px; background:#f1f5f9;">
+        <div style="font-weight:700; color:var(--text); margin-bottom:6px;">${act.atividade} <span style="font-size:11px; color:var(--muted); font-weight:600;">• ${act.area} • D.U. ${act.diaUtil} • Prévia: ${act.previaReceita||'Não'}</span></div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">${resps}</div>
+      </div>
+      <div style="display:grid; grid-template-columns:1.5fr 0.8fr 1.2fr 2fr; gap:12px; padding:6px 16px; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; background:#fafbfc; border-bottom:1px solid var(--border);">
+        <div>Empresa</div><div>Status</div><div>Data Conclusão</div><div>Evidência / Obs</div>
+      </div>
+      ${lines}
+    </div>`;
+  }).join("");
+  let meta = h.arquivadoEm ? `<div style="font-size:12px; color:var(--muted); margin-bottom:16px;">📦 Arquivado em: <b>${h.arquivadoEm}</b></div>` : '';
+  tableRoot.innerHTML = `<h3 style="color:var(--arco-blue); margin:20px 0 8px 0;">Histórico Completo: ${h.label}</h3>${meta}${rows}`;
+}
+
+function excluirAtividadeDefinitivo(id, e) {
+  e.stopPropagation();
+  if(confirm("Apagar atividade permanentemente?")) { dbAtividades = dbAtividades.filter(a => a.id !== id); salvarDados(); inicializarSistema(); }
+}
+
+function baixarModeloCargaMassa() {
+  // Cabeçalho completo com TODAS as configurações da atividade
+  let csv = "Atividade;Area;Dia Util;Previa Receita (Sim/Não);Responsaveis (separar por |);Marcas Vinculadas (separar por | ou TODAS)\n";
+  csv += "Exemplo Conciliacao de Caixa;Contábil;3;Não;Leonardo Candido Felix|Mary Nelma Guimaraes;CBE/SAS|SAE|IS\n";
+  csv += "Exemplo Revisao de Impostos;Fiscal;-2;Sim;A Atribuir;TODAS\n";
+  csv += "Exemplo Provisao Folha;Contábil;4;Não;Marina Maria Teixeira Cavalcante;Arco Educação|CBE/SAS\n";
+  // Linhas de referência
+  csv += "\n# REFERÊNCIA - Responsáveis disponíveis:;" + PROFISSIONAIS_TIME.join(" | ") + "\n";
+  csv += "# REFERÊNCIA - Marcas disponíveis:;" + EMPRESAS_CHECKLIST.join(" | ") + "\n";
+  csv += "# Dia Util: numero positivo (ex 3) = 3º dia util após o mês; negativo (ex -2) = 2 dias úteis antes\n";
+  let blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+  let link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", "Modelo_Carga_Massa_Arco.csv");
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function importarPlanilhaMassa(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result; const lines = text.split(/\r?\n/);
+    let cont = 0; let ignoradas = 0;
+    for(let i=1; i<lines.length; i++) {
+      const raw = lines[i].trim();
+      if(!raw || raw.startsWith("#")) continue;
+      let col = raw.split(";").map(c => c.replace(/^"|"$/g,'').trim());
+      if(col.length < 3 || !col[0] || !col[1] || !col[2]) { ignoradas++; continue; }
+
+      // Responsáveis: separados por |
+      let respsRaw = (col[4] || "").trim();
+      let resps = respsRaw ? respsRaw.split("|").map(r => r.trim()).filter(Boolean) : ["A Atribuir"];
+      if (!resps.length) resps = ["A Atribuir"];
+
+      // Marcas: TODAS ou lista por |
+      let empsRaw = (col[5] || "TODAS").trim().toUpperCase();
+      let empsElegiveis;
+      if (empsRaw === "TODAS" || empsRaw === "") {
+        empsElegiveis = [...EMPRESAS_CHECKLIST];
+      } else {
+        empsElegiveis = (col[5] || "").split("|").map(e => e.trim()).filter(Boolean);
+        if (!empsElegiveis.length) empsElegiveis = [...EMPRESAS_CHECKLIST];
+      }
+
+      dbAtividades.push({
+        id: "atv_import_" + new Date().getTime() + "_" + i,
+        atividade: col[0],
+        area: col[1],
+        diaUtil: String(col[2]),
+        previaReceita: (col[3] || "Não").trim() === "Sim" ? "Sim" : "Não",
+        responveisLista: resps,
+        empresasElegiveis: empsElegiveis,
+        empresas: EMPRESAS_CHECKLIST.map(emp => ({ nome: emp, status: "PENDENTE", dataConclusao: "", obs: "" }))
+      });
+      cont++;
+    }
+    event.target.value = ""; // reset input
+    salvarDados(); inicializarSistema();
+    showToast(`✓ ${cont} atividades importadas` + (ignoradas ? ` (${ignoradas} linhas ignoradas)` : "") + "!");
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+
+function exportarExcelOficial() {
+  let csv = "Atividade;Area;Dia Util;Data Prevista;Previa Receita;Responsavel;Empresa;Status;Data Conclusao;Evidencia\n";
+  dbAtividades.forEach(a => {
+    let elegiveis = a.empresasElegiveis || EMPRESAS_CHECKLIST;
+    let dPrev = calcularDataPorDiaUtl(a.diaUtil);
+    let dPrevFmt = dPrev ? dPrev.toLocaleDateString("pt-BR") : "";
+    a.empresas.forEach(e => {
+      if(elegiveis.includes(e.nome)) {
+        csv += `"${a.atividade}";"${a.area}";"${a.diaUtil}";"${dPrevFmt}";"${a.previaReceita}";"${a.responveisLista.join(', ')}";"${e.nome}";"${e.status}";"${e.dataConclusao || ''}";"${e.obs || ''}"\n`;
+      }
+    });
+  });
+  let blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+  let link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `Relatorio_Completo_Fechamento_${competencaAtiva.mes}_${competencaAtiva.ano}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function filtrarStatus(btn, status) {
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active"); filtroStatusAtual = status; renderizarPainelAtividades();
+}
+
+function filtrarGeral() { renderizarPainelAtividades(); }
+function showToast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2000); }
+
+window.onload = inicializarSistema;
+</script>
+</body>
+</html>
