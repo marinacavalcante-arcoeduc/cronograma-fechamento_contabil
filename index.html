@@ -317,6 +317,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <span class="prog-pct" id="prog-pct">0%</span>
   </div>
 
+  <div class="subtotal-grid" id="subtotal-grid-root" style="margin-bottom:32px;"></div>
+
   <div class="kpi-row">
     <div class="kpi" style="--kpi-color: var(--arco-blue);"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">Total de Atividades</div></div>
     <div class="kpi" style="--kpi-color: var(--arco-green);"><div class="kpi-num" id="k-conc">0</div><div class="kpi-label">Concluídas (OK)</div></div>
@@ -325,8 +327,6 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <div class="kpi" style="--kpi-color: var(--arco-cyan);"><div class="kpi-num" id="k-checklists">0</div><div class="kpi-label">Checklists Vinculados</div></div>
   </div>
 
-  <div class="subtotal-grid" id="subtotal-grid-root"></div>
-  <!-- chart-area removido -->
 
   <div style="margin-bottom:24px; text-align:right; display:flex; justify-content:flex-end; gap:12px;" id="admin-actions-bar-top">
     <button class="btn-arco" style="background:#22c55e;" onclick="exportarExcelOficial()">📥 Baixar Relatório Excel</button>
