@@ -31,7 +31,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; padding-botto
 
 header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 85px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
 .logo-wrap { display: flex; align-items: center; gap: 12px; margin-left: -10px; }
-.logo-arco { font-size: 28px; font-weight: 800; color: var(--arco-blue); letter-spacing: -0.03em; cursor: pointer; }
+.logo-arco { cursor: pointer; display:flex; align-items:center; }
 .logo-arco span { color: var(--arco-cyan); }
 .header-sep { width: 1px; height: 24px; background: var(--border); }
 
@@ -178,7 +178,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 .login-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #114197 0%, #009ecc 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .login-overlay.hidden { display: none; }
 .login-card { background: #fff; padding: 44px 40px; border-radius: 24px; width: 440px; max-width: 100%; box-shadow: 0 30px 60px rgba(0,0,0,0.25); }
-.login-logo { font-size: 42px; font-weight: 800; color: var(--arco-blue); letter-spacing: -0.04em; text-align: center; }
+.login-logo { font-size: 42px; font-weight: 800; color: var(--arco-blue); letter-spacing: -0.04em; text-align: center; display:flex; align-items:center; justify-content:center; }
 .login-logo span { color: var(--arco-cyan); }
 .login-title { color: var(--text); font-size: 20px; font-weight: 700; text-align: center; margin-top: 8px; }
 .login-sub { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0 28px; }
@@ -245,7 +245,19 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 <!-- ===== Tela de Login ===== -->
 <div class="login-overlay" id="login-overlay">
   <div class="login-card">
-    <div class="login-logo">arco<span>.</span></div>
+    <div class="login-logo" style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="120" height="38" viewBox="0 0 120 38">
+  <!-- símbolo Arco bicolor (simplificado) -->
+  <g transform="translate(2,2)">
+    <!-- asa esquerda laranja -->
+    <path d="M16 8 C10 2, 2 4, 0 10 C4 8, 10 10, 14 16 Z" fill="#f05323"/>
+    <!-- asa direita azul -->
+    <path d="M16 8 C22 2, 30 4, 32 10 C28 8, 22 10, 18 16 Z" fill="#009ecc"/>
+    <!-- haste central -->
+    <path d="M15 8 L15 20 Q15.5 22 16 22 Q16.5 22 17 20 L17 8 Z" fill="#114197"/>
+  </g>
+  <!-- texto "arco." -->
+  <text x="38" y="27" font-family="Sora,sans-serif" font-weight="800" font-size="22" fill="#114197" letter-spacing="-0.04em">arco<tspan fill="#009ecc">.</tspan></text>
+</svg></div>
     <div class="login-title">Cronograma de Fechamento</div>
     <div class="login-sub">Selecione sua área e responsável para acessar.</div>
     <div class="form-group" style="margin-bottom:16px;">
@@ -256,13 +268,29 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
       <label>Responsável</label>
       <select id="login-resp-sel"></select>
     </div>
+    <div class="form-group" id="login-senha-group" style="display:none; margin-bottom:16px;">
+      <label>Senha Admin</label>
+      <input type="password" id="login-senha-inp" class="form-input" placeholder="Digite a senha" style="width:100%; height:44px; border-radius:12px; font-size:14px;" onkeydown="if(event.key==='Enter') efetuarLogin()">
+    </div>
     <button class="btn-arco" onclick="efetuarLogin()">Entrar →</button>
   </div>
 </div>
 
 <header>
   <div class="logo-wrap">
-    <div class="logo-arco" onclick="window.location.reload()">arco<span>.</span></div>
+    <div class="logo-arco" onclick="window.location.reload()" style="display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="120" height="38" viewBox="0 0 120 38">
+  <!-- símbolo Arco bicolor (simplificado) -->
+  <g transform="translate(2,2)">
+    <!-- asa esquerda laranja -->
+    <path d="M16 8 C10 2, 2 4, 0 10 C4 8, 10 10, 14 16 Z" fill="#f05323"/>
+    <!-- asa direita azul -->
+    <path d="M16 8 C22 2, 30 4, 32 10 C28 8, 22 10, 18 16 Z" fill="#009ecc"/>
+    <!-- haste central -->
+    <path d="M15 8 L15 20 Q15.5 22 16 22 Q16.5 22 17 20 L17 8 Z" fill="#114197"/>
+  </g>
+  <!-- texto "arco." -->
+  <text x="38" y="27" font-family="Sora,sans-serif" font-weight="800" font-size="22" fill="#114197" letter-spacing="-0.04em">arco<tspan fill="#009ecc">.</tspan></text>
+</svg></div>
     <div class="header-sep"></div>
     <div id="user-badge-wrap" style="display:flex; gap:10px; align-items:center;">
       <span class="user-badge" id="user-badge-text">—</span>
@@ -298,7 +326,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
   </div>
 
   <div class="subtotal-grid" id="subtotal-grid-root"></div>
-  <div class="chart-card"><div class="chart-title">📈 Conclusão por Área</div><div id="chart-area-root"></div></div>
+  <!-- chart-area removido -->
 
   <div style="margin-bottom:24px; text-align:right; display:flex; justify-content:flex-end; gap:12px;" id="admin-actions-bar-top">
     <button class="btn-arco" style="background:#22c55e;" onclick="exportarExcelOficial()">📥 Baixar Relatório Excel</button>
@@ -349,6 +377,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <button class="tab-link active" onclick="mudarAba('tab-execucao')">📋 Atividades (Acompanhamento)</button>
     <button class="tab-link" id="tab-link-diasuteis" onclick="mudarAba('tab-diasuteis')">⚙️ Edição Atividades</button>
     <button class="tab-link" id="tab-link-periodo" onclick="mudarAba('tab-config-periodo')">🗂 Competência & Arquivo</button>
+    <button class="tab-link" id="tab-link-config" onclick="mudarAba('tab-config-listas')">⚙️ Configurações</button>
   </div>
 
   <div id="tab-execucao" class="tab-content active">
@@ -363,6 +392,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
         
         <select class="filter-select" id="filter-resp" onchange="filtrarGeral()"><option value="todos">👤 Todos Responsáveis</option></select>
         <select class="filter-select" id="filter-area" onchange="filtrarGeral()"><option value="todos">📂 Todas as Áreas</option></select>
+        <select class="filter-select" id="filter-empresa" onchange="filtrarGeral()"><option value="todos">🏢 Todas as Empresas</option></select>
         
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:12px; font-weight:700; color:var(--muted)">Até Vencimento:</span>
@@ -375,10 +405,17 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
   </div>
 
   <div id="tab-diasuteis" class="tab-content">
-    <div style="margin-bottom:16px; display:flex; justify-content:flex-end; gap:12px;">
+    <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="edit-filter-nome" class="search-input" placeholder="🔎 Filtrar atividade..." oninput="renderizarPainelAtividades()" style="width:220px; height:40px;">
+        <select id="edit-filter-resp" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">👤 Todos Responsáveis</option></select>
+        <select id="edit-filter-area" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">📂 Todas as Áreas</option></select>
+      </div>
+      <div style="display:flex; gap:12px;">
       <button class="btn-arco" style="background:#475569;" onclick="baixarModeloCargaMassa()">📥 Baixar Modelo Carga</button>
       <button class="btn-arco" style="background:#1e293b;" onclick="document.getElementById('file-import-trigger').click()">📤 Importar em Massa</button>
       <input type="file" id="file-import-trigger" style="display:none;" onchange="importarPlanilhaMassa(event)">
+      </div>
     </div>
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; overflow-x:auto;">
       <table class="config-table">
@@ -431,10 +468,31 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
       <div id="historico-tabela-root"></div>
     </div>
   </div>
+  <div id="tab-config-listas" class="tab-content">
+    <div class="form-card">
+      <h2 class="competence-box-title">👥 Gerenciar Responsáveis do Time</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Adicione ou remova profissionais que aparecem nas listas de seleção de responsável.</p>
+      <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <input type="text" id="cfg-new-resp" class="form-input" placeholder="Nome completo do profissional..." style="flex:1; min-width:250px;">
+        <button class="btn-arco" onclick="adicionarProfissional()">➕ Adicionar Responsável</button>
+      </div>
+      <div id="cfg-resp-lista" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:10px;"></div>
+    </div>
+    <div class="form-card">
+      <h2 class="competence-box-title">🏢 Gerenciar Empresas / Marcas</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Adicione ou remova empresas que compõem o checklist de cada atividade.</p>
+      <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <input type="text" id="cfg-new-emp" class="form-input" placeholder="Nome da empresa ou marca..." style="flex:1; min-width:250px;">
+        <button class="btn-arco" onclick="adicionarEmpresa()">➕ Adicionar Empresa</button>
+      </div>
+      <div id="cfg-emp-lista" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-const PROFISSIONAIS_TIME = [
+let PROFISSIONAIS_TIME = [
   "Danielle Mota Dias De Araujo", "Emerson Lacerda Nunes", "Jacyclea Livia De Araujo Bertoldo", 
   "Jessica Elen Silveira Raulino", "Jhenyffer Maria Cavalcante Pessoa", "Juliana Da Silva Ribeiro", 
   "Leonardo Candido Felix", "Luis Marcelino Venancio", "Marina Maria Teixeira Cavalcante", 
@@ -443,7 +501,7 @@ const PROFISSIONAIS_TIME = [
 ];
 
 const MASTERS_ADMINS = ["Natanael Ferreira De Sousa", "Jose Francisco Domingos Da Silva Junior"];
-const EMPRESAS_CHECKLIST = ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"];
+let EMPRESAS_CHECKLIST = ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"];
 const FERIADOS_2026 = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25"];
 
 // ============================================================
@@ -471,9 +529,11 @@ function inicializarFirebase() {
 function salvarDados() {
   if (!_fbRef) return;
   _fbRef.set({
-    atividades:  dbAtividades,
-    config:      competencaAtiva,
-    historicos:  dbHistoricos
+    atividades:    dbAtividades,
+    config:        competencaAtiva,
+    historicos:    dbHistoricos,
+    profissionais: PROFISSIONAIS_TIME,
+    empresas:      EMPRESAS_CHECKLIST
   }).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
 }
 
@@ -576,6 +636,8 @@ async function inicializarSistema() {
       if (dados.config)     competencaAtiva = dados.config;
       if (dados.historicos) dbHistoricos    = dados.historicos;
       if (dados.atividades) dbAtividades    = dados.atividades;
+      if (dados.profissionais && dados.profissionais.length) PROFISSIONAIS_TIME = dados.profissionais;
+      if (dados.empresas && dados.empresas.length)           EMPRESAS_CHECKLIST = dados.empresas;
     }
 
     if (!dbAtividades || !dbAtividades.length) {
@@ -613,6 +675,36 @@ async function inicializarSistema() {
     let opt = document.createElement("option"); opt.value = area; opt.textContent = area;
     areaCombo.appendChild(opt);
   });
+
+  // Popular filtro de empresa na tela principal
+  const empCombo = document.getElementById("filter-empresa");
+  if (empCombo) {
+    empCombo.innerHTML = '<option value="todos">🏢 Todas as Empresas</option>';
+    EMPRESAS_CHECKLIST.forEach(e => {
+      let opt = document.createElement("option"); opt.value = e; opt.textContent = e;
+      empCombo.appendChild(opt);
+    });
+  }
+
+  // Popular filtro de responsável na aba edição
+  const editRespCombo = document.getElementById("edit-filter-resp");
+  if (editRespCombo) {
+    editRespCombo.innerHTML = '<option value="todos">👤 Todos Responsáveis</option>';
+    PROFISSIONAIS_TIME.forEach(p => {
+      let opt = document.createElement("option"); opt.value = p; opt.textContent = p;
+      editRespCombo.appendChild(opt);
+    });
+  }
+
+  // Popular filtro de área na aba edição
+  const editAreaCombo = document.getElementById("edit-filter-area");
+  if (editAreaCombo) {
+    editAreaCombo.innerHTML = '<option value="todos">📂 Todas as Áreas</option>';
+    areasUnicasSet.forEach(area => {
+      let opt = document.createElement("option"); opt.value = area; opt.textContent = area;
+      editAreaCombo.appendChild(opt);
+    });
+  }
 
   atualizarLabelsCompetencia();
   popularLogin();
@@ -665,10 +757,20 @@ function popularLogin() {
 function filtrarRespsLogin() {
   const areaSel = document.getElementById("login-area-sel");
   const respSel = document.getElementById("login-resp-sel");
+  const senhaGroup = document.getElementById("login-senha-group");
   const area = areaSel.value;
-  if (!area) { respSel.innerHTML = '<option value="">— Selecione uma área primeiro —</option>'; return; }
+  if (!area) { respSel.innerHTML = '<option value="">— Selecione uma área primeiro —</option>'; if(senhaGroup) senhaGroup.style.display="none"; return; }
   if (area === "__ADMIN__") {
     respSel.innerHTML = MASTERS_ADMINS.map(m => `<option value="${m}">👑 ${m}</option>`).join("");
+    if(senhaGroup) senhaGroup.style.display="block";
+    return;
+  }
+  if(senhaGroup) senhaGroup.style.display="none";
+  const AREA_CONTABIL = ["Contábil","Contabilidade"];
+  const ehContabil = AREA_CONTABIL.includes(area);
+  if (!ehContabil) {
+    // Só leitura para áreas não-contábil
+    respSel.innerHTML = `<option value="__LEITURA__">👁 Acessar como Leitura</option>`;
     return;
   }
   // Responsáveis ligados a essa área + opção de leitura
@@ -822,10 +924,16 @@ function renderizarPainelAtividades() {
   const tableDuRoot = document.getElementById("table-config-du-root");
   const healthGrid = document.getElementById("area-health-grid-root");
   
-  const buscaTxt = document.getElementById("search-input").value.toLowerCase();
-  const respFiltro = document.getElementById("filter-resp").value;
-  const areaFiltro = document.getElementById("filter-area").value;
-  const dataFiltroVal = document.getElementById("filter-data-limite").value;
+  const buscaTxt = document.getElementById("search-input") ? document.getElementById("search-input").value.toLowerCase() : "";
+  const respFiltro = document.getElementById("filter-resp") ? document.getElementById("filter-resp").value : "todos";
+  const areaFiltro = document.getElementById("filter-area") ? document.getElementById("filter-area").value : "todos";
+  const empresaFiltro = document.getElementById("filter-empresa") ? document.getElementById("filter-empresa").value : "todos";
+  const dataFiltroVal = document.getElementById("filter-data-limite") ? document.getElementById("filter-data-limite").value : "";
+  const editNomeFiltro = document.getElementById("edit-filter-nome") ? document.getElementById("edit-filter-nome").value.toLowerCase() : "";
+  const editRespFiltro = document.getElementById("edit-filter-resp") ? document.getElementById("edit-filter-resp").value : "todos";
+  const editAreaFiltro = document.getElementById("edit-filter-area") ? document.getElementById("edit-filter-area").value : "todos";
+
+  const AREA_CONTABIL = ["Contábil","Contabilidade","contábil","contabilidade"];
 
   root.innerHTML = ""; tableDuRoot.innerHTML = ""; healthGrid.innerHTML = "";
   
@@ -834,7 +942,15 @@ function renderizarPainelAtividades() {
 
   let areaMetrics = {};
 
-  dbAtividades.forEach(act => {
+  // ── 5. Ordenar: primeiro por DU, depois alfabético
+  const atividadesOrdenadas = [...dbAtividades].sort((a, b) => {
+    let da = parseInt(a.diaUtil) || 0;
+    let db2 = parseInt(b.diaUtil) || 0;
+    if (da !== db2) return da - db2;
+    return a.atividade.localeCompare(b.atividade, "pt-BR");
+  });
+
+  atividadesOrdenadas.forEach(act => {
     let statusGeral = obterStatusGeralAtividade(act);
     let dataCivil = calcularDataPorDiaUtl(act.diaUtil);
     let dataFormatada = dataCivil ? dataCivil.toLocaleDateString("pt-BR") : "—";
@@ -864,26 +980,39 @@ function renderizarPainelAtividades() {
       if (dataCivil > dLimite) return;
     }
     if (buscaTxt && !act.atividade.toLowerCase().includes(buscaTxt)) return;
+    // Filtro por empresa (tela principal)
+    if (empresaFiltro !== "todos") {
+      let elegiMap = act.empresasElegiveis || [];
+      if (!elegiMap.includes(empresaFiltro)) return;
+    }
 
     if (ehMaster) {
-      let tagsSiglas = (act.empresasElegiveis || []).map(sig => `<span class="comp-sigla-tag">${sig.substring(0,4)}</span>`).join("");
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input type="text" class="nome-edit" value="${act.atividade}" onchange="atualizarCampoTexto('${act.id}','atividade',this.value)"></td>
-        <td>${areaSelectHtml(act.area, act.id)}</td>
-        <td><button class="companies-badge-btn" onclick="abrirModalResponsavel('${act.id}')">👤 ${act.responveisLista.length} Analistas</button></td>
-        <td><button class="companies-badge-btn" onclick="abrirModalEmpresas('${act.id}')"><div class="companies-row-tags">${tagsSiglas || 'Nenhuma'}</div></button></td>
-        <td>
-          <select class="filter-select" style="min-width:90px; height:34px;" onchange="atualizarCampoTexto('${act.id}','previaReceita',this.value)">
-            <option value="Não" ${act.previaReceita==='Não'?'selected':''}>Não</option>
-            <option value="Sim" ${act.previaReceita==='Sim'?'selected':''}>Sim</option>
-          </select>
-        </td>
-        <td><input type="number" class="du-edit-input" value="${act.diaUtil}" onchange="atualizarDiaUtilDireto('${act.id}',this.value)"></td>
-        <td style="font-family:'IBM Plex Mono'; font-weight:700; color:var(--arco-blue);">${dataFormatada}</td>
-        <td style="text-align:right;"><button class="filter-btn" style="background:var(--arco-orange); color:#fff; border:none; padding:4px 12px;" onclick="excluirAtividadeDefinitivo('${act.id}',event)">🗑</button></td>
-      `;
-      tableDuRoot.appendChild(tr);
+      // ── 3c. Aplicar filtros da aba edição
+      const passaEditFiltro = (
+        (!editNomeFiltro || act.atividade.toLowerCase().includes(editNomeFiltro)) &&
+        (editRespFiltro === "todos" || act.responveisLista.includes(editRespFiltro)) &&
+        (editAreaFiltro === "todos" || act.area === editAreaFiltro)
+      );
+      if (passaEditFiltro) {
+        let tagsSiglas = (act.empresasElegiveis || []).map(sig => `<span class="comp-sigla-tag">${sig.substring(0,4)}</span>`).join("");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input type="text" class="nome-edit" value="${act.atividade}" onchange="atualizarCampoTexto('${act.id}','atividade',this.value)"></td>
+          <td>${areaSelectHtml(act.area, act.id)}</td>
+          <td><button class="companies-badge-btn" onclick="abrirModalResponsavel('${act.id}')">👤 ${act.responveisLista.length} Analistas</button></td>
+          <td><button class="companies-badge-btn" onclick="abrirModalEmpresas('${act.id}')"><div class="companies-row-tags">${tagsSiglas || 'Nenhuma'}</div></button></td>
+          <td>
+            <select class="filter-select" style="min-width:90px; height:34px;" onchange="atualizarCampoTexto('${act.id}','previaReceita',this.value)">
+              <option value="Não" ${act.previaReceita==='Não'?'selected':''}>Não</option>
+              <option value="Sim" ${act.previaReceita==='Sim'?'selected':''}>Sim</option>
+            </select>
+          </td>
+          <td><input type="number" class="du-edit-input" value="${act.diaUtil}" onchange="atualizarDiaUtilDireto('${act.id}',this.value)"></td>
+          <td style="font-family:'IBM Plex Mono'; font-weight:700; color:var(--arco-blue);">${dataFormatada}</td>
+          <td style="text-align:right;"><button class="filter-btn" style="background:var(--arco-orange); color:#fff; border:none; padding:4px 12px;" onclick="excluirAtividadeDefinitivo('${act.id}',event)">🗑</button></td>
+        `;
+        tableDuRoot.appendChild(tr);
+      }
     }
 
     if (filtroStatusAtual !== "todos" && statusGeral !== filtroStatusAtual) return;
@@ -939,8 +1068,13 @@ function renderizarPainelAtividades() {
     card.id = act.id;
 
     let tagPre = act.previaReceita === "Sim" ? `<span style="background:purple; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:8px;">PRÉVIA</span>` : '';
-    let circlesHtml = act.responveisLista.map(r => {
-      let nm = abreviarNomeCompleto(r);
+    // ── 8. Para áreas não-contábil, mostrar o nome da área como responsável
+    let respExibir = act.responveisLista;
+    if (!AREA_CONTABIL.includes(act.area)) {
+      respExibir = [act.area];
+    }
+    let circlesHtml = respExibir.map(r => {
+      let nm = AREA_CONTABIL.includes(act.area) ? abreviarNomeCompleto(r) : r;
       let cls = (r === "A Atribuir") ? "owner-chip unassigned" : "owner-chip";
       return `<span class="${cls}" title="${r}">${nm}</span>`;
     }).join("");
@@ -1409,6 +1543,87 @@ function filtrarStatus(btn, status) {
 
 function filtrarGeral() { renderizarPainelAtividades(); }
 function showToast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2000); }
+
+// ── 9. Funções de gerenciamento de listas (Configurações)
+function renderizarConfigListas() {
+  const respRoot = document.getElementById("cfg-resp-lista");
+  const empRoot = document.getElementById("cfg-emp-lista");
+  if (!respRoot || !empRoot) return;
+
+  respRoot.innerHTML = PROFISSIONAIS_TIME.map((p, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+      <span style="font-size:13px; font-weight:600; color:var(--text);">${p}</span>
+      <button onclick="removerProfissional(${i})" style="background:none; border:none; cursor:pointer; color:var(--arco-orange); font-size:16px;" title="Remover">🗑</button>
+    </div>
+  `).join("");
+
+  empRoot.innerHTML = EMPRESAS_CHECKLIST.map((e, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+      <span style="font-size:13px; font-weight:600; color:var(--arco-blue);">🏢 ${e}</span>
+      <button onclick="removerEmpresa(${i})" style="background:none; border:none; cursor:pointer; color:var(--arco-orange); font-size:16px;" title="Remover">🗑</button>
+    </div>
+  `).join("");
+}
+
+function adicionarProfissional() {
+  const inp = document.getElementById("cfg-new-resp");
+  const nome = inp.value.trim();
+  if (!nome) { showToast("⚠️ Digite o nome do profissional."); return; }
+  if (PROFISSIONAIS_TIME.includes(nome)) { showToast("⚠️ Responsável já existe."); return; }
+  PROFISSIONAIS_TIME.push(nome);
+  PROFISSIONAIS_TIME.sort((a,b) => a.localeCompare(b, "pt-BR"));
+  inp.value = "";
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Responsável adicionado!");
+}
+
+function removerProfissional(idx) {
+  const nome = PROFISSIONAIS_TIME[idx];
+  if (!confirm(`Remover "${nome}" da lista de responsáveis?`)) return;
+  PROFISSIONAIS_TIME.splice(idx, 1);
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Responsável removido!");
+}
+
+function adicionarEmpresa() {
+  const inp = document.getElementById("cfg-new-emp");
+  const nome = inp.value.trim();
+  if (!nome) { showToast("⚠️ Digite o nome da empresa."); return; }
+  if (EMPRESAS_CHECKLIST.includes(nome)) { showToast("⚠️ Empresa já existe."); return; }
+  EMPRESAS_CHECKLIST.push(nome);
+  // Adicionar empresa nas atividades existentes que têm "TODAS" ou atualizar
+  dbAtividades.forEach(act => {
+    if (!act.empresas.find(e => e.nome === nome)) {
+      act.empresas.push({ nome: nome, status: "PENDENTE", dataConclusao: "", obs: "" });
+    }
+  });
+  inp.value = "";
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Empresa adicionada!");
+}
+
+function removerEmpresa(idx) {
+  const nome = EMPRESAS_CHECKLIST[idx];
+  if (!confirm(`Remover "${nome}" da lista de empresas?`)) return;
+  EMPRESAS_CHECKLIST.splice(idx, 1);
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Empresa removida!");
+}
+
+// Chamar renderizarConfigListas quando a aba for aberta
+const _origMudarAba = mudarAba;
+function mudarAba(id) {
+  _origMudarAba(id);
+  if (id === "tab-config-listas") renderizarConfigListas();
+}
 
 window.onload = inicializarSistema;
 </script>
