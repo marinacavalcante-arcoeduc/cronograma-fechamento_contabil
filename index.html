@@ -866,6 +866,8 @@ function mudarAba(targetTabId) {
   
   let gatilho = document.querySelector(`[onclick="mudarAba('${targetTabId}')"]`);
   if(gatilho) gatilho.classList.add('active');
+
+  if (targetTabId === 'tab-config-listas') renderizarConfigListas();
 }
 
 function ehDiaUtil(data) {
@@ -1616,13 +1618,6 @@ function removerEmpresa(idx) {
   renderizarConfigListas();
   inicializarSistema();
   showToast("✓ Empresa removida!");
-}
-
-// Chamar renderizarConfigListas quando a aba for aberta
-const _origMudarAba = mudarAba;
-function mudarAba(id) {
-  _origMudarAba(id);
-  if (id === "tab-config-listas") renderizarConfigListas();
 }
 
 window.onload = inicializarSistema;
