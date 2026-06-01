@@ -1136,8 +1136,8 @@ function areaSelectHtml(currentArea, actId) {
 
 function renderizarSubtotaisEGrafico() {
   const sgRoot = document.getElementById("subtotal-grid-root");
+  if(!sgRoot) return;
   const chartRoot = document.getElementById("chart-area-root");
-  if(!sgRoot || !chartRoot) return;
 
   let porResp = {}, porEmp = {}, porArea = {};
 
@@ -1181,16 +1181,7 @@ function renderizarSubtotaisEGrafico() {
     renderBlock("Por Empresa/Marca", "🏢", porEmp) +
     renderBlock("Por Área", "📂", porArea);
 
-  // Gráfico horizontal por área
-  let areaEntries = Object.entries(porArea).sort((a,b) => (b[1].ok/Math.max(b[1].total,1)) - (a[1].ok/Math.max(a[1].total,1)));
-  chartRoot.innerHTML = areaEntries.map(([k,v]) => {
-    let pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
-    return `<div class="chart-row">
-      <div class="chart-label" title="${k}">${k}</div>
-      <div class="chart-bg"><div class="chart-fill" style="width:${pct}%"></div></div>
-      <div class="chart-val">${pct}%</div>
-    </div>`;
-  }).join("") || '<small style="color:var(--muted)">Sem dados</small>';
+  // Gráfico removido
 }
 
 function toggleCard(id) { document.getElementById(id).classList.toggle("open"); }
