@@ -474,6 +474,38 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 
     </div>
 
+  <div id="tab-config-periodo" class="tab-content">
+    <div class="form-card">
+      <h2 class="competence-box-title">📅 Seleção de Competência Operacional</h2>
+      <div class="grid-2" style="max-width:750px;">
+        <div class="form-group">
+          <label>MÊS COMPETÊNCIA TRABALHO</label>
+          <select class="filter-select" id="cfg-mes-seletor" style="height:44px; width:100%; padding:0 12px; border-radius:8px;">
+            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option>
+            <option value="Março">Março</option><option value="Abril">Abril</option>
+            <option value="Maio" selected>Maio</option><option value="Junho">Junho</option>
+            <option value="Julho">Julho</option><option value="Agosto">Agosto</option>
+            <option value="Setembro">Setembro</option><option value="Outubro">Outubro</option>
+            <option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ANO OPERACIONAL</label>
+          <input type="number" id="cfg-ano-seletor" class="form-input" value="2026" style="height:44px;">
+        </div>
+      </div>
+      <div style="margin-top:24px; display:flex; gap:12px;">
+        <button class="btn-arco" onclick="salvarNovaConfigPeriodo()">Aplicar Competência</button>
+        <button class="btn-arco" style="background:var(--arco-orange);" onclick="arquivarCompetenciaAtiva()">🔒 Congelar Histórico e Baixar Excel</button>
+      </div>
+    </div>
+    <div class="form-card">
+      <h2 class="competence-box-title">🗂 Fechamentos Mensais Arquivados</h2>
+      <div id="historicos-lista-root" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;"></div>
+      <div id="historico-tabela-root"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
