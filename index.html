@@ -375,9 +375,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 
   <div class="tabs-navigation" id="main-tabs-header-bar">
     <button class="tab-link active" onclick="mudarAba('tab-execucao')">📋 Atividades (Acompanhamento)</button>
-    <button class="tab-link" id="tab-link-diasuteis" onclick="mudarAba('tab-diasuteis')">⚙️ Edição Atividades</button>
+    <button class="tab-link" id="tab-link-config" onclick="mudarAba('tab-config-listas')">⚙️ Edição & Configurações</button>
     <button class="tab-link" id="tab-link-periodo" onclick="mudarAba('tab-config-periodo')">🗂 Competência & Arquivo</button>
-    <button class="tab-link" id="tab-link-config" onclick="mudarAba('tab-config-listas')">⚙️ Configurações</button>
   </div>
 
   <div id="tab-execucao" class="tab-content active">
@@ -404,71 +403,43 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <div id="activities-root"></div>
   </div>
 
-  <div id="tab-diasuteis" class="tab-content">
-    <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <input type="text" id="edit-filter-nome" class="search-input" placeholder="🔎 Filtrar atividade..." oninput="renderizarPainelAtividades()" style="width:220px; height:40px;">
-        <select id="edit-filter-resp" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">👤 Todos Responsáveis</option></select>
-        <select id="edit-filter-area" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">📂 Todas as Áreas</option></select>
-      </div>
-      <div style="display:flex; gap:12px;">
-      <button class="btn-arco" style="background:#475569;" onclick="baixarModeloCargaMassa()">📥 Baixar Modelo Carga</button>
-      <button class="btn-arco" style="background:#1e293b;" onclick="document.getElementById('file-import-trigger').click()">📤 Importar em Massa</button>
-      <input type="file" id="file-import-trigger" style="display:none;" onchange="importarPlanilhaMassa(event)">
-      </div>
-    </div>
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; overflow-x:auto;">
-      <table class="config-table">
-        <thead>
-          <tr>
-            <th>Nome da Atividade</th>
-            <th>Área</th>
-            <th>Responsáveis</th>
-            <th>Marcas Vinculadas</th>
-            <th>Prévia?</th>
-            <th style="width:90px; text-align:center;">D.U.</th>
-            <th>Data Alvo</th>
-            <th style="text-align:right;">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="table-config-du-root"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="tab-config-periodo" class="tab-content">
-    <div class="form-card">
-      <h2 class="competence-box-title">📅 Seleção de Competência Operacional</h2>
-      <div class="grid-2" style="max-width:750px;">
-        <div class="form-group">
-          <label>MÊS COMPETÊNCIA TRABALHO</label>
-          <select class="filter-select" id="cfg-mes-seletor" style="height:44px; width:100%; padding:0 12px; border-radius:8px;">
-            <option value="Janeiro">Janeiro</option><option value="Fevereiro">Fevereiro</option>
-            <option value="Março">Março</option><option value="Abril">Abril</option>
-            <option value="Maio" selected>Maio</option><option value="Junho">Junho</option>
-            <option value="Julho">Julho</option><option value="Agosto">Agosto</option>
-            <option value="Setembro">Setembro</option><option value="Outubro">Outubro</option>
-            <option value="Novembro">Novembro</option><option value="Dezembro">Dezembro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>ANO OPERACIONAL</label>
-          <input type="number" id="cfg-ano-seletor" class="form-input" value="2026" style="height:44px;">
-        </div>
-      </div>
-      <div style="margin-top:24px; display:flex; gap:12px;">
-        <button class="btn-arco" onclick="salvarNovaConfigPeriodo()">Aplicar Competência</button>
-        <button class="btn-arco" style="background:var(--arco-orange);" onclick="arquivarCompetenciaAtiva()">🔒 Congelar Histórico e Baixar Excel</button>
-      </div>
-    </div>
-    
-    <div class="form-card">
-      <h2 class="competence-box-title">🗂 Fechamentos Mensais Arquivados</h2>
-      <div id="historicos-lista-root" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;"></div>
-      <div id="historico-tabela-root"></div>
-    </div>
-  </div>
   <div id="tab-config-listas" class="tab-content">
+
+    <!-- ══ EDIÇÃO DE ATIVIDADES ══ -->
+    <div class="form-card">
+      <h2 class="competence-box-title">⚙️ Edição de Atividades</h2>
+      <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <input type="text" id="edit-filter-nome" class="search-input" placeholder="🔎 Filtrar atividade..." oninput="renderizarPainelAtividades()" style="width:220px; height:40px;">
+          <select id="edit-filter-resp" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">👤 Todos Responsáveis</option></select>
+          <select id="edit-filter-area" class="filter-select" onchange="renderizarPainelAtividades()"><option value="todos">📂 Todas as Áreas</option></select>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <button class="btn-arco" style="background:#475569;" onclick="baixarModeloCargaMassa()">📥 Baixar Modelo Carga</button>
+          <button class="btn-arco" style="background:#1e293b;" onclick="document.getElementById('file-import-trigger').click()">📤 Importar em Massa</button>
+          <input type="file" id="file-import-trigger" style="display:none;" onchange="importarPlanilhaMassa(event)">
+        </div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; overflow-x:auto;">
+        <table class="config-table">
+          <thead>
+            <tr>
+              <th>Nome da Atividade</th>
+              <th>Área</th>
+              <th>Responsáveis</th>
+              <th>Marcas Vinculadas</th>
+              <th>Prévia?</th>
+              <th style="width:90px; text-align:center;">D.U.</th>
+              <th>Data Alvo</th>
+              <th style="text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="table-config-du-root"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ CONFIGURAÇÕES: RESPONSÁVEIS ══ -->
     <div class="form-card">
       <h2 class="competence-box-title">👥 Gerenciar Responsáveis do Time</h2>
       <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Adicione ou remova profissionais que aparecem nas listas de seleção de responsável.</p>
@@ -478,6 +449,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
       </div>
       <div id="cfg-resp-lista" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:10px;"></div>
     </div>
+
+    <!-- ══ CONFIGURAÇÕES: EMPRESAS ══ -->
     <div class="form-card">
       <h2 class="competence-box-title">🏢 Gerenciar Empresas / Marcas</h2>
       <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Adicione ou remova empresas que compõem o checklist de cada atividade.</p>
@@ -487,7 +460,19 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
       </div>
       <div id="cfg-emp-lista" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;"></div>
     </div>
-  </div>
+
+    <!-- ══ CONFIGURAÇÕES: ÁREAS ══ -->
+    <div class="form-card">
+      <h2 class="competence-box-title">📂 Gerenciar Áreas</h2>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">Adicione ou remova áreas disponíveis para seleção nas atividades.</p>
+      <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <input type="text" id="cfg-new-area" class="form-input" placeholder="Nome da nova área..." style="flex:1; min-width:250px;">
+        <button class="btn-arco" onclick="adicionarArea()">➕ Adicionar Área</button>
+      </div>
+      <div id="cfg-area-lista" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;"></div>
+    </div>
+
+    </div>
 
 </div>
 
@@ -502,6 +487,8 @@ let PROFISSIONAIS_TIME = [
 
 const MASTERS_ADMINS = ["Natanael Ferreira De Sousa", "Jose Francisco Domingos Da Silva Junior"];
 let EMPRESAS_CHECKLIST = ["Arco Educação", "CBE/SAS", "SAE", "IS", "ATECH", "PSD", "NAVE", "GEEKIE", "P2D/COC", "NCC"];
+let AREAS_LISTA = []; // preenchido dinamicamente a partir das atividades + Firebase
+
 const FERIADOS_2026 = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-04", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25"];
 
 // ============================================================
@@ -533,7 +520,8 @@ function salvarDados() {
     config:        competencaAtiva,
     historicos:    dbHistoricos,
     profissionais: PROFISSIONAIS_TIME,
-    empresas:      EMPRESAS_CHECKLIST
+    empresas:      EMPRESAS_CHECKLIST,
+    areas:         AREAS_LISTA
   }).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
 }
 
@@ -638,7 +626,12 @@ async function inicializarSistema() {
       if (dados.atividades) dbAtividades    = dados.atividades;
       if (dados.profissionais && dados.profissionais.length) PROFISSIONAIS_TIME = dados.profissionais;
       if (dados.empresas && dados.empresas.length)           EMPRESAS_CHECKLIST = dados.empresas;
+      if (dados.areas && dados.areas.length)                 AREAS_LISTA = dados.areas;
     }
+
+    // Sincronizar AREAS_LISTA com áreas das atividades
+    const areasDeAtividades = [...new Set(dbAtividades.map ? dbAtividades.map(a => a.area).filter(Boolean) : [])];
+    areasDeAtividades.forEach(a => { if (!AREAS_LISTA.includes(a)) AREAS_LISTA.push(a); });
 
     if (!dbAtividades || !dbAtividades.length) {
       dbAtividades = rotinasExcel.map((item, i) => ({
@@ -1124,8 +1117,10 @@ function renderizarPainelAtividades() {
 
 
 function listarAreasUnicas() {
-  let set = new Set(); dbAtividades.forEach(a => set.add(a.area));
-  return Array.from(set).sort();
+  // Combina áreas do Firebase com áreas das atividades
+  let set = new Set([...AREAS_LISTA]);
+  dbAtividades.forEach(a => { if(a.area) set.add(a.area); });
+  return Array.from(set).sort((a,b) => a.localeCompare(b, "pt-BR"));
 }
 function areaSelectHtml(currentArea, actId) {
   let areas = listarAreasUnicas();
@@ -1541,21 +1536,31 @@ function showToast(m){ const t=document.getElementById("toast"); t.textContent=m
 function renderizarConfigListas() {
   const respRoot = document.getElementById("cfg-resp-lista");
   const empRoot = document.getElementById("cfg-emp-lista");
-  if (!respRoot || !empRoot) return;
+  const areaRoot = document.getElementById("cfg-area-lista");
 
-  respRoot.innerHTML = PROFISSIONAIS_TIME.map((p, i) => `
+  if (respRoot) respRoot.innerHTML = PROFISSIONAIS_TIME.map((p, i) => `
     <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
       <span style="font-size:13px; font-weight:600; color:var(--text);">${p}</span>
       <button onclick="removerProfissional(${i})" style="background:none; border:none; cursor:pointer; color:var(--arco-orange); font-size:16px;" title="Remover">🗑</button>
     </div>
   `).join("");
 
-  empRoot.innerHTML = EMPRESAS_CHECKLIST.map((e, i) => `
+  if (empRoot) empRoot.innerHTML = EMPRESAS_CHECKLIST.map((e, i) => `
     <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
       <span style="font-size:13px; font-weight:600; color:var(--arco-blue);">🏢 ${e}</span>
       <button onclick="removerEmpresa(${i})" style="background:none; border:none; cursor:pointer; color:var(--arco-orange); font-size:16px;" title="Remover">🗑</button>
     </div>
   `).join("");
+
+  if (areaRoot) {
+    const areas = listarAreasUnicas();
+    areaRoot.innerHTML = areas.map((a, i) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+        <span style="font-size:13px; font-weight:600; color:var(--arco-blue);">📂 ${a}</span>
+        <button onclick="removerArea('${a.replace(/'/g,"\'")}');" style="background:none; border:none; cursor:pointer; color:var(--arco-orange); font-size:16px;" title="Remover">🗑</button>
+      </div>
+    `).join("") || '<small style="color:var(--muted)">Nenhuma área cadastrada.</small>';
+  }
 }
 
 function adicionarProfissional() {
@@ -1580,6 +1585,31 @@ function removerProfissional(idx) {
   renderizarConfigListas();
   inicializarSistema();
   showToast("✓ Responsável removido!");
+}
+
+function adicionarArea() {
+  const inp = document.getElementById("cfg-new-area");
+  const nome = inp.value.trim();
+  if (!nome) { showToast("⚠️ Digite o nome da área."); return; }
+  if (AREAS_LISTA.includes(nome)) { showToast("⚠️ Área já existe."); return; }
+  AREAS_LISTA.push(nome);
+  AREAS_LISTA.sort((a,b) => a.localeCompare(b, "pt-BR"));
+  inp.value = "";
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Área adicionada!");
+}
+
+function removerArea(nome) {
+  const emUso = dbAtividades.some(a => a.area === nome);
+  if (emUso && !confirm(`A área "${nome}" está em uso em atividades. Remover mesmo assim da lista?`)) return;
+  if (!emUso && !confirm(`Remover área "${nome}"?`)) return;
+  AREAS_LISTA = AREAS_LISTA.filter(a => a !== nome);
+  salvarDados();
+  renderizarConfigListas();
+  inicializarSistema();
+  showToast("✓ Área removida!");
 }
 
 function adicionarEmpresa() {
