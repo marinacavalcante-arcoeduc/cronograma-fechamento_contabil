@@ -860,11 +860,20 @@ function aplicarLoginNaTela() {
 
   document.getElementById("main-tabs-header-bar").style.display = ehMaster ? "flex" : "none";
   document.getElementById("admin-actions-bar-top").style.display = ehMaster ? "flex" : "none";
-  // Trava os seletores de responsável/área para não-admin (já filtrado pelo login)
+  // Pré-selecionar filtro de responsável pelo login (não-admin vê tudo mas começa filtrado)
   const fResp = document.getElementById("filter-resp");
   const fArea = document.getElementById("filter-area");
-  if (fResp) fResp.style.display = ehMaster ? "" : "none";
-  if (fArea) fArea.style.display = ehMaster ? "" : "none";
+  if (fResp) fResp.style.display = "";
+  if (fArea) fArea.style.display = "";
+  if (!ehMaster && fResp && usuarioLogadoAtual !== "Outra Área") {
+    // Pré-seleciona o responsável logado, mas deixa livre para mudar
+    const optExiste = Array.from(fResp.options).some(o => o.value === usuarioLogadoAtual);
+    if (optExiste) fResp.value = usuarioLogadoAtual;
+  }
+  if (!ehMaster && fArea && subAreaSelecionadaParceira) {
+    const optArea = Array.from(fArea.options).some(o => o.value === subAreaSelecionadaParceira);
+    if (optArea) fArea.value = subAreaSelecionadaParceira;
+  }
 
   mudarAba('tab-execucao');
   renderizarFormCadastroBase();
@@ -988,17 +997,9 @@ function renderizarPainelAtividades() {
     areaMetrics[labelParaMetrica].total += elegiveisCheck.length;
     areaMetrics[labelParaMetrica].concluidas += elegiveisCheck.filter(e => e.status === "OK").length;
 
-    // === Filtro automático por login (5) ===
-    if (!ehMaster) {
-      if (usuarioLogadoAtual === "Outra Área") {
-        // Externo: só vê atividades da própria área selecionada no login
-        if (act.area.toLowerCase() !== subAreaSelecionadaParceira.toLowerCase()) return;
-      } else {
-        // Analista logado: só vê atividades em que está como responsável OU da sua área
-        const ehResp = (act.responveisLista || []).includes(usuarioLogadoAtual);
-        const ehMinhaArea = act.area.toLowerCase() === (subAreaSelecionadaParceira||"").toLowerCase();
-        if (!ehResp && !ehMinhaArea) return;
-      }
+    // === Filtro por área para "Outra Área" (leitura) ainda é forçado ===
+    if (!ehMaster && usuarioLogadoAtual === "Outra Área") {
+      if (act.area.toLowerCase() !== subAreaSelecionadaParceira.toLowerCase()) return;
     }
     if (respFiltro !== "todos" && !act.responveisLista.includes(respFiltro)) return;
     if (areaFiltro !== "todos" && act.area !== areaFiltro) return;
