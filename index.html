@@ -539,22 +539,33 @@ const firebaseConfig = {
 // Inicializa Firebase via CDN (carregado no <head>)
 let _fbApp, _fbDb, _fbRef;
 function inicializarFirebase() {
-  _fbApp = firebase.initializeApp(firebaseConfig);
-  _fbDb   = firebase.database();
-  _fbRef  = _fbDb.ref("cronograma");
+  if (_fbRef) return; // já inicializado, não reinicializar
+  try {
+    _fbApp = firebase.app(); // reutiliza app existente se houver
+  } catch(e) {
+    _fbApp = firebase.initializeApp(firebaseConfig);
+  }
+  _fbDb  = firebase.database();
+  _fbRef = _fbDb.ref("cronograma");
 }
 
 // Salva no Firebase (substitui localStorage)
 function salvarDados() {
   if (!_fbRef) return;
-  _fbRef.set({
+  // Usa update em vez de set para nunca apagar campos não mencionados (ex: histórico)
+  // Salva cada campo separadamente para máxima segurança
+  const payload = {
     atividades:    dbAtividades,
     config:        competencaAtiva,
-    historicos:    dbHistoricos,
     profissionais: PROFISSIONAIS_TIME,
     empresas:      EMPRESAS_CHECKLIST,
     areas:         AREAS_LISTA
-  }).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
+  };
+  // Histórico só é salvo se tiver conteúdo, para não apagar histórico existente
+  if (dbHistoricos && Object.keys(dbHistoricos).length > 0) {
+    payload.historicos = dbHistoricos;
+  }
+  _fbRef.update(payload).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
 }
 
 let dbAtividades = [];
@@ -1613,7 +1624,7 @@ function adicionarProfissional() {
   inp.value = "";
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Responsável adicionado!");
 }
 
@@ -1623,7 +1634,7 @@ function removerProfissional(idx) {
   PROFISSIONAIS_TIME.splice(idx, 1);
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Responsável removido!");
 }
 
@@ -1637,7 +1648,7 @@ function adicionarArea() {
   inp.value = "";
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Área adicionada!");
 }
 
@@ -1648,7 +1659,7 @@ function removerArea(nome) {
   AREAS_LISTA = AREAS_LISTA.filter(a => a !== nome);
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Área removida!");
 }
 
@@ -1667,7 +1678,7 @@ function adicionarEmpresa() {
   inp.value = "";
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Empresa adicionada!");
 }
 
@@ -1677,8 +1688,49 @@ function removerEmpresa(idx) {
   EMPRESAS_CHECKLIST.splice(idx, 1);
   salvarDados();
   renderizarConfigListas();
-  inicializarSistema();
+  popularFiltros();
   showToast("✓ Empresa removida!");
+}
+
+function popularFiltros() {
+  // Atualiza dropdowns sem recarregar dados do Firebase
+  const areaCombo = document.getElementById("filter-area");
+  if (areaCombo) {
+    const valAtual = areaCombo.value;
+    areaCombo.innerHTML = '<option value="todos">📂 Todas as Áreas</option>';
+    listarAreasUnicas().forEach(area => {
+      let opt = document.createElement("option"); opt.value = area; opt.textContent = area;
+      areaCombo.appendChild(opt);
+    });
+    areaCombo.value = valAtual;
+  }
+  const empCombo = document.getElementById("filter-empresa");
+  if (empCombo) {
+    const valAtual = empCombo.value;
+    empCombo.innerHTML = '<option value="todos">🏢 Todas as Empresas</option>';
+    EMPRESAS_CHECKLIST.forEach(e => {
+      let opt = document.createElement("option"); opt.value = e; opt.textContent = e;
+      empCombo.appendChild(opt);
+    });
+    empCombo.value = valAtual;
+  }
+  const editRespCombo = document.getElementById("edit-filter-resp");
+  if (editRespCombo) {
+    editRespCombo.innerHTML = '<option value="todos">👤 Todos Responsáveis</option>';
+    PROFISSIONAIS_TIME.forEach(p => {
+      let opt = document.createElement("option"); opt.value = p; opt.textContent = p;
+      editRespCombo.appendChild(opt);
+    });
+  }
+  const editAreaCombo = document.getElementById("edit-filter-area");
+  if (editAreaCombo) {
+    editAreaCombo.innerHTML = '<option value="todos">📂 Todas as Áreas</option>';
+    listarAreasUnicas().forEach(area => {
+      let opt = document.createElement("option"); opt.value = area; opt.textContent = area;
+      editAreaCombo.appendChild(opt);
+    });
+  }
+  renderizarPainelAtividades();
 }
 
 window.onload = inicializarSistema;
