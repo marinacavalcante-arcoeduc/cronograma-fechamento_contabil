@@ -1054,9 +1054,13 @@ function renderizarPainelAtividades() {
     if (ehMaster) {
       temPermissaoEscrita = true;
     } else if (usuarioLogadoAtual === "Outra Área") {
-      if (act.area.toLowerCase() === subAreaSelecionadaParceira.toLowerCase()) temPermissaoEscrita = true;
+      // Leitura: só vê a própria área
+      temPermissaoEscrita = false;
     } else {
-      if (act.responveisLista.includes(usuarioLogadoAtual)) temPermissaoEscrita = true;
+      // Qualquer analista da Contabilidade pode editar qualquer atividade contábil
+      const ehContabil = AREA_CONTABIL.includes(subAreaSelecionadaParceira);
+      if (ehContabil) temPermissaoEscrita = true;
+      else if (act.responveisLista.includes(usuarioLogadoAtual)) temPermissaoEscrita = true;
     }
 
     let htmlSubRows = act.empresas.map((emp, idx) => {
@@ -1294,7 +1298,10 @@ function alterarStatusLinha(actId, empIdx, status) {
   let atv = dbAtividades.find(a => a.id === actId);
   atv.empresas[empIdx].status = status;
   if(status === "OK") {
-    let d = new Date(); atv.empresas[empIdx].dataConclusao = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
+    let d = new Date();
+    let dataHora = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
+    let quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
+    atv.empresas[empIdx].dataConclusao = dataHora + quem;
   } else { atv.empresas[empIdx].dataConclusao = ""; }
   salvarDados();
   // Preserva quais cards estão abertos e a posição de rolagem
