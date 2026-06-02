@@ -24,10 +24,55 @@
   --s-nao: #64748b; --s-nao-bg: #f1f5f9;
   --s-conc: #52b747; --s-conc-bg: #dcfce7;
   --s-apl: #f05323; --s-apl-bg: #fee2e2;
+  --s-na: #7c3aed; --s-na-bg: #ede9fe;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sora', sans-serif; }
 body { background: var(--bg); color: var(--text); font-size: 14px; padding-bottom: 100px; -webkit-font-smoothing: antialiased; }
+
+/* === AVISO SESSÃO ATIVA === */
+#modal-sessao-ativa { display:none; position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.6); align-items:center; justify-content:center; }
+#modal-sessao-ativa.show { display:flex; }
+#modal-sessao-ativa-box { background:#fff; border-radius:20px; padding:32px; max-width:400px; width:90%; text-align:center; }
+#modal-sessao-ativa-box h3 { font-size:16px; font-weight:700; color:#f05323; margin-bottom:10px; }
+#modal-sessao-ativa-box p { font-size:13px; color:#64748b; line-height:1.6; margin-bottom:20px; }
+.sessao-btns { display:flex; gap:10px; }
+.sessao-btns button { flex:1; padding:10px; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-voltar { background:#f1f5f9; color:#0f172a; }
+.btn-assumir { background:#114197; color:#fff; }
+
+/* === BANNER OFFLINE === */
+#banner-offline { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#f05323; color:#fff; font-size:13px; font-weight:700; text-align:center; padding:10px 16px; letter-spacing:0.02em; }
+#banner-offline.show { display:block; }
+
+/* === PRESENÇA ONLINE === */
+#presenca-wrap { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+.presenca-avatar { width:26px; height:26px; border-radius:50%; background:var(--arco-blue); color:#fff; font-size:9px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.15); margin-right:-6px; cursor:default; position:relative; }
+.presenca-avatar:last-child { margin-right:0; }
+#presenca-count { font-size:11px; color:var(--muted); margin-left:10px; white-space:nowrap; }
+
+/* === ÚLTIMO SAVE === */
+#ultimo-save { font-size:11px; color:var(--muted); white-space:nowrap; padding:4px 10px; background:#f8fafc; border:1px solid var(--border); border-radius:20px; }
+
+/* === MODAL CONFLITO === */
+#modal-conflito { display:none; position:fixed; inset:0; z-index:9998; background:rgba(15,23,42,0.5); align-items:center; justify-content:center; }
+#modal-conflito.show { display:flex; }
+#modal-conflito-box { background:#fff; border-radius:20px; padding:32px; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+#modal-conflito-box h3 { font-size:16px; font-weight:700; color:#f05323; margin-bottom:10px; }
+#modal-conflito-box p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+.conflito-btns { display:flex; gap:10px; }
+.conflito-btns button { flex:1; padding:10px; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer; border:none; }
+.btn-recarregar { background:#f1f5f9; color:var(--text); }
+.btn-forcar { background:#f05323; color:#fff; }
+
+/* === LOG DE ALTERAÇÕES === */
+#painel-log { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px 24px; margin-bottom:24px; }
+#painel-log h4 { font-size:13px; font-weight:700; color:var(--arco-blue); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:14px; }
+.log-item { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:12px; }
+.log-item:last-child { border-bottom:none; }
+.log-item .log-quem { font-weight:700; color:var(--text); white-space:nowrap; }
+.log-item .log-o-que { color:var(--muted); flex:1; }
+.log-item .log-hora { color:var(--muted); white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:11px; }
 
 header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 85px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
 .logo-wrap { display: flex; align-items: center; gap: 12px; margin-left: -10px; }
@@ -93,6 +138,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 .status-pill.ok { background: var(--s-conc-bg); color: var(--s-conc); }
 .status-pill.pendente { background: var(--s-nao-bg); color: var(--s-nao); }
 .status-pill.atrasado { background: var(--s-apl-bg); color: var(--s-apl); }
+.status-pill.na { background: var(--s-na-bg); color: var(--s-na); }
 
 .subs-panel { display: none; background: #fafafa; border-top: 1px solid var(--border); padding: 20px 32px; }
 .activity-card.open .subs-panel { display: block; }
@@ -276,6 +322,33 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
   </div>
 </div>
 
+<!-- Banner offline -->
+<div id="banner-offline">⚠️ Sem conexão com a internet — suas alterações serão salvas quando reconectar</div>
+
+<!-- Modal conflito de gravação -->
+<div id="modal-conflito">
+  <div id="modal-conflito-box">
+    <h3>⚠️ Conflito de edição</h3>
+    <p>Outra pessoa salvou alterações enquanto você editava. Se você forçar, as alterações dela serão substituídas pelas suas.</p>
+    <div class="conflito-btns">
+      <button class="btn-recarregar" onclick="resolverConflito('recarregar')">🔄 Recarregar (recomendado)</button>
+      <button class="btn-forcar" onclick="resolverConflito('forcar')">⚠️ Forçar meu save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal sessão já ativa -->
+<div id="modal-sessao-ativa">
+  <div id="modal-sessao-ativa-box">
+    <h3>🔒 Sessão já em uso</h3>
+    <p id="modal-sessao-msg">Esta conta já está sendo usada em outro dispositivo ou aba. Se assumir, a outra sessão será encerrada.</p>
+    <div class="sessao-btns">
+      <button class="btn-voltar" onclick="document.getElementById('modal-sessao-ativa').classList.remove('show')">Voltar</button>
+      <button class="btn-assumir" onclick="assumirSessao()">Assumir acesso</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="logo-wrap">
     <div class="logo-arco" onclick="window.location.reload()" style="display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="120" height="38" viewBox="0 0 120 38">
@@ -298,7 +371,9 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     </div>
   </div>
   
-  <div>
+  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end;">
+    <div id="presenca-wrap" title="Quem está online agora"></div>
+    <span id="ultimo-save">—</span>
     <span style="font-weight:700; color:var(--arco-blue); font-size:15px; background:#eff6ff; padding:8px 20px; border-radius:12px; border:1px solid #d0e1fd;" id="mes-label-top">Competência</span>
   </div>
 </header>
@@ -327,6 +402,12 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <div class="kpi" style="--kpi-color: var(--arco-cyan);"><div class="kpi-num" id="k-checklists">0</div><div class="kpi-label">Checklists Vinculados</div></div>
   </div>
 
+
+  <!-- Painel de log de alterações -->
+  <div id="painel-log" style="display:none;">
+    <h4>📋 Histórico de alterações recentes</h4>
+    <div id="painel-log-lista"><span style="font-size:12px;color:var(--muted);">Carregando...</span></div>
+  </div>
 
   <div style="margin-bottom:24px; text-align:right; display:flex; justify-content:flex-end; gap:12px;" id="admin-actions-bar-top">
     <button class="btn-arco" style="background:#22c55e;" onclick="exportarExcelOficial()">📥 Baixar Relatório Excel</button>
@@ -536,24 +617,225 @@ const firebaseConfig = {
   appId: "1:468354958800:web:469e8bd1ec63df993725d5"
 };
 
-// Inicializa Firebase via CDN (carregado no <head>)
+// ============================================================
+//  ESTADO DE COLABORAÇÃO
+// ============================================================
 let _fbApp, _fbDb, _fbRef;
+let _tsUltimoCarregado = 0;   // timestamp do banco quando carregamos
+let _saveConflitoPendente = null; // payload aguardando decisão do usuário
+let _presencaId = null;        // ID único desta sessão para presença
+let _isOnline = true;
+
 function inicializarFirebase() {
-  if (_fbRef) return; // já inicializado, não reinicializar
-  try {
-    _fbApp = firebase.app(); // reutiliza app existente se houver
-  } catch(e) {
-    _fbApp = firebase.initializeApp(firebaseConfig);
-  }
+  if (_fbRef) return;
+  try { _fbApp = firebase.app(); } catch(e) { _fbApp = firebase.initializeApp(firebaseConfig); }
   _fbDb  = firebase.database();
   _fbRef = _fbDb.ref("cronograma");
+
+  // === DETECÇÃO DE CONEXÃO ===
+  _fbDb.ref(".info/connected").on("value", snap => {
+    _isOnline = !!snap.val();
+    document.getElementById("banner-offline").classList.toggle("show", !_isOnline);
+    if (_isOnline && _saveConflitoPendente) {
+      // reconectou com save pendente — tenta de novo
+      _executarSave(_saveConflitoPendente);
+      _saveConflitoPendente = null;
+    }
+  });
 }
 
-// Salva no Firebase (substitui localStorage)
-function salvarDados() {
+// === PRESENÇA ONLINE ===
+function iniciarPresenca(nomeUsuario) {
+  if (!_fbDb || !nomeUsuario || nomeUsuario === "Outra Área") return;
+  _presencaId = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+  const refPresenca = _fbDb.ref("cronograma/presenca/" + _presencaId);
+  const dados = { nome: nomeUsuario, desde: Date.now() };
+  refPresenca.set(dados);
+  refPresenca.onDisconnect().remove();
+
+  // Observar quem está online
+  _fbDb.ref("cronograma/presenca").on("value", snap => {
+    const todos = snap.val() || {};
+    const lista = Object.entries(todos).filter(([id]) => id !== _presencaId).map(([,v]) => v.nome);
+    renderizarPresenca(lista);
+  });
+}
+
+function renderizarPresenca(lista) {
+  const wrap = document.getElementById("presenca-wrap");
+  if (!wrap) return;
+  if (!lista.length) { wrap.innerHTML = ""; return; }
+  const MAX = 4;
+  const visiveis = lista.slice(0, MAX);
+  const extras = lista.length - MAX;
+  let html = visiveis.map(n => {
+    const ini = n.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
+    return `<span class="presenca-avatar" title="${n}">${ini}</span>`;
+  }).join("");
+  if (extras > 0) html += `<span class="presenca-avatar" title="${lista.slice(MAX).join(', ')}">+${extras}</span>`;
+  html += `<span id="presenca-count">${lista.length === 1 ? "1 pessoa editando" : lista.length + " pessoas editando"}</span>`;
+  wrap.innerHTML = html;
+}
+
+// === TRAVA DE SESSÃO EXCLUSIVA (Natanael/admin) ===
+let _sessionToken = null;
+
+function verificarESegurarSessao(nomeUsuario, onLiberar) {
+  if (!_fbDb) { onLiberar(); return; }
+  const isMaster = MASTERS_ADMINS.includes(nomeUsuario);
+  if (!isMaster) { onLiberar(); return; } // só trava pra admins
+
+  const refSessao = _fbDb.ref("cronograma/_sessaoAtiva");
+  _sessionToken = "tok_" + Date.now() + "_" + Math.random().toString(36).slice(2,6);
+
+  refSessao.once("value", snap => {
+    const atual = snap.val();
+    const agora = Date.now();
+    // Sessão ativa se tiver token, nome e menos de 2min sem heartbeat
+    const ativa = atual && atual.token && atual.nome && (agora - (atual.ts || 0)) < 120000;
+
+    if (ativa && atual.token !== _sessionToken) {
+      // Já tem alguém — perguntar se quer assumir
+      const el = document.getElementById("modal-sessao-msg");
+      if (el) el.textContent = `"${atual.nome}" está editando desde ${new Date(atual.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}. Se assumir, a outra sessão será encerrada.`;
+      document.getElementById("modal-sessao-ativa").classList.add("show");
+      // Guarda callback para assumirSessao()
+      window._onAssumirSessao = () => { _gravarSessao(refSessao, nomeUsuario); onLiberar(); };
+    } else {
+      _gravarSessao(refSessao, nomeUsuario);
+      onLiberar();
+    }
+  });
+}
+
+function _gravarSessao(refSessao, nomeUsuario) {
+  refSessao.set({ token: _sessionToken, nome: nomeUsuario, ts: Date.now() });
+  refSessao.onDisconnect().remove();
+  // Heartbeat a cada 30s para manter sessão viva
+  setInterval(() => { if (_sessionToken) refSessao.update({ ts: Date.now() }); }, 30000);
+}
+
+function assumirSessao() {
+  document.getElementById("modal-sessao-ativa").classList.remove("show");
+  if (window._onAssumirSessao) { window._onAssumirSessao(); window._onAssumirSessao = null; }
+}
+
+// === LOG DE ALTERAÇÕES ===
+function registrarLog(acao) {
+  if (!_fbDb || !usuarioLogadoAtual || usuarioLogadoAtual === "Outra Área") return;
+  const refLogs = _fbDb.ref("cronograma/logs");
+  const ts = Date.now();
+  const chave = "log_" + ts;
+  refLogs.child(chave).set({ quem: usuarioLogadoAtual, acao, ts });
+  // Limpar logs com mais de 7 dias (mantém leve)
+  const limite = ts - 7 * 24 * 60 * 60 * 1000;
+  refLogs.orderByChild("ts").endAt(limite).once("value", snap => {
+    snap.forEach(child => child.ref.remove());
+  });
+}
+
+// === BACKUP AUTOMÁTICO ===
+function fazerBackupAutomatico(payload) {
+  if (!_fbDb) return;
+  const ts = Date.now();
+  const dt = new Date(ts);
+  const chave = `bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}${String(dt.getSeconds()).padStart(2,'0')}`;
+  _fbDb.ref("cronograma/backups/" + chave).set({
+    ts,
+    por: usuarioLogadoAtual || "sistema",
+    atividades: payload.atividades
+  });
+  // Manter só os últimos 20 backups
+  _fbDb.ref("cronograma/backups").orderByChild("ts").once("value", snap => {
+    const keys = [];
+    snap.forEach(c => keys.push(c.key));
+    if (keys.length > 20) {
+      keys.slice(0, keys.length - 20).forEach(k => _fbDb.ref("cronograma/backups/" + k).remove());
+    }
+  });
+}
+
+// === ATUALIZAR INDICADOR "SALVO HÁ X" ===
+let _tsUltimoSave = 0;
+let _quemUltimoSave = "";
+function atualizarIndicadorSave() {
+  const el = document.getElementById("ultimo-save");
+  if (!el || !_tsUltimoSave) return;
+  const seg = Math.floor((Date.now() - _tsUltimoSave) / 1000);
+  let texto;
+  if (seg < 10)       texto = "Salvo agora";
+  else if (seg < 60)  texto = `Salvo há ${seg}s`;
+  else if (seg < 3600) texto = `Salvo há ${Math.floor(seg/60)}min`;
+  else                texto = `Salvo há ${Math.floor(seg/3600)}h`;
+  if (_quemUltimoSave) texto += ` · ${_quemUltimoSave.split(" ")[0]}`;
+  el.textContent = texto;
+}
+setInterval(atualizarIndicadorSave, 15000);
+
+// === RESOLVER CONFLITO ===
+function resolverConflito(opcao) {
+  document.getElementById("modal-conflito").classList.remove("show");
+  if (opcao === "recarregar") {
+    showToast("🔄 Recarregando dados mais recentes...");
+    setTimeout(() => location.reload(), 800);
+  } else if (opcao === "forcar" && _saveConflitoPendente) {
+    _executarSaveForcar(_saveConflitoPendente);
+    _saveConflitoPendente = null;
+  }
+}
+
+// === SAVE COM PROTEÇÃO CONTRA CONFLITO ===
+function _executarSave(payload) {
+  // Verifica se o timestamp do banco mudou desde que carregamos
+  _fbDb.ref("cronograma/_ts").once("value", snap => {
+    const tsAtual = snap.val() || 0;
+    if (tsAtual > _tsUltimoCarregado && tsAtual !== _tsUltimoSave) {
+      // Alguém salvou depois de nós — mostrar modal de conflito
+      _saveConflitoPendente = payload;
+      document.getElementById("modal-conflito").classList.add("show");
+      return;
+    }
+    _executarSaveForcar(payload);
+  });
+}
+
+function _executarSaveForcar(payload) {
+  const ts = Date.now();
+  const payloadFinal = { ...payload, _ts: ts, _savedBy: usuarioLogadoAtual || "sistema" };
+  if (!_isOnline) {
+    _saveConflitoPendente = payload;
+    showToast("⚠️ Sem conexão. Será salvo ao reconectar.");
+    return;
+  }
+  _fbRef.update(payloadFinal)
+    .then(() => {
+      _tsUltimoSave = ts;
+      _tsUltimoCarregado = ts;
+      _quemUltimoSave = usuarioLogadoAtual || "";
+      atualizarIndicadorSave();
+    })
+    .catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
+}
+
+// === SAVE GRANULAR POR ATIVIDADE (evita sobrescrita de outras atividades) ===
+function salvarAtividade(actId, descricaoAcao) {
+  if (!_fbDb) return;
+  const idx = dbAtividades.findIndex(a => a.id === actId);
+  if (idx === -1) return;
+  // Salva só o índice daquela atividade no array, sem tocar nas outras
+  _fbDb.ref(`cronograma/atividades/${idx}`).set(dbAtividades[idx])
+    .then(() => {
+      _tsUltimoSave = Date.now();
+      _quemUltimoSave = usuarioLogadoAtual || "";
+      atualizarIndicadorSave();
+      if (descricaoAcao) registrarLog(descricaoAcao);
+    })
+    .catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar."); });
+}
+
+// === SALVAR DADOS (ponto de entrada principal) ===
+function salvarDados(descricaoAcao) {
   if (!_fbRef) return;
-  // Usa update em vez de set para nunca apagar campos não mencionados (ex: histórico)
-  // Salva cada campo separadamente para máxima segurança
   const payload = {
     atividades:    dbAtividades,
     config:        competencaAtiva,
@@ -561,11 +843,12 @@ function salvarDados() {
     empresas:      EMPRESAS_CHECKLIST,
     areas:         AREAS_LISTA
   };
-  // Histórico só é salvo se tiver conteúdo, para não apagar histórico existente
   if (dbHistoricos && Object.keys(dbHistoricos).length > 0) {
     payload.historicos = dbHistoricos;
   }
-  _fbRef.update(payload).catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
+  fazerBackupAutomatico(payload);
+  if (descricaoAcao) registrarLog(descricaoAcao);
+  _executarSave(payload);
 }
 
 let dbAtividades = [];
@@ -664,6 +947,8 @@ async function inicializarSistema() {
     const dados = snapshot.val();
 
     if (dados) {
+      if (dados._ts)        _tsUltimoCarregado = dados._ts;
+      if (dados._savedBy)   { _quemUltimoSave = dados._savedBy; _tsUltimoSave = dados._ts || 0; atualizarIndicadorSave(); }
       if (dados.config)     competencaAtiva = dados.config;
       if (dados.historicos) dbHistoricos    = dados.historicos;
       if (dados.atividades) dbAtividades    = dados.atividades;
@@ -752,6 +1037,7 @@ async function inicializarSistema() {
       if (ss && ss.usuario) {
         usuarioLogadoAtual = ss.usuario;
         subAreaSelecionadaParceira = ss.area || "__ADMIN__";
+        iniciarPresenca(usuarioLogadoAtual);
         aplicarLoginNaTela();
         return;
       }
@@ -847,8 +1133,11 @@ function efetuarLogin() {
     usuario: usuarioLogadoAtual, area: subAreaSelecionadaParceira
   }));
 
-  aplicarLoginNaTela();
-  showToast("Bem-vindo, " + abreviarNomeCompleto(usuarioLogadoAtual) + "!");
+  iniciarPresenca(usuarioLogadoAtual);
+  verificarESegurarSessao(usuarioLogadoAtual, () => {
+    aplicarLoginNaTela();
+    showToast("Bem-vindo, " + abreviarNomeCompleto(usuarioLogadoAtual) + "!");
+  });
 }
 
 function efetuarLogout() {
@@ -871,6 +1160,7 @@ function aplicarLoginNaTela() {
 
   document.getElementById("main-tabs-header-bar").style.display = ehMaster ? "flex" : "none";
   document.getElementById("admin-actions-bar-top").style.display = ehMaster ? "flex" : "none";
+  if (ehMaster) iniciarEscutaLog();
   // Pré-selecionar filtro de responsável pelo login (não-admin vê tudo mas começa filtrado)
   const fResp = document.getElementById("filter-resp");
   const fArea = document.getElementById("filter-area");
@@ -893,6 +1183,31 @@ function aplicarLoginNaTela() {
 
 // Compat: chamadas legadas
 function processarLoginSeguro() { aplicarLoginNaTela(); }
+
+// === RENDERIZAR LOG DE ALTERAÇÕES ===
+function iniciarEscutaLog() {
+  if (!_fbDb) return;
+  const painel = document.getElementById("painel-log");
+  const lista = document.getElementById("painel-log-lista");
+  if (!painel || !lista) return;
+  painel.style.display = "block";
+
+  _fbDb.ref("cronograma/logs").orderByChild("ts").limitToLast(30).on("value", snap => {
+    const items = [];
+    snap.forEach(c => items.push(c.val()));
+    items.reverse();
+    if (!items.length) { lista.innerHTML = '<span style="font-size:12px;color:var(--muted);">Nenhuma alteração registrada ainda.</span>'; return; }
+    lista.innerHTML = items.map(item => {
+      const dt = new Date(item.ts);
+      const hora = dt.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+      const data = dt.toLocaleDateString("pt-BR", {day:"2-digit", month:"2-digit"});
+      const hoje = new Date().toLocaleDateString("pt-BR", {day:"2-digit", month:"2-digit"});
+      const quando = data === hoje ? `hoje ${hora}` : `${data} ${hora}`;
+      const nome = item.quem ? item.quem.split(" ")[0] : "Alguém";
+      return `<div class="log-item"><span class="log-quem">${nome}</span><span class="log-o-que">${item.acao || "—"}</span><span class="log-hora">${quando}</span></div>`;
+    }).join("");
+  });
+}
 
 
 function atualizarLabelsCompetencia() {
@@ -958,7 +1273,7 @@ function abreviarNomeCompleto(n) {
 function obterStatusGeralAtividade(act) {
   let elegiveis = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
   if(!elegiveis.length) return "OK";
-  let concluidas = elegiveis.filter(e => e.status === "OK").length;
+  let concluidas = elegiveis.filter(e => e.status === "OK" || e.status === "N/A").length;
   if (concluidas === elegiveis.length) return "OK";
 
   let dataLimite = calcularDataPorDiaUtl(act.diaUtil);
@@ -1006,7 +1321,7 @@ function renderizarPainelAtividades() {
     if (!areaMetrics[labelParaMetrica]) areaMetrics[labelParaMetrica] = { total: 0, concluidas: 0 };
     let elegiveisCheck = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
     areaMetrics[labelParaMetrica].total += elegiveisCheck.length;
-    areaMetrics[labelParaMetrica].concluidas += elegiveisCheck.filter(e => e.status === "OK").length;
+    areaMetrics[labelParaMetrica].concluidas += elegiveisCheck.filter(e => e.status === "OK" || e.status === "N/A").length;
 
     // === Filtro por área para "Outra Área" (leitura) ainda é forçado ===
     if (!ehMaster && usuarioLogadoAtual === "Outra Área") {
@@ -1087,6 +1402,7 @@ function renderizarPainelAtividades() {
               <select class="status-select" onchange="alterarStatusLinha('${act.id}', ${idx}, this.value)">
                 <option value="PENDENTE" ${emp.status==='PENDENTE'?'selected':''}>🟡 PENDENTE</option>
                 <option value="OK" ${emp.status==='OK'?'selected':''}>🟢 OK</option>
+                <option value="N/A" ${emp.status==='N/A'?'selected':''}>🟣 N/A</option>
               </select>
             </div>
             <div>
@@ -1099,7 +1415,7 @@ function renderizarPainelAtividades() {
         return `
           <div class="sub-row">
             <div class="sub-name">🔹 ${emp.nome} ${stampR}</div>
-            <div><span class="status-pill ${emp.status==='OK'?'ok':'pendente'}">${emp.status}</span></div>
+            <div><span class="status-pill ${emp.status==='OK'?'ok':emp.status==='N/A'?'na':'pendente'}">${emp.status}</span></div>
             <div><input type="text" class="form-input" disabled value="${emp.obs||'— Apenas leitura'}"></div>
           </div>
         `;
@@ -1258,7 +1574,7 @@ function salvarResponsavelLote() {
   let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
   if(!novos.length) novos.push("A Atribuir");
   atv.responveisLista = novos;
-  salvarDados(); fecharModalResponsavel(); renderizarPainelAtividades(); showToast("Responsáveis atualizados!");
+  salvarDados("Atualizou responsáveis"); fecharModalResponsavel(); renderizarPainelAtividades(); showToast("Responsáveis atualizados!");
 }
 
 function abrirModalEmpresas(actId) {
@@ -1287,7 +1603,7 @@ function salvarEmpresasElegiveisLote() {
   let cards = document.querySelectorAll("#modal-companies-grid-root .user-select-card.selected");
   let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
   atv.empresasElegiveis = novos;
-  salvarDados(); fecharModalEmpresas(); renderizarPainelAtividades(); showToast("Marcas vinculadas!");
+  salvarDados("Atualizou marcas vinculadas"); fecharModalEmpresas(); renderizarPainelAtividades(); showToast("Marcas vinculadas!");
 }
 
 function atualizarCampoTexto(id, campo, val) {
@@ -1297,7 +1613,7 @@ function atualizarCampoTexto(id, campo, val) {
     let nova = prompt("Nome da nova área:"); if(!nova) { renderizarPainelAtividades(); return; }
     val = nova.trim();
   }
-  atv[campo] = val; salvarDados(); showToast("Salvo!");
+  atv[campo] = val; salvarDados("Editou campo de atividade"); showToast("Salvo!");
 }
 
 function atualizarDiaUtilDireto(id, val) {
@@ -1313,8 +1629,15 @@ function alterarStatusLinha(actId, empIdx, status) {
     let dataHora = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
     let quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
     atv.empresas[empIdx].dataConclusao = dataHora + quem;
+  } else if(status === "N/A") {
+    let d = new Date();
+    let dataHora = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
+    let quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
+    atv.empresas[empIdx].dataConclusao = dataHora + quem;
   } else { atv.empresas[empIdx].dataConclusao = ""; }
-  salvarDados();
+  const empNome = atv.empresas[empIdx].nome || "";
+  const novoStatus = atv.empresas[empIdx].status || "";
+  salvarAtividade(actId, `${novoStatus === "OK" ? "Concluiu" : novoStatus === "N/A" ? "Marcou N/A em" : "Atualizou status de"} "${atv.atividade}" · ${empNome}`);
   // Preserva quais cards estão abertos e a posição de rolagem
   const abertos = Array.from(document.querySelectorAll('.activity-card.open')).map(c => c.id);
   const scrollY = window.scrollY;
@@ -1325,7 +1648,7 @@ function alterarStatusLinha(actId, empIdx, status) {
 }
 
 function salvarObsLinha(actId, empIdx, txt) {
-  let atv = dbAtividades.find(a => a.id === actId); atv.empresas[empIdx].obs = txt; salvarDados();
+  let atv = dbAtividades.find(a => a.id === actId); atv.empresas[empIdx].obs = txt; salvarAtividade(actId);
 }
 
 let cddRespSelecionados = [];
@@ -1414,7 +1737,7 @@ function salvarNovaAtividade() {
     responveisLista: resps, empresasElegiveis: empsElegiveis,
     empresas: EMPRESAS_CHECKLIST.map(emp => ({ nome: emp, status: "PENDENTE", dataConclusao: "", obs: "" }))
   });
-  salvarDados();
+  salvarDados(`Criou atividade "${nome}" · ${area}`);
   document.getElementById("add-nome").value = "";
   cddRespSelecionados = []; cddEmpSelecionados = [];
   toggleFormCadastro();
@@ -1426,7 +1749,7 @@ function salvarNovaAtividade() {
 function salvarNovaConfigPeriodo() {
   competencaAtiva.mes = document.getElementById("cfg-mes-seletor").value;
   competencaAtiva.ano = document.getElementById("cfg-ano-seletor").value;
-  salvarDados(); atualizarLabelsCompetencia(); inicializarSistema(); showToast("Mês ativo alterado!");
+  salvarDados("Alterou mês ativo"); atualizarLabelsCompetencia(); inicializarSistema(); showToast("Mês ativo alterado!");
 }
 
 function arquivarCompetenciaAtiva() {
@@ -1445,7 +1768,7 @@ function arquivarCompetenciaAtiva() {
     dbAtividades.forEach(act => {
       act.empresas.forEach(e => { e.status = "PENDENTE"; e.dataConclusao = ""; e.obs = ""; });
     });
-    salvarDados(); renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
+    salvarDados("Arquivou mês e limpou atividades"); renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
   }
 }
 
@@ -1491,7 +1814,7 @@ function visualizarHistoricoEspecifico(key) {
 
 function excluirAtividadeDefinitivo(id, e) {
   e.stopPropagation();
-  if(confirm("Apagar atividade permanentemente?")) { dbAtividades = dbAtividades.filter(a => a.id !== id); salvarDados(); inicializarSistema(); }
+  if(confirm("Apagar atividade permanentemente?")) { dbAtividades = dbAtividades.filter(a => a.id !== id); salvarDados("Excluiu atividade"); inicializarSistema(); }
 }
 
 function baixarModeloCargaMassa() {
