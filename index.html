@@ -644,36 +644,70 @@ function inicializarFirebase() {
   });
 }
 
-// === PRESENÇA ONLINE ===
+// === PRESENÇA ONLINE (com heartbeat + limpeza de zumbis) ===
 function iniciarPresenca(nomeUsuario) {
   if (!_fbDb || !nomeUsuario || nomeUsuario === "Outra Área") return;
   _presencaId = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
   const refPresenca = _fbDb.ref("cronograma/presenca/" + _presencaId);
-  const dados = { nome: nomeUsuario, desde: Date.now() };
-  refPresenca.set(dados);
+
+  const escrever = () => refPresenca.set({ nome: nomeUsuario, desde: Date.now(), lastSeen: Date.now() });
+  escrever();
   refPresenca.onDisconnect().remove();
 
-  // Observar quem está online
+  // Heartbeat a cada 20s — se a aba travar/cair, expira em 60s e some da lista
+  if (window._presencaHb) clearInterval(window._presencaHb);
+  window._presencaHb = setInterval(() => {
+    if (_presencaId) refPresenca.update({ lastSeen: Date.now() });
+  }, 20000);
+
+  // Reforço: alguns navegadores não disparam onDisconnect a tempo ao fechar a aba
+  window.addEventListener("beforeunload", () => { try { refPresenca.remove(); } catch(e){} });
+  // Reescreve presença ao voltar de aba inativa (caso a conexão tenha caído)
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && _presencaId) escrever();
+  });
+
+  // Observar quem está online — filtra entradas paradas há mais de 60s
   _fbDb.ref("cronograma/presenca").on("value", snap => {
     const todos = snap.val() || {};
-    const lista = Object.entries(todos).filter(([id]) => id !== _presencaId).map(([,v]) => v.nome);
-    renderizarPresenca(lista);
+    const agora = Date.now();
+    const LIMITE = 60000;
+    const ativos = [];
+    Object.entries(todos).forEach(([id, v]) => {
+      const ultimo = v.lastSeen || v.desde || 0;
+      if (agora - ultimo > LIMITE) {
+        // Zumbi — limpa do banco
+        _fbDb.ref("cronograma/presenca/" + id).remove();
+        return;
+      }
+      ativos.push({ id, nome: v.nome });
+    });
+    const outros = ativos.filter(p => p.id !== _presencaId).map(p => p.nome);
+    renderizarPresenca(outros, nomeUsuario);
   });
 }
 
-function renderizarPresenca(lista) {
+function renderizarPresenca(lista, voceNome) {
   const wrap = document.getElementById("presenca-wrap");
   if (!wrap) return;
-  if (!lista.length) { wrap.innerHTML = ""; return; }
   const MAX = 4;
   const visiveis = lista.slice(0, MAX);
   const extras = lista.length - MAX;
-  let html = visiveis.map(n => {
+  let html = "";
+  if (voceNome) {
+    const iniVoce = voceNome.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
+    html += `<span class="presenca-avatar" title="Você (${voceNome})" style="background:#52b747">${iniVoce}</span>`;
+  }
+  html += visiveis.map(n => {
     const ini = n.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
     return `<span class="presenca-avatar" title="${n}">${ini}</span>`;
   }).join("");
   if (extras > 0) html += `<span class="presenca-avatar" title="${lista.slice(MAX).join(', ')}">+${extras}</span>`;
-  html += `<span id="presenca-count">${lista.length === 1 ? "1 pessoa editando" : lista.length + " pessoas editando"}</span>`;
+  let texto;
+  if (lista.length === 0)      texto = "Só você editando agora";
+  else if (lista.length === 1) texto = `Você + ${lista[0].split(" ")[0]} editando agora`;
+  else                         texto = `Você + ${lista.length} pessoas editando agora`;
+  html += `<span id="presenca-count">${texto}</span>`;
   wrap.innerHTML = html;
 }
 
@@ -822,10 +856,16 @@ function salvarAtividade(actId, descricaoAcao) {
   if (!_fbDb) return;
   const idx = dbAtividades.findIndex(a => a.id === actId);
   if (idx === -1) return;
-  // Salva só o índice daquela atividade no array, sem tocar nas outras
-  _fbDb.ref(`cronograma/atividades/${idx}`).set(dbAtividades[idx])
+  const ts = Date.now();
+  // Salva só a atividade + atualiza _ts/_savedBy para que outras sessões detectem mudança
+  const updates = {};
+  updates[`cronograma/atividades/${idx}`] = dbAtividades[idx];
+  updates[`cronograma/_ts`]      = ts;
+  updates[`cronograma/_savedBy`] = usuarioLogadoAtual || "sistema";
+  _fbDb.ref().update(updates)
     .then(() => {
-      _tsUltimoSave = Date.now();
+      _tsUltimoSave = ts;
+      _tsUltimoCarregado = ts;
       _quemUltimoSave = usuarioLogadoAtual || "";
       atualizarIndicadorSave();
       if (descricaoAcao) registrarLog(descricaoAcao);
@@ -1179,6 +1219,36 @@ function aplicarLoginNaTela() {
   mudarAba('tab-execucao');
   renderizarFormCadastroBase();
   renderizarPainelAtividades();
+  iniciarSincronizacaoAoVivo();
+}
+
+// === SINCRONIZAÇÃO AO VIVO — puxa edições de outras pessoas automaticamente ===
+function iniciarSincronizacaoAoVivo() {
+  if (!_fbDb || window._syncAtivo) return;
+  window._syncAtivo = true;
+  _fbDb.ref("cronograma/_ts").on("value", snap => {
+    const tsRemoto = snap.val() || 0;
+    if (!tsRemoto) return;
+    // Ignora o próprio save e versões mais antigas/iguais
+    if (tsRemoto === _tsUltimoSave) return;
+    if (tsRemoto <= _tsUltimoCarregado) return;
+    // Outra pessoa salvou — puxar dados novos
+    _fbRef.once("value").then(s => {
+      const dados = s.val();
+      if (!dados) return;
+      _tsUltimoCarregado = dados._ts || tsRemoto;
+      _tsUltimoSave      = dados._ts || _tsUltimoSave;
+      _quemUltimoSave    = dados._savedBy || _quemUltimoSave;
+      if (dados.atividades) dbAtividades   = dados.atividades;
+      if (dados.historicos) dbHistoricos   = dados.historicos;
+      if (dados.config)     competencaAtiva = dados.config;
+      atualizarIndicadorSave();
+      try { renderizarPainelAtividades(); } catch(e) {}
+      try { renderizarSubtotaisEGrafico && renderizarSubtotaisEGrafico(); } catch(e) {}
+      const quem = (dados._savedBy || "Alguém").split(" ")[0];
+      showToast(`🔄 ${quem} atualizou o cronograma`);
+    });
+  });
 }
 
 // Compat: chamadas legadas
