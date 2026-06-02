@@ -1603,7 +1603,14 @@ function salvarEmpresasElegiveisLote() {
   let cards = document.querySelectorAll("#modal-companies-grid-root .user-select-card.selected");
   let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
   atv.empresasElegiveis = novos;
-  salvarDados("Atualizou marcas vinculadas"); fecharModalEmpresas(); renderizarPainelAtividades(); showToast("Marcas vinculadas!");
+
+  // Manter empresas em sincronia: preserva status/obs das que já existem, adiciona novas como PENDENTE
+  const empresasAtuais = atv.empresas || [];
+  const mapaAtual = {};
+  empresasAtuais.forEach(e => { mapaAtual[e.nome] = e; });
+  atv.empresas = novos.map(nome => mapaAtual[nome] || { nome, status: "PENDENTE", dataConclusao: "", obs: "" });
+
+  salvarAtividade(actId, "Atualizou marcas vinculadas"); fecharModalEmpresas(); renderizarPainelAtividades(); showToast("Marcas vinculadas!");
 }
 
 function atualizarCampoTexto(id, campo, val) {
