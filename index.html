@@ -388,11 +388,6 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 
 <div class="dashboard-container">
 
-  <div class="area-health-box">
-    <div class="area-health-title">📊 Saúde de Entregas por Departamento / Área</div>
-    <div class="area-health-grid" id="area-health-grid-root"></div>
-  </div>
-
   <div class="progress-wrap">
     <span class="progress-label">Progresso do Fechamento Geral</span>
     <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
@@ -409,6 +404,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
     <div class="kpi" style="--kpi-color: var(--arco-cyan);"><div class="kpi-num" id="k-checklists">0</div><div class="kpi-label">Checklists Vinculados</div></div>
   </div>
 
+
+  <div id="previa-summary-top-root" style="margin-bottom:24px;"></div>
 
   <!-- Painel de log de alterações -->
   <div id="painel-log" style="display:none;">
@@ -923,12 +920,10 @@ function salvarAtividade(actId, descricaoAcao) {
   }, 500);
 }
 
-// === SALVAR DADOS (ponto de entrada principal) ===
+// === SALVAR DADOS (ponto de entrada principal) — salva apenas campos não-atividade ===
 function salvarDados(descricaoAcao) {
   if (!_fbRef) return;
-  // Acumula a descrição mais recente dentro da janela de debounce
   if (descricaoAcao) _debounceDadosAcao = descricaoAcao;
-  // Marca pendente imediatamente para proteger beforeunload
   _savePendente = true;
   const elSave = document.getElementById("ultimo-save");
   if (elSave) elSave.textContent = "⏳ Salvando...";
@@ -937,20 +932,79 @@ function salvarDados(descricaoAcao) {
     _debounceDados = null;
     const acaoFinal = _debounceDadosAcao;
     _debounceDadosAcao = null;
-    const payload = {
-      atividades:    dbAtividades,
-      config:        competencaAtiva,
-      profissionais: PROFISSIONAIS_TIME,
-      empresas:      EMPRESAS_CHECKLIST,
-      areas:         AREAS_LISTA
+    const ts = Date.now();
+    // Salva TUDO exceto atividades (que têm seu próprio path granular)
+    const updates = {
+      "cronograma/config":        competencaAtiva,
+      "cronograma/profissionais": PROFISSIONAIS_TIME,
+      "cronograma/empresas":      EMPRESAS_CHECKLIST,
+      "cronograma/areas":         AREAS_LISTA,
+      "cronograma/_ts":           ts,
+      "cronograma/_savedBy":      usuarioLogadoAtual || "sistema"
     };
     if (dbHistoricos && Object.keys(dbHistoricos).length > 0) {
-      payload.historicos = dbHistoricos;
+      updates["cronograma/historicos"] = dbHistoricos;
     }
-    fazerBackupAutomatico(payload);
+    if (!_isOnline) {
+      _saveConflitoPendente = updates;
+      showToast("⚠️ Sem conexão. Será salvo ao reconectar.");
+      _savePendente = false;
+      return;
+    }
+    fazerBackupAutomatico({ atividades: dbAtividades });
     if (acaoFinal) registrarLog(acaoFinal);
-    _executarSave(payload);
+    _fbDb.ref().update(updates)
+      .then(() => {
+        _savePendente = false;
+        _tsUltimoSave = ts;
+        _tsUltimoCarregado = ts;
+        _quemUltimoSave = usuarioLogadoAtual || "";
+        atualizarIndicadorSave();
+      })
+      .catch(err => {
+        _savePendente = false;
+        console.error("Erro Firebase:", err);
+        showToast("⚠️ Erro ao salvar.");
+      });
   }, 500);
+}
+
+// === SALVAR ATIVIDADE INDIVIDUAL — nunca sobrescreve outras atividades ===
+function salvarAtividadeGranular(actId, descricaoAcao) {
+  if (!_fbDb) return;
+  if (_debounceAtividade[actId]) clearTimeout(_debounceAtividade[actId]);
+  _savePendente = true;
+  const elSave = document.getElementById("ultimo-save");
+  if (elSave) elSave.textContent = "⏳ Salvando...";
+  _debounceAtividade[actId] = setTimeout(() => {
+    delete _debounceAtividade[actId];
+    const idx = dbAtividades.findIndex(a => a.id === actId);
+    if (idx === -1) { _savePendente = false; return; }
+    const ts = Date.now();
+    const updates = {};
+    updates[`cronograma/atividades/${idx}`] = dbAtividades[idx];
+    updates["cronograma/_ts"]      = ts;
+    updates["cronograma/_savedBy"] = usuarioLogadoAtual || "sistema";
+    _fbDb.ref().update(updates)
+      .then(() => {
+        _savePendente = false;
+        _tsUltimoSave = ts;
+        _tsUltimoCarregado = ts;
+        _quemUltimoSave = usuarioLogadoAtual || "";
+        atualizarIndicadorSave();
+        if (descricaoAcao) registrarLog(descricaoAcao);
+      })
+      .catch(err => {
+        _savePendente = false;
+        console.error("Erro Firebase:", err);
+        showToast("⚠️ Erro ao salvar.");
+      });
+  }, 500);
+}
+
+// Mantém alias para compatibilidade com código existente
+function salvarAtividade(actId, descricaoAcao) {
+  salvarAtividadeGranular(actId, descricaoAcao);
 }
 
 let dbAtividades = [];
@@ -1361,7 +1415,6 @@ function obterStatusGeralAtividade(act) {
 function renderizarPainelAtividades() {
   const root = document.getElementById("activities-root");
   const tableDuRoot = document.getElementById("table-config-du-root");
-  const healthGrid = document.getElementById("area-health-grid-root");
   
   const buscaTxt = document.getElementById("search-input") ? document.getElementById("search-input").value.toLowerCase() : "";
   const respFiltro = document.getElementById("filter-resp") ? document.getElementById("filter-resp").value : "todos";
@@ -1374,12 +1427,10 @@ function renderizarPainelAtividades() {
 
   const AREA_CONTABIL = ["Contábil","Contabilidade","contábil","contabilidade"];
 
-  root.innerHTML = ""; tableDuRoot.innerHTML = ""; healthGrid.innerHTML = "";
+  root.innerHTML = ""; tableDuRoot.innerHTML = "";
   
   let tAtv = 0, tOK = 0, tPend = 0, tAtras = 0, tChecklists = 0;
   let ehMaster = MASTERS_ADMINS.includes(usuarioLogadoAtual);
-
-  let areaMetrics = {};
 
   // ── 5. Ordenar: primeiro por DU, depois alfabético
   const atividadesOrdenadas = [...dbAtividades].sort((a, b) => {
@@ -1393,12 +1444,6 @@ function renderizarPainelAtividades() {
     let statusGeral = obterStatusGeralAtividade(act);
     let dataCivil = calcularDataPorDiaUtl(act.diaUtil);
     let dataFormatada = dataCivil ? dataCivil.toLocaleDateString("pt-BR") : "—";
-
-    let labelParaMetrica = (act.area.toLowerCase() === "contábil" || act.area.toLowerCase() === "contabilidade") ? "Contabilidade (Interno)" : act.area;
-    if (!areaMetrics[labelParaMetrica]) areaMetrics[labelParaMetrica] = { total: 0, concluidas: 0 };
-    let elegiveisCheck = act.empresas.filter(e => (act.empresasElegiveis || []).includes(e.nome));
-    areaMetrics[labelParaMetrica].total += elegiveisCheck.length;
-    areaMetrics[labelParaMetrica].concluidas += elegiveisCheck.filter(e => e.status === "OK" || e.status === "N/A").length;
 
     // === Filtro por área para "Outra Área" (leitura) ainda é forçado ===
     if (!ehMaster && usuarioLogadoAtual === "Outra Área") {
@@ -1531,19 +1576,6 @@ function renderizarPainelAtividades() {
     root.appendChild(card);
   });
 
-  Object.keys(areaMetrics).forEach(areaKey => {
-    let item = areaMetrics[areaKey];
-    let pctArea = item.total > 0 ? Math.round((item.concluidas / item.total) * 100) : 0;
-    
-    const block = document.createElement("div");
-    block.className = "area-health-card";
-    block.innerHTML = `
-      <div class="area-health-meta"><span>${areaKey}</span><span style="color:var(--arco-blue);">${pctArea}%</span></div>
-      <div class="prog-bg" style="height:6px;"><div class="prog-fill" style="width:${pctArea}%; background:var(--arco-cyan);"></div></div>
-    `;
-    healthGrid.appendChild(block);
-  });
-
   document.getElementById("k-total").textContent = tAtv;
   document.getElementById("k-conc").textContent = tOK;
   document.getElementById("k-pend").textContent = tPend;
@@ -1651,7 +1683,7 @@ function salvarResponsavelLote() {
   let novos = []; cards.forEach(c => novos.push(c.querySelector(".user-name-label").textContent));
   if(!novos.length) novos.push("A Atribuir");
   atv.responveisLista = novos;
-  salvarDados("Atualizou responsáveis"); fecharModalResponsavel(); renderizarPainelAtividades(); showToast("Responsáveis atualizados!");
+  salvarAtividadeGranular(actId, "Atualizou responsáveis"); fecharModalResponsavel(); renderizarPainelAtividades(); showToast("Responsáveis atualizados!");
 }
 
 function abrirModalEmpresas(actId) {
@@ -1697,12 +1729,12 @@ function atualizarCampoTexto(id, campo, val) {
     let nova = prompt("Nome da nova área:"); if(!nova) { renderizarPainelAtividades(); return; }
     val = nova.trim();
   }
-  atv[campo] = val; salvarDados("Editou campo de atividade"); showToast("Salvo!");
+  atv[campo] = val; salvarAtividadeGranular(id, "Editou campo de atividade"); showToast("Salvo!");
 }
 
 function atualizarDiaUtilDireto(id, val) {
   let atv = dbAtividades.find(a => a.id === id);
-  if(atv && val.trim()) { atv.diaUtil = String(val); salvarDados(); renderizarPainelAtividades(); showToast("Recalculado!"); }
+  if(atv && val.trim()) { atv.diaUtil = String(val); salvarAtividadeGranular(id); renderizarPainelAtividades(); showToast("Recalculado!"); }
 }
 
 function alterarStatusLinha(actId, empIdx, status) {
@@ -1815,13 +1847,25 @@ function salvarNovaAtividade() {
   let empsElegiveis = [...cddEmpSelecionados];
   if(!empsElegiveis.length) empsElegiveis = [...EMPRESAS_CHECKLIST];
 
-  dbAtividades.push({
+  const novaAtv = {
     id: "atv_" + new Date().getTime(),
     atividade: nome, area: area, diaUtil: String(du), previaReceita: previa,
     responveisLista: resps, empresasElegiveis: empsElegiveis,
     empresas: EMPRESAS_CHECKLIST.map(emp => ({ nome: emp, status: "PENDENTE", dataConclusao: "", obs: "" }))
-  });
-  salvarDados(`Criou atividade "${nome}" · ${area}`);
+  };
+  dbAtividades.push(novaAtv);
+  // Salva apenas o novo índice — não sobrescreve os existentes
+  const novoIdx = dbAtividades.length - 1;
+  const ts = Date.now();
+  const updates = {};
+  updates[`cronograma/atividades/${novoIdx}`] = novaAtv;
+  updates["cronograma/_ts"] = ts;
+  updates["cronograma/_savedBy"] = usuarioLogadoAtual || "sistema";
+  _fbDb.ref().update(updates).then(() => {
+    _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+    registrarLog(`Criou atividade "${nome}" · ${area}`);
+    atualizarIndicadorSave();
+  }).catch(err => { console.error("Erro ao criar:", err); showToast("⚠️ Erro ao salvar nova atividade."); });
   document.getElementById("add-nome").value = "";
   cddRespSelecionados = []; cddEmpSelecionados = [];
   toggleFormCadastro();
@@ -1852,7 +1896,16 @@ function arquivarCompetenciaAtiva() {
     dbAtividades.forEach(act => {
       act.empresas.forEach(e => { e.status = "PENDENTE"; e.dataConclusao = ""; e.obs = ""; });
     });
-    salvarDados("Arquivou mês e limpou atividades"); renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
+    // Reset intencional: reescreve todas as atividades com status limpo
+    const ts = Date.now();
+    const updates = { "cronograma/config": competencaAtiva, "cronograma/historicos": dbHistoricos, "cronograma/_ts": ts, "cronograma/_savedBy": usuarioLogadoAtual || "sistema" };
+    dbAtividades.forEach((atv, i) => { updates[`cronograma/atividades/${i}`] = atv; });
+    _fbDb.ref().update(updates).then(() => {
+      _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+      registrarLog("Arquivou mês e limpou atividades");
+      atualizarIndicadorSave();
+      renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
+    }).catch(err => { console.error("Erro ao arquivar:", err); showToast("⚠️ Erro ao arquivar."); });
   }
 }
 
@@ -1898,7 +1951,31 @@ function visualizarHistoricoEspecifico(key) {
 
 function excluirAtividadeDefinitivo(id, e) {
   e.stopPropagation();
-  if(confirm("Apagar atividade permanentemente?")) { dbAtividades = dbAtividades.filter(a => a.id !== id); salvarDados("Excluiu atividade"); inicializarSistema(); }
+  if(!confirm("Apagar atividade permanentemente?")) return;
+  const idx = dbAtividades.findIndex(a => a.id === id);
+  if(idx === -1) return;
+  // Remove do array local
+  dbAtividades.splice(idx, 1);
+  // Reconstrói o array no Firebase de forma segura: remove o índice antigo e reescreve os demais
+  // Usa set no path de atividades para garantir consistência após o splice
+  const ts = Date.now();
+  const updates = {};
+  // Reescreve todos os índices (necessário pois splice mudou as posições)
+  dbAtividades.forEach((atv, i) => { updates[`cronograma/atividades/${i}`] = atv; });
+  // Apaga o último índice que sobrou após o splice (o array encolheu 1)
+  updates[`cronograma/atividades/${dbAtividades.length}`] = null;
+  updates["cronograma/_ts"] = ts;
+  updates["cronograma/_savedBy"] = usuarioLogadoAtual || "sistema";
+  _fbDb.ref().update(updates)
+    .then(() => {
+      _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+      _quemUltimoSave = usuarioLogadoAtual || "";
+      registrarLog("Excluiu atividade");
+      atualizarIndicadorSave();
+      inicializarSistema();
+      showToast("Atividade excluída!");
+    })
+    .catch(err => { console.error("Erro ao excluir:", err); showToast("⚠️ Erro ao excluir."); });
 }
 
 function baixarModeloCargaMassa() {
@@ -1956,8 +2033,22 @@ function importarPlanilhaMassa(event) {
       });
       cont++;
     }
-    event.target.value = ""; // reset input
-    salvarDados(); inicializarSistema();
+    event.target.value = "";
+    // Salva apenas os novos itens adicionados, sem sobrescrever os existentes
+    const baseIdx = dbAtividades.length - cont;
+    const ts = Date.now();
+    const updates = {};
+    for(let i = baseIdx; i < dbAtividades.length; i++) {
+      updates[`cronograma/atividades/${i}`] = dbAtividades[i];
+    }
+    updates["cronograma/_ts"] = ts;
+    updates["cronograma/_savedBy"] = usuarioLogadoAtual || "sistema";
+    _fbDb.ref().update(updates).then(() => {
+      _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+      registrarLog(`Importou ${cont} atividades em massa`);
+      atualizarIndicadorSave();
+      inicializarSistema();
+    }).catch(err => { console.error("Erro importação:", err); showToast("⚠️ Erro ao salvar importação."); });
     showToast(`✓ ${cont} atividades importadas` + (ignoradas ? ` (${ignoradas} linhas ignoradas)` : "") + "!");
   };
   reader.readAsText(file, "UTF-8");
@@ -2653,7 +2744,8 @@ function renderizarLibéracoesFiscal() {
     });
 
     // 2) quadro resumo SEMPRE — status das atividades "Sim" agrupado por empresa
-    const root = document.getElementById("previa-summary-root"); if(!root) return;
+    const root = document.getElementById("previa-summary-root");
+    const rootTop = document.getElementById("previa-summary-top-root");
     const atvsPrev = dbAtividades.filter(a => (a.previaReceita||"Não") === "Sim");
     const porEmp = {};
     atvsPrev.forEach(a => {
@@ -2668,7 +2760,7 @@ function renderizarLibéracoesFiscal() {
       });
     });
     const empresas = Object.keys(porEmp).sort();
-    if(!atvsPrev.length){ root.innerHTML = ""; return; }
+    if(!atvsPrev.length){ if(root) root.innerHTML = ""; if(rootTop) rootTop.innerHTML = ""; return; }
     const cards = empresas.map(emp => {
       const v = porEmp[emp];
       const pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
@@ -2684,7 +2776,7 @@ function renderizarLibéracoesFiscal() {
         </div>
       </div>`;
     }).join("");
-    root.innerHTML = `
+    const blocoHtml = `
       <div style="background:#fff; border:1px solid var(--border); border-radius:18px; padding:18px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h3 style="font-size:13px; font-weight:700; color:var(--arco-blue); text-transform:uppercase; letter-spacing:.06em;">💰 Resumo — Atividades que impactam Prévia de Receita (por empresa)</h3>
@@ -2692,6 +2784,8 @@ function renderizarLibéracoesFiscal() {
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;">${cards}</div>
       </div>`;
+    if(rootTop) rootTop.innerHTML = blocoHtml;
+    if(root) root.innerHTML = "";
   };
 })();
 
