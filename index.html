@@ -183,9 +183,9 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .form-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-.lib-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
-.lib-ok { background:#dcfce7; color:#166534; }
-.lib-na { background:#f1f5f9; color:#64748b; }
+.lib-pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.lib-ok   { background:#dcfce7; color:#166534; }
+.lib-na   { background:#f1f5f9; color:#64748b; }
 .lib-pend { background:#fee2e2; color:#991b1b; }
 .lib-exec { background:#fef9c3; color:#713f12; }
 
@@ -2649,6 +2649,44 @@ window.resetarTudoAutomatico = function(){
   showToast("↺ Tudo voltou ao automático!");
 };
 
+window.imprimirPainel = function(){
+  const el = document.getElementById("liberacoes-root");
+  if(!el) return;
+  const titulo = `Liberações PIS/COFINS — ${competencaAtiva.mes}/${competencaAtiva.ano}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${titulo}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Sora', sans-serif; font-size: 12px; color: #0f172a; padding: 24px; background: #fff; }
+      h1 { font-size: 15px; font-weight: 700; color: #114197; margin-bottom: 4px; }
+      .sub { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+      th { background: #f8fafc; padding: 8px 10px; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #e2e8f0; text-align: center; }
+      th.left { text-align: left; }
+      td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 12px; }
+      td.emp { text-align: left; font-weight: 700; white-space: nowrap; }
+      td.grupo { text-align: left; color: #64748b; font-size: 11px; }
+      .pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+      .ok   { background:#dcfce7; color:#166534; }
+      .na   { background:#f1f5f9; color:#64748b; }
+      .pend { background:#fee2e2; color:#991b1b; }
+      .exec { background:#fef9c3; color:#713f12; }
+      .section { font-size:12px; font-weight:700; color:#114197; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
+      .col-lib { border-left: 2px solid #e2e8f0; }
+      @media print { body { padding: 12px; } }
+    </style></head><body>
+    <h1>${titulo}</h1>
+    <div class="sub">Gerado em ${new Date().toLocaleString('pt-BR')} · ${usuarioLogadoAtual}</div>
+    ${el.innerHTML}
+    </body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 600);
+};
+
 // ─── Carregar dbLiberacoes no init ───
 const _origInit = window.inicializarSistema;
 window.inicializarSistema = async function(){
@@ -2705,9 +2743,8 @@ function renderizarLibéracoesFiscal(){
   }
 
   // Cabeçalhos: colunas do PIS/COFINS + Liberada
-  const ativs = pis.atividades;
+  const ativs = pis.atividades.filter(a => a.nome !== 'Liberada');
   const headCols = ativs.map(a => {
-    // Mostra quais atividades do checklist alimentam esta coluna
     const atvsMapeadas = dbAtividades.filter(atv => atv.colunaPIS === a.nome);
     const tooltip = atvsMapeadas.length
       ? `title="Alimentado por: ${atvsMapeadas.map(x=>x.atividade).join(', ')}"`
@@ -2716,7 +2753,7 @@ function renderizarLibéracoesFiscal(){
       ? `<div style="font-size:9px;color:var(--arco-green);margin-top:2px;">⚙️ ${atvsMapeadas.length} atv</div>`
       : `<div style="font-size:9px;color:var(--muted);margin-top:2px;">manual</div>`;
     return `<th style="font-size:11px;padding:10px 6px;text-align:center;max-width:110px;white-space:normal;line-height:1.3;" ${tooltip}>${a.nome}${badge}</th>`;
-  }).join("");
+  }).join("") + `<th style="font-size:11px;padding:10px 8px;text-align:center;border-left:2px solid var(--border);color:var(--arco-blue);">Liberada</th>`;
 
   const bodyRows = pis.empresas.map(e => {
     const cells = ativs.map(a => {
@@ -2746,7 +2783,11 @@ function renderizarLibéracoesFiscal(){
       }
       return `<td style="text-align:center;padding:6px;"><span class="lib-pill ${statusClass(s)}">${statusLabel(s)}</span>${pinTag}</td>`;
     }).join("");
-    return `<tr><td style="font-weight:700;padding:8px 12px;font-size:13px;white-space:nowrap;">${e.empresa}</td>${cells}</tr>`;
+    // Liberada cell rendered separately with highlight
+    const sLib = e.status['Liberada'] || 'Não iniciado';
+    const libCls = sLib.toLowerCase().includes('liberad') ? 'lib-ok' : 'lib-pend';
+    const libCell = `<td style="padding:8px;border-left:2px solid var(--border);text-align:center;"><span class="lib-pill ${libCls}">${sLib.toLowerCase().includes('liberad') ? '✓ Liberado' : 'Não'}</span></td>`;
+    return `<tr><td style="font-weight:700;padding:8px 12px;font-size:13px;white-space:nowrap;">${e.empresa}</td>${cells}${libCell}</tr>`;
   }).join("");
 
   // Painel IRPJ/CSLL — PIS/COFINS Contab vem automático, os outros editáveis pelo editor
@@ -2787,9 +2828,9 @@ function renderizarLibéracoesFiscal(){
 
   const temOverrides = Object.keys(window.dbLiberacoesOverrides||{}).length > 0;
   const editorBadge = ehEditor
-    ? `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-        <span style="font-size:12px;color:var(--arco-green);">✏️ Modo edição ativo.</span>
-        <span style="font-size:11px;color:var(--muted);">Colunas com ⚙️ são automáticas (alimentadas pelo checklist). Clique em ✏️ para forçar um valor.</span>
+    ? `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--arco-green);font-weight:700;">✏️ Modo edição ativo</span>
+        <span style="font-size:11px;color:var(--muted);">Colunas ⚙️ = automáticas pelo checklist · ✏️ = forçar override</span>
         ${temOverrides ? `<button onclick="window.resetarTudoAutomatico()" style="background:#114197;color:#fff;border:none;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">↺ Voltar tudo ao automático</button>` : '<span style="font-size:11px;color:var(--muted);font-style:italic;">Nenhum override ativo.</span>'}
       </div>`
     : `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">🔒 Edição restrita a Leonardo e Emerson.</div>`;
@@ -2797,7 +2838,10 @@ function renderizarLibéracoesFiscal(){
   root.innerHTML = `
     <div style="margin-bottom:32px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:24px;">
-        <h3 style="font-size:14px;font-weight:700;color:var(--arco-blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📊 Status Liberações PIS/COFINS por Empresa</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h3 style="font-size:14px;font-weight:700;color:var(--arco-blue);text-transform:uppercase;letter-spacing:.05em;margin:0;">📊 Status Liberações PIS/COFINS por Empresa</h3>
+          <button onclick="window.imprimirPainel()" style="background:#f1f5f9;border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">🖨️ Imprimir / Salvar PDF</button>
+        </div>
         ${editorBadge}
         <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">As colunas com <span style="color:var(--arco-green);">⚙️ N atv</span> são atualizadas automaticamente quando as atividades vinculadas no checklist ficam OK.</p>
         <div style="overflow-x:auto;">
