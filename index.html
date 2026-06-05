@@ -625,6 +625,10 @@ let _tsUltimoCarregado = 0;   // timestamp do banco quando carregamos
 let _saveConflitoPendente = null; // payload aguardando decisão do usuário
 let _presencaId = null;        // ID único desta sessão para presença
 let _isOnline = true;
+let _savePendente = false;     // true enquanto gravação no Firebase não foi confirmada
+let _debounceAtividade = {};  // { actId: timerId } — debounce por atividade
+let _debounceDados = null;    // timer do salvarDados completo
+let _debounceDadosAcao = null; // última descricaoAcao acumulada no debounce
 
 function inicializarFirebase() {
   if (_fbRef) return;
@@ -661,7 +665,14 @@ function iniciarPresenca(nomeUsuario) {
   }, 20000);
 
   // Reforço: alguns navegadores não disparam onDisconnect a tempo ao fechar a aba
-  window.addEventListener("beforeunload", () => { try { refPresenca.remove(); } catch(e){} });
+  window.addEventListener("beforeunload", (e) => {
+    try { refPresenca.remove(); } catch(err) {}
+    if (_savePendente) {
+      e.preventDefault();
+      e.returnValue = "⚠️ Ainda há dados sendo salvos. Se sair agora, as últimas alterações podem ser perdidas.";
+      return e.returnValue;
+    }
+  });
   // Reescreve presença ao voltar de aba inativa (caso a conexão tenha caído)
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && _presencaId) escrever();
@@ -841,54 +852,87 @@ function _executarSaveForcar(payload) {
     showToast("⚠️ Sem conexão. Será salvo ao reconectar.");
     return;
   }
+  _savePendente = true;
+  const elSave = document.getElementById("ultimo-save");
+  if (elSave) elSave.textContent = "⏳ Salvando...";
   _fbRef.update(payloadFinal)
     .then(() => {
+      _savePendente = false;
       _tsUltimoSave = ts;
       _tsUltimoCarregado = ts;
       _quemUltimoSave = usuarioLogadoAtual || "";
       atualizarIndicadorSave();
     })
-    .catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar. Verifique a conexão."); });
+    .catch(err => {
+      _savePendente = false;
+      console.error("Erro Firebase:", err);
+      showToast("⚠️ Erro ao salvar. Verifique a conexão.");
+    });
 }
 
 // === SAVE GRANULAR POR ATIVIDADE (evita sobrescrita de outras atividades) ===
 function salvarAtividade(actId, descricaoAcao) {
   if (!_fbDb) return;
-  const idx = dbAtividades.findIndex(a => a.id === actId);
-  if (idx === -1) return;
-  const ts = Date.now();
-  // Salva só a atividade + atualiza _ts/_savedBy para que outras sessões detectem mudança
-  const updates = {};
-  updates[`cronograma/atividades/${idx}`] = dbAtividades[idx];
-  updates[`cronograma/_ts`]      = ts;
-  updates[`cronograma/_savedBy`] = usuarioLogadoAtual || "sistema";
-  _fbDb.ref().update(updates)
-    .then(() => {
-      _tsUltimoSave = ts;
-      _tsUltimoCarregado = ts;
-      _quemUltimoSave = usuarioLogadoAtual || "";
-      atualizarIndicadorSave();
-      if (descricaoAcao) registrarLog(descricaoAcao);
-    })
-    .catch(err => { console.error("Erro Firebase:", err); showToast("⚠️ Erro ao salvar."); });
+  // Debounce: cancela timer anterior para este actId e agenda novo em 500ms
+  if (_debounceAtividade[actId]) clearTimeout(_debounceAtividade[actId]);
+  // Marca pendente imediatamente para o beforeunload proteger o usuário
+  _savePendente = true;
+  const elSave2 = document.getElementById("ultimo-save");
+  if (elSave2) elSave2.textContent = "⏳ Salvando...";
+  _debounceAtividade[actId] = setTimeout(() => {
+    delete _debounceAtividade[actId];
+    const idx = dbAtividades.findIndex(a => a.id === actId);
+    if (idx === -1) { _savePendente = false; atualizarIndicadorSave(); return; }
+    const ts = Date.now();
+    const updates = {};
+    updates[`cronograma/atividades/${idx}`] = dbAtividades[idx];
+    updates[`cronograma/_ts`]      = ts;
+    updates[`cronograma/_savedBy`] = usuarioLogadoAtual || "sistema";
+    _fbDb.ref().update(updates)
+      .then(() => {
+        _savePendente = false;
+        _tsUltimoSave = ts;
+        _tsUltimoCarregado = ts;
+        _quemUltimoSave = usuarioLogadoAtual || "";
+        atualizarIndicadorSave();
+        if (descricaoAcao) registrarLog(descricaoAcao);
+      })
+      .catch(err => {
+        _savePendente = false;
+        console.error("Erro Firebase:", err);
+        showToast("⚠️ Erro ao salvar.");
+      });
+  }, 500);
 }
 
 // === SALVAR DADOS (ponto de entrada principal) ===
 function salvarDados(descricaoAcao) {
   if (!_fbRef) return;
-  const payload = {
-    atividades:    dbAtividades,
-    config:        competencaAtiva,
-    profissionais: PROFISSIONAIS_TIME,
-    empresas:      EMPRESAS_CHECKLIST,
-    areas:         AREAS_LISTA
-  };
-  if (dbHistoricos && Object.keys(dbHistoricos).length > 0) {
-    payload.historicos = dbHistoricos;
-  }
-  fazerBackupAutomatico(payload);
-  if (descricaoAcao) registrarLog(descricaoAcao);
-  _executarSave(payload);
+  // Acumula a descrição mais recente dentro da janela de debounce
+  if (descricaoAcao) _debounceDadosAcao = descricaoAcao;
+  // Marca pendente imediatamente para proteger beforeunload
+  _savePendente = true;
+  const elSave = document.getElementById("ultimo-save");
+  if (elSave) elSave.textContent = "⏳ Salvando...";
+  if (_debounceDados) clearTimeout(_debounceDados);
+  _debounceDados = setTimeout(() => {
+    _debounceDados = null;
+    const acaoFinal = _debounceDadosAcao;
+    _debounceDadosAcao = null;
+    const payload = {
+      atividades:    dbAtividades,
+      config:        competencaAtiva,
+      profissionais: PROFISSIONAIS_TIME,
+      empresas:      EMPRESAS_CHECKLIST,
+      areas:         AREAS_LISTA
+    };
+    if (dbHistoricos && Object.keys(dbHistoricos).length > 0) {
+      payload.historicos = dbHistoricos;
+    }
+    fazerBackupAutomatico(payload);
+    if (acaoFinal) registrarLog(acaoFinal);
+    _executarSave(payload);
+  }, 500);
 }
 
 let dbAtividades = [];
