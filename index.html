@@ -281,8 +281,9 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 
 <div class="modal-overlay" id="modal-edit-owners">
   <div class="modal-card">
-    <h3 style="color:var(--arco-blue); font-weight:700; font-size:16px;" id="modal-edit-title">Alterar Analistas Responsáveis</h3>
-    <p style="font-size:12px; color:var(--muted); margin-top:4px;">Marque os donos primários da atividade.</p>
+    <h3 style="color:var(--arco-blue); font-weight:700; font-size:16px;">Alterar Analistas Responsáveis</h3>
+    <p id="modal-edit-title" style="font-size:13px; font-weight:700; color:var(--text); background:#f1f5f9; border-left:3px solid var(--arco-blue); padding:8px 12px; border-radius:0 8px 8px 0; margin:8px 0 4px;">—</p>
+    <p style="font-size:12px; color:var(--muted); margin-bottom:4px;">Marque os donos primários da atividade.</p>
     <input type="hidden" id="modal-edit-act-id">
     <div class="premium-users-grid" id="modal-users-grid-root"></div>
     <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
@@ -295,6 +296,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 <div class="modal-overlay" id="modal-edit-companies">
   <div class="modal-card">
     <h3 style="color:var(--arco-blue); font-weight:700; font-size:16px;">Vincular Marcas Participantes</h3>
+    <p id="modal-comp-title" style="font-size:13px; font-weight:700; color:var(--text); background:#f1f5f9; border-left:3px solid var(--arco-blue); padding:8px 12px; border-radius:0 8px 8px 0; margin:8px 0 4px;">—</p>
     <input type="hidden" id="modal-comp-act-id">
     <div class="premium-users-grid" id="modal-companies-grid-root"></div>
     <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end; margin-top:24px;">
@@ -1376,6 +1378,7 @@ function mudarAba(targetTabId) {
 
   if (targetTabId === 'tab-config-listas') renderizarConfigListas();
   if (targetTabId === 'tab-liberacoes') renderizarLibéracoesFiscal();
+  if (targetTabId === 'tab-config-periodo') renderizarAbasHistorico();
 }
 
 function ehDiaUtil(data) {
@@ -1711,6 +1714,7 @@ function salvarResponsavelLote() {
 function abrirModalEmpresas(actId) {
   let atv = dbAtividades.find(a => a.id === actId);
   document.getElementById("modal-comp-act-id").value = actId;
+  document.getElementById("modal-comp-title").textContent = atv.atividade;
   let elegiveis = atv.empresasElegiveis || [...EMPRESAS_CHECKLIST];
 
   const root = document.getElementById("modal-companies-grid-root");
@@ -1982,7 +1986,11 @@ function arquivarCompetenciaAtiva() {
       _tsUltimoSave = ts; _tsUltimoCarregado = ts;
       registrarLog("Arquivou mês e limpou atividades");
       atualizarIndicadorSave();
-      renderizarAbasHistorico(); inicializarSistema(); showToast("Mês limpo, arquivado e Excel baixado!");
+      // Renderiza o histórico ANTES do re-render geral
+      renderizarAbasHistorico();
+      renderizarPainelAtividades();
+      _atualizarKpisRapido();
+      showToast("Mês arquivado e Excel baixado! ✓");
     }).catch(err => { console.error("Erro ao arquivar:", err); showToast("⚠️ Erro ao arquivar."); });
   }
 }
