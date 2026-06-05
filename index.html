@@ -155,7 +155,8 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.4); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
 .modal-overlay.open { display: flex; }
-.modal-card { background: #fff; border-radius: 20px; padding: 32px; width: 580px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); }
+.modal-card { background: #fff; border-radius: 20px; padding: 24px; width: 580px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); }
+.modal-card .ext-modal-actions { position: sticky; bottom: -24px; background: #fff; padding: 12px 0 0; margin: 16px -4px -4px; border-top: 1px solid var(--border); z-index: 5; }
 .premium-users-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 350px; overflow-y: auto; padding-right: 4px; margin: 16px 0; }
 .user-select-card { border: 1px solid var(--border); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
 .user-select-card.selected { background: #eff6ff; border-color: var(--arco-blue); box-shadow: 0 0 0 1px var(--arco-blue); }
@@ -480,6 +481,11 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
         <select class="filter-select" id="filter-resp" onchange="filtrarGeral()"><option value="todos">👤 Todos Responsáveis</option></select>
         <select class="filter-select" id="filter-area" onchange="filtrarGeral()"><option value="todos">📂 Todas as Áreas</option></select>
         <select class="filter-select" id="filter-empresa" onchange="filtrarGeral()"><option value="todos">🏢 Todas as Empresas</option></select>
+        <select class="filter-select" id="filter-previa" onchange="filtrarGeral()">
+          <option value="todos">💰 Impacta Receita (todas)</option>
+          <option value="Sim">💰 Só impacta receita</option>
+          <option value="Não">💤 Só não impacta</option>
+        </select>
         
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:12px; font-weight:700; color:var(--muted)">Até Vencimento:</span>
@@ -488,6 +494,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
       </div>
       <div class="search-bar"><input class="search-input" type="text" placeholder="🔎 Buscar pelo nome da atividade..." id="search-input" oninput="filtrarGeral()" style="width:320px;"/></div>
     </div>
+    <div id="previa-summary-root" style="margin-bottom:24px;"></div>
     <div id="activities-root"></div>
   </div>
 
@@ -2629,6 +2636,62 @@ function renderizarLibéracoesFiscal() {
     salvarLiberacoes();
     renderizarLibéracoesFiscal();
     showToast("Atualizado!");
+  };
+
+  // ---------- J) Filtro "Impacta Receita" + Quadro Resumo por Empresa ----------
+  const _origRenderForPrevia = window.renderizarPainelAtividades;
+  window.renderizarPainelAtividades = function(){
+    _origRenderForPrevia();
+    const sel = document.getElementById("filter-previa");
+    const fVal = sel ? sel.value : "todos";
+
+    // 1) hide cards conforme filtro
+    document.querySelectorAll("#activities-root .activity-card").forEach(card => {
+      const atv = dbAtividades.find(a => a.id === card.id); if(!atv) return;
+      const prev = atv.previaReceita || "Não";
+      if(fVal !== "todos" && prev !== fVal) card.style.display = "none";
+    });
+
+    // 2) quadro resumo SEMPRE — status das atividades "Sim" agrupado por empresa
+    const root = document.getElementById("previa-summary-root"); if(!root) return;
+    const atvsPrev = dbAtividades.filter(a => (a.previaReceita||"Não") === "Sim");
+    const porEmp = {};
+    atvsPrev.forEach(a => {
+      (a.empresasElegiveis||[]).forEach(emp => {
+        if(!porEmp[emp]) porEmp[emp] = { total:0, ok:0, pend:0, atras:0 };
+        const e = a.empresas.find(x => x.nome === emp); if(!e) return;
+        porEmp[emp].total++;
+        const st = (e.status||"").toUpperCase();
+        if(st === "OK" || st === "N/A") porEmp[emp].ok++;
+        else if(st === "ATRASADO") porEmp[emp].atras++;
+        else porEmp[emp].pend++;
+      });
+    });
+    const empresas = Object.keys(porEmp).sort();
+    if(!atvsPrev.length){ root.innerHTML = ""; return; }
+    const cards = empresas.map(emp => {
+      const v = porEmp[emp];
+      const pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
+      const cor = pct===100 ? "var(--arco-green)" : (v.atras>0 ? "var(--arco-orange)" : "var(--arco-yellow)");
+      return `<div style="background:var(--surface); border:1px solid var(--border); border-top:4px solid ${cor}; border-radius:14px; padding:14px; min-width:140px;">
+        <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">${emp}</div>
+        <div style="font-size:22px; font-weight:700; font-family:'IBM Plex Mono'; color:var(--text); margin-top:4px;">${v.ok}/${v.total}</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:10px;">
+          <span style="color:var(--arco-green); font-weight:700;">✓ ${v.ok}</span>
+          ${v.pend>0?`<span style="color:var(--arco-yellow); font-weight:700;">⏳ ${v.pend}</span>`:''}
+          ${v.atras>0?`<span style="color:var(--arco-orange); font-weight:700;">⚠ ${v.atras}</span>`:''}
+          <span style="color:var(--muted); margin-left:auto;">${pct}%</span>
+        </div>
+      </div>`;
+    }).join("");
+    root.innerHTML = `
+      <div style="background:#fff; border:1px solid var(--border); border-radius:18px; padding:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:13px; font-weight:700; color:var(--arco-blue); text-transform:uppercase; letter-spacing:.06em;">💰 Resumo — Atividades que impactam Prévia de Receita (por empresa)</h3>
+          <small style="color:var(--muted); font-size:11px;">${atvsPrev.length} atividade(s) marcadas como "Sim"</small>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;">${cards}</div>
+      </div>`;
   };
 })();
 
