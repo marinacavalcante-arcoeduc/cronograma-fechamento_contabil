@@ -149,8 +149,17 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
 .status-select { appearance: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 10px; font-size: 12px; cursor: pointer; font-weight: 700; outline: none; background: var(--surface); width: 140px; }
 
 .config-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-.config-table th { background: #f8fafc; padding: 16px 20px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
-.config-table td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.config-table { table-layout: fixed; }
+.config-table th { background: #f8fafc; padding: 16px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+.config-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.config-table th:nth-child(1), .config-table td:nth-child(1) { width: 28%; }
+.config-table th:nth-child(2), .config-table td:nth-child(2) { width: 13%; }
+.config-table th:nth-child(3), .config-table td:nth-child(3) { width: 12%; }
+.config-table th:nth-child(4), .config-table td:nth-child(4) { width: 16%; }
+.config-table th:nth-child(5), .config-table td:nth-child(5) { width: 7%; }
+.config-table th:nth-child(6), .config-table td:nth-child(6) { width: 6%; }
+.config-table th:nth-child(7), .config-table td:nth-child(7) { width: 10%; }
+.config-table th:nth-child(8), .config-table td:nth-child(8) { width: 8%; text-align: right; }
 .du-edit-input { width: 70px; text-align: center; padding: 6px 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; }
 
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.4); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
@@ -586,10 +595,13 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); pad
           <input type="number" id="cfg-ano-seletor" class="form-input" value="2026" style="height:44px;">
         </div>
       </div>
-      <div style="margin-top:24px; display:flex; gap:12px;">
+      <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
         <button class="btn-arco" onclick="salvarNovaConfigPeriodo()">Aplicar Competência</button>
-        <button class="btn-arco" style="background:var(--arco-orange);" onclick="arquivarCompetenciaAtiva()">🔒 Congelar Histórico e Baixar Excel</button>
+        <button class="btn-arco" style="background:var(--arco-orange);" onclick="arquivarCompetenciaAtiva()">🔒 Salvar Histórico e Baixar Excel</button>
+        <div style="width:1px; height:28px; background:var(--border);"></div>
+        <button class="btn-arco" style="background:#64748b;" onclick="resetarStatusAtividades()">🔄 Resetar Status (sem arquivar)</button>
       </div>
+      <p style="font-size:11px; color:var(--muted); margin-top:10px;">⚠️ O botão cinza reseta todos os status para PENDENTE <b>sem</b> salvar histórico nem baixar Excel. Use só se quiser limpar sem arquivar.</p>
     </div>
     <div class="form-card">
       <h2 class="competence-box-title">🗂 Fechamentos Mensais Arquivados</h2>
@@ -708,7 +720,12 @@ function iniciarPresenca(nomeUsuario) {
       }
       ativos.push({ id, nome: v.nome });
     });
-    const outros = ativos.filter(p => p.id !== _presencaId).map(p => p.nome);
+    // Filtra: exclui própria sessão, deduplica nomes iguais (mesma pessoa em múltiplas abas)
+    const outrosMap = new Map();
+    ativos.filter(p => p.id !== _presencaId).forEach(p => {
+      if(p.nome && p.nome !== nomeUsuario) outrosMap.set(p.nome, p);
+    });
+    const outros = Array.from(outrosMap.keys());
     renderizarPresenca(outros, nomeUsuario);
   });
 }
@@ -1569,7 +1586,12 @@ function renderizarPainelAtividades() {
         <div class="act-status-wrapper"><span class="status-pill ${statusGeral.toLowerCase()}">${statusGeral==='OK'?'🟢 OK':statusGeral==='PENDENTE'?'🟡 PENDENTE':'🔴 ATRASADA'}</span></div>
       </div>
       <div class="subs-panel">
-        <div class="sub-grid-header"><div>Marca Relacionada</div><div>Ação Operacional</div><div>Comentários de Comprovação</div></div>
+        <div class="sub-grid-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:2px solid var(--border); margin-bottom:8px;">
+          <div style="display:grid; grid-template-columns:2fr 1.5fr 4fr; flex:1; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">
+            <div>Marca Relacionada</div><div>Ação Operacional</div><div>Comentários de Comprovação</div>
+          </div>
+          ${temPermissaoEscrita ? `<button onclick="okTodasEmpresas('${act.id}')" style="background:#52b747; color:#fff; border:none; padding:6px 16px; border-radius:20px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; margin-left:16px;">✅ OK para todas</button>` : ''}
+        </div>
         ${htmlSubRows}
       </div>
     `;
@@ -1737,30 +1759,86 @@ function atualizarDiaUtilDireto(id, val) {
   if(atv && val.trim()) { atv.diaUtil = String(val); salvarAtividadeGranular(id); renderizarPainelAtividades(); showToast("Recalculado!"); }
 }
 
+
+function _timestampAtual() {
+  const d = new Date();
+  const quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
+  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'}) + quem;
+}
+
 function alterarStatusLinha(actId, empIdx, status) {
   let atv = dbAtividades.find(a => a.id === actId);
   atv.empresas[empIdx].status = status;
-  if(status === "OK") {
-    let d = new Date();
-    let dataHora = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
-    let quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
-    atv.empresas[empIdx].dataConclusao = dataHora + quem;
-  } else if(status === "N/A") {
-    let d = new Date();
-    let dataHora = d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:'2-digit',minute:'2-digit'});
-    let quem = usuarioLogadoAtual && usuarioLogadoAtual !== "Outra Área" ? " · " + abreviarNomeCompleto(usuarioLogadoAtual) : "";
-    atv.empresas[empIdx].dataConclusao = dataHora + quem;
+  if(status === "OK" || status === "N/A") {
+    atv.empresas[empIdx].dataConclusao = _timestampAtual();
   } else { atv.empresas[empIdx].dataConclusao = ""; }
   const empNome = atv.empresas[empIdx].nome || "";
   const novoStatus = atv.empresas[empIdx].status || "";
   salvarAtividade(actId, `${novoStatus === "OK" ? "Concluiu" : novoStatus === "N/A" ? "Marcou N/A em" : "Atualizou status de"} "${atv.atividade}" · ${empNome}`);
-  // Preserva quais cards estão abertos e a posição de rolagem
+  // Atualiza só o stamp de data na sub-row sem re-renderizar o painel
+  const card = document.getElementById(actId);
+  if(card) {
+    const subNameEls = card.querySelectorAll(".sub-name");
+    // encontra o índice dentro dos elegíveis para localizar o elemento correto
+    const elegiveis = atv.empresas.filter(e => (atv.empresasElegiveis||[]).includes(e.nome));
+    const empElegIdx = elegiveis.findIndex(e => e.nome === empNome);
+    if(empElegIdx >= 0 && subNameEls[empElegIdx]) {
+      const el = subNameEls[empElegIdx];
+      // atualiza stamp
+      let stamp = el.querySelector(".done-stamp");
+      if(status === "OK" && atv.empresas[empIdx].dataConclusao) {
+        if(!stamp) { stamp = document.createElement("span"); stamp.className = "done-stamp"; el.appendChild(stamp); }
+        stamp.textContent = "✓ " + atv.empresas[empIdx].dataConclusao;
+      } else { if(stamp) stamp.remove(); }
+    }
+    // Atualiza o status-pill do card header
+    const statusGeral = obterStatusGeralAtividade(atv);
+    const pill = card.querySelector(".act-status-wrapper .status-pill");
+    if(pill) {
+      pill.className = "status-pill " + statusGeral.toLowerCase();
+      pill.textContent = statusGeral==="OK" ? "🟢 OK" : statusGeral==="PENDENTE" ? "🟡 PENDENTE" : "🔴 ATRASADA";
+    }
+  }
+  // Atualiza KPIs e progresso sem re-render total
+  _atualizarKpisRapido();
+  showToast("Status sincronizado!");
+}
+
+// Fix 3 — OK para todas as empresas elegíveis de uma atividade
+function okTodasEmpresas(actId) {
+  const atv = dbAtividades.find(a => a.id === actId);
+  if(!atv) return;
+  const ts = _timestampAtual();
+  atv.empresas.forEach((e, idx) => {
+    if((atv.empresasElegiveis||[]).includes(e.nome)) {
+      atv.empresas[idx].status = "OK";
+      atv.empresas[idx].dataConclusao = ts;
+    }
+  });
+  salvarAtividade(actId, `Marcou OK em todas as empresas de "${atv.atividade}"`);
   const abertos = Array.from(document.querySelectorAll('.activity-card.open')).map(c => c.id);
   const scrollY = window.scrollY;
   renderizarPainelAtividades();
   abertos.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('open'); });
   window.scrollTo(0, scrollY);
-  showToast("Status sincronizado!");
+  showToast("✅ Todas marcadas como OK!");
+}
+
+function _atualizarKpisRapido() {
+  let tAtv = 0, tOK = 0, tPend = 0, tAtras = 0, tChk = 0;
+  dbAtividades.forEach(act => {
+    const s = obterStatusGeralAtividade(act);
+    tAtv++; if(s==="OK") tOK++; else if(s==="PENDENTE") tPend++; else if(s==="ATRASADO") tAtras++;
+    tChk += act.empresas.filter(e => (act.empresasElegiveis||[]).includes(e.nome)).length;
+  });
+  const kTotal = document.getElementById("k-total"); if(kTotal) kTotal.textContent = tAtv;
+  const kConc  = document.getElementById("k-conc");  if(kConc)  kConc.textContent  = tOK;
+  const kPend  = document.getElementById("k-pend");  if(kPend)  kPend.textContent  = tPend;
+  const kAtras = document.getElementById("k-atras"); if(kAtras) kAtras.textContent = tAtras;
+  const kChk   = document.getElementById("k-checklists"); if(kChk) kChk.textContent = tChk;
+  const pct = tAtv > 0 ? Math.round((tOK/tAtv)*100) : 0;
+  const pf = document.getElementById("prog-fill"); if(pf) pf.style.width = pct + "%";
+  const pp = document.getElementById("prog-pct");  if(pp)  pp.textContent  = pct + "%";
 }
 
 function salvarObsLinha(actId, empIdx, txt) {
@@ -1909,6 +1987,23 @@ function arquivarCompetenciaAtiva() {
   }
 }
 
+function resetarStatusAtividades() {
+  if(!confirm(`Isso vai resetar TODOS os status para PENDENTE em ${competencaAtiva.mes}/${competencaAtiva.ano}.\n\nNão vai salvar histórico nem baixar Excel — os dados atuais serão perdidos.\n\nTem certeza?`)) return;
+  dbAtividades.forEach(act => {
+    act.empresas.forEach(e => { e.status = "PENDENTE"; e.dataConclusao = ""; e.obs = ""; });
+  });
+  const ts = Date.now();
+  const updates = { "cronograma/_ts": ts, "cronograma/_savedBy": usuarioLogadoAtual || "sistema" };
+  dbAtividades.forEach((atv, i) => { updates[`cronograma/atividades/${i}`] = atv; });
+  _fbDb.ref().update(updates).then(() => {
+    _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+    registrarLog("Resetou todos os status para PENDENTE");
+    atualizarIndicadorSave();
+    inicializarSistema();
+    showToast("🔄 Status resetados para PENDENTE!");
+  }).catch(err => { console.error("Erro ao resetar:", err); showToast("⚠️ Erro ao resetar."); });
+}
+
 function renderizarAbasHistorico() {
   const root = document.getElementById("historicos-lista-root");
   const chaves = Object.keys(dbHistoricos);
@@ -1925,9 +2020,12 @@ function visualizarHistoricoEspecifico(key) {
     let lines = act.empresas.filter(e => elegiveis.includes(e.nome)).map(e => {
       let cor = e.status === 'OK' ? 'var(--s-conc)' : 'var(--s-nao)';
       let bg = e.status === 'OK' ? 'var(--s-conc-bg)' : 'var(--s-nao-bg)';
+      const respEmp = (typeof getRespEmpresa === 'function') ? getRespEmpresa(act, e.nome) : (act.responveisLista||[]).join(', ');
+      const respAbrev = respEmp ? abreviarNomeCompleto(respEmp) : '—';
       return `
-        <div style="display:grid; grid-template-columns:1.5fr 0.8fr 1.2fr 2fr; gap:12px; padding:8px 16px; font-size:12px; background:#fff; border-bottom:1px solid #edf2f7; align-items:center;">
+        <div style="display:grid; grid-template-columns:1.5fr 1fr 0.8fr 1.2fr 2fr; gap:12px; padding:8px 16px; font-size:12px; background:#fff; border-bottom:1px solid #edf2f7; align-items:center;">
           <div style="font-weight:600;">🔹 ${e.nome}</div>
+          <div style="font-size:11px; color:var(--arco-blue); font-weight:600;">👤 ${respAbrev}</div>
           <div><span style="background:${bg}; color:${cor}; padding:3px 10px; border-radius:10px; font-weight:700; font-size:11px;">${e.status}</span></div>
           <div style="font-family:'IBM Plex Mono'; font-size:11px; color:var(--muted);">${e.dataConclusao || '—'}</div>
           <div style="color:var(--muted); font-style:italic;">${e.obs || '—'}</div>
@@ -1939,8 +2037,8 @@ function visualizarHistoricoEspecifico(key) {
         <div style="font-weight:700; color:var(--text); margin-bottom:6px;">${act.atividade} <span style="font-size:11px; color:var(--muted); font-weight:600;">• ${act.area} • D.U. ${act.diaUtil} • Prévia: ${act.previaReceita||'Não'}</span></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">${resps}</div>
       </div>
-      <div style="display:grid; grid-template-columns:1.5fr 0.8fr 1.2fr 2fr; gap:12px; padding:6px 16px; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; background:#fafbfc; border-bottom:1px solid var(--border);">
-        <div>Empresa</div><div>Status</div><div>Data Conclusão</div><div>Evidência / Obs</div>
+      <div style="display:grid; grid-template-columns:1.5fr 1fr 0.8fr 1.2fr 2fr; gap:12px; padding:6px 16px; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; background:#fafbfc; border-bottom:1px solid var(--border);">
+        <div>Empresa</div><div>Resp. Empresa</div><div>Status</div><div>Data Conclusão</div><div>Evidência / Obs</div>
       </div>
       ${lines}
     </div>`;
@@ -2056,14 +2154,15 @@ function importarPlanilhaMassa(event) {
 
 
 function exportarExcelOficial() {
-  let csv = "Atividade;Area;Dia Util;Data Prevista;Previa Receita;Responsavel;Empresa;Status;Data Conclusao;Evidencia\n";
+  let csv = "Atividade;Area;Dia Util;Data Prevista;Previa Receita;Responsavel Atividade;Responsavel Empresa;Empresa;Status;Data Conclusao;Evidencia\n";
   dbAtividades.forEach(a => {
     let elegiveis = a.empresasElegiveis || EMPRESAS_CHECKLIST;
     let dPrev = calcularDataPorDiaUtl(a.diaUtil);
     let dPrevFmt = dPrev ? dPrev.toLocaleDateString("pt-BR") : "";
     a.empresas.forEach(e => {
       if(elegiveis.includes(e.nome)) {
-        csv += `"${a.atividade}";"${a.area}";"${a.diaUtil}";"${dPrevFmt}";"${a.previaReceita}";"${a.responveisLista.join(', ')}";"${e.nome}";"${e.status}";"${e.dataConclusao || ''}";"${e.obs || ''}"\n`;
+        const respEmp = (typeof getRespEmpresa === 'function') ? getRespEmpresa(a, e.nome) : a.responveisLista.join(', ');
+        csv += `"${a.atividade}";"${a.area}";"${a.diaUtil}";"${dPrevFmt}";"${a.previaReceita}";"${a.responveisLista.join(', ')}";"${respEmp}";"${e.nome}";"${e.status}";"${e.dataConclusao || ''}";"${e.obs || ''}"\n`;
       }
     });
   });
@@ -2645,7 +2744,7 @@ function renderizarLibéracoesFiscal() {
       const cells = ativs.map(a => {
         const s = e.status[a.nome] || "n/a";
         const ovKey = e.empresa + "||" + a.nome;
-        const overrideTag = window.dbLiberacoesOverrides[ovKey] ? `<span title="Override manual" style="font-size:9px;">📌</span>` : '';
+        const overrideTag = window.dbLiberacoesOverrides[ovKey] ? `<span title="Override manual" style="font-size:9px; color:var(--arco-orange);">📌</span>` : '';
         if(ehEditor){
           return `<td style="text-align:center; padding:8px;">
             <select onchange="window.editarLibCell('${e.empresa.replace(/'/g,"\\'")}','${a.nome.replace(/'/g,"\\'")}', this.value)"
@@ -2654,7 +2753,6 @@ function renderizarLibéracoesFiscal() {
               <option value="Em execução" ${s==='Em execução'?'selected':''}>Em execução</option>
               <option value="Não iniciado" ${s==='Não iniciado'?'selected':''}>Não iniciado</option>
               <option value="n/a" ${s==='n/a'?'selected':''}>n/a</option>
-              <option value="__auto__">↺ Voltar ao automático</option>
             </select>${overrideTag}
           </td>`;
         }
@@ -2672,8 +2770,12 @@ function renderizarLibéracoesFiscal() {
       <td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(p.irpj_csll_fiscal)}">${statusLabel(p.irpj_csll_fiscal)}</span></td>
     </tr>`).join("");
 
+    const temOverrides = Object.keys(window.dbLiberacoesOverrides || {}).length > 0;
     const editorBadge = ehEditor
-      ? `<div style="font-size:12px; color:var(--arco-green); margin-bottom:8px;">✏️ Modo edição habilitado — você pode forçar status. Use "↺ Voltar ao automático" para liberar o cálculo automático.</div>`
+      ? `<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+          <span style="font-size:12px; color:var(--arco-green);">✏️ Modo edição manual ativo — clique em qualquer célula para forçar um status.</span>
+          ${temOverrides ? `<button onclick="window.resetarTudoAutomatico()" style="background:#114197; color:#fff; border:none; padding:6px 16px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer;">↺ Voltar tudo ao automático</button>` : '<span style="font-size:11px; color:var(--muted); font-style:italic;">Nenhum override ativo — tudo automático.</span>'}
+        </div>`
       : `<div style="font-size:12px; color:var(--muted); margin-bottom:8px;">🔒 Edição manual restrita a Leonardo e Emerson.</div>`;
 
     root.innerHTML = `
@@ -2713,20 +2815,23 @@ function renderizarLibéracoesFiscal() {
   window.editarLibCell = function(empresa, coluna, valor){
     const empObj = getLibEmpresas().find(e => e.empresa === empresa); if(!empObj) return;
     const ovKey = empresa + "||" + coluna;
-    if(valor === "__auto__"){
-      delete window.dbLiberacoesOverrides[ovKey];
-      // recomputa: se houver atividade mapeada, refaz; caso não, mantém valor atual
-      if(coluna === "Liberada"){
-        recalcularLiberada(empresa);
-      }
-    } else {
-      window.dbLiberacoesOverrides[ovKey] = true;
-      empObj.status[coluna] = valor;
-      if(coluna !== "Liberada") recalcularLiberada(empresa);
-    }
+    window.dbLiberacoesOverrides[ovKey] = true;
+    empObj.status[coluna] = valor;
+    if(coluna !== "Liberada") recalcularLiberada(empresa);
     salvarLiberacoes();
     renderizarLibéracoesFiscal();
     showToast("Atualizado!");
+  };
+
+  // Reseta TODOS os overrides manuais de uma vez e recalcula tudo automaticamente
+  window.resetarTudoAutomatico = function(){
+    if(!confirm("Isso vai remover todos os overrides manuais e deixar tudo calculado automaticamente pelo status das atividades. Confirmar?")) return;
+    window.dbLiberacoesOverrides = {};
+    // Recalcula "Liberada" para todas as empresas
+    getLibEmpresas().forEach(e => recalcularLiberada(e.empresa));
+    salvarLiberacoes();
+    renderizarLibéracoesFiscal();
+    showToast("↺ Tudo voltou ao automático!");
   };
 
   // ---------- J) Filtro "Impacta Receita" + Quadro Resumo por Empresa ----------
