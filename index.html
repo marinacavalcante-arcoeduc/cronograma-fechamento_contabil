@@ -1277,7 +1277,10 @@ function aplicarLoginNaTela() {
     badge.innerHTML = `👤 ${abreviarNomeCompleto(usuarioLogadoAtual)} · 📂 ${subAreaSelecionadaParceira}`;
   }
 
-  document.getElementById("main-tabs-header-bar").style.display = ehMaster ? "flex" : "none";
+  // Barra de abas sempre visível — só esconde as abas de admin para não-master
+  document.getElementById("main-tabs-header-bar").style.display = "flex";
+  document.getElementById("tab-link-config").style.display  = ehMaster ? "" : "none";
+  document.getElementById("tab-link-periodo").style.display = ehMaster ? "" : "none";
   document.getElementById("admin-actions-bar-top").style.display = ehMaster ? "flex" : "none";
   if (ehMaster) iniciarEscutaLog();
   // Pré-selecionar filtro de responsável pelo login (não-admin vê tudo mas começa filtrado)
