@@ -2231,6 +2231,407 @@ function renderizarLibéracoesFiscal() {
   `;
 }
 
+// ============================================================
+//  EXTENSÕES v2 — Responsável por empresa, mapeamento PIS/COFINS,
+//  cálculo automático de "Liberada" e overrides manuais.
+//  Tudo aqui usa override/monkey-patch para evitar duplicar lógica.
+// ============================================================
+(function(){
+  const EDITORES_LIBERACOES = ["Leonardo Candido Felix", "Emerson Lacerda Nunes",
+                               "Natanael Ferreira De Sousa", "Jose Francisco Domingos Da Silva Junior"];
+
+  // Mapa de normalização: nome no checklist -> nome usado em DADOS_LIBERACOES.pis_cofins
+  const MAPA_EMP_PIS = {
+    "CBE/SAS": "SAS",
+    "ATECH": "Atech",
+    "SAE": "SAE", "IS": "IS", "PSD": "PSD", "P2D/COC": "P2D/COC",
+    "GEEKIE": "GEEKIE", "NAVE": "NAVE", "NCC": "NCC",
+    "Arco Educação": "Arco Educação"
+  };
+  function empParaPis(nome){ return MAPA_EMP_PIS[nome] || nome; }
+
+  // dbLiberacoes = estado vivo (carregado do Firebase, default = DADOS_LIBERACOES)
+  window.dbLiberacoes = null;
+  // overrides manuais por empresa+coluna
+  window.dbLiberacoesOverrides = {};
+
+  function getLibEmpresas(){
+    if(!window.dbLiberacoes) window.dbLiberacoes = JSON.parse(JSON.stringify(DADOS_LIBERACOES));
+    return window.dbLiberacoes.pis_cofins.empresas;
+  }
+  function getLibAtividadesNomes(){
+    return DADOS_LIBERACOES.pis_cofins.atividades.map(a => a.nome).filter(n => n !== "Liberada");
+  }
+
+  // ---------- A) Responsável por empresa ----------
+  function getRespEmpresa(act, empNome){
+    if(act.responsaveisPorEmpresa && act.responsaveisPorEmpresa[empNome]) return act.responsaveisPorEmpresa[empNome];
+    return (act.responveisLista && act.responveisLista[0]) || "A Atribuir";
+  }
+  window.getRespEmpresa = getRespEmpresa;
+
+  // ---------- B) Re-render do modal de empresas com seletor de responsável + mapeamento PIS ----------
+  const _origAbrirModalEmpresas = window.abrirModalEmpresas;
+  window.abrirModalEmpresas = function(actId){
+    _origAbrirModalEmpresas(actId);
+    const atv = dbAtividades.find(a => a.id === actId);
+    if(!atv) return;
+    const modalCard = document.querySelector("#modal-edit-companies .modal-card");
+    if(!modalCard) return;
+    // remove blocos extras antigos se reabrir
+    modalCard.querySelectorAll(".ext-empresa-block, .ext-mapeamento-block").forEach(n => n.remove());
+
+    // Bloco mapeamento PIS/COFINS
+    const colsPis = getLibAtividadesNomes();
+    const mapBlock = document.createElement("div");
+    mapBlock.className = "ext-mapeamento-block";
+    mapBlock.style.cssText = "margin-top:20px; padding:14px; background:#f8fafc; border-radius:12px;";
+    mapBlock.innerHTML = `
+      <label style="font-size:12px; font-weight:700; color:var(--arco-blue); display:block; margin-bottom:8px;">
+        🔗 Mapear esta atividade para uma coluna do painel PIS/COFINS (opcional)
+      </label>
+      <select id="ext-mapeamento-pis" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); font-size:13px;">
+        <option value="">— Nenhuma (não sincroniza com PIS/COFINS) —</option>
+        ${colsPis.map(c => `<option value="${c}" ${atv.mapeamentoPIS===c?'selected':''}>${c}</option>`).join("")}
+      </select>
+      <small style="color:var(--muted); font-size:11px;">Quando uma empresa ficar OK aqui, a coluna correspondente do painel vira "Liberado" automaticamente.</small>
+    `;
+    modalCard.querySelector(".premium-users-grid").after(mapBlock);
+
+    // Bloco responsáveis por empresa
+    const respBlock = document.createElement("div");
+    respBlock.className = "ext-empresa-block";
+    respBlock.style.cssText = "margin-top:20px; padding:14px; background:#f8fafc; border-radius:12px;";
+    respBlock.innerHTML = `
+      <label style="font-size:12px; font-weight:700; color:var(--arco-blue); display:block; margin-bottom:8px;">
+        👤 Responsável específico de cada empresa nesta atividade
+      </label>
+      <div id="ext-resp-emp-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+    `;
+    mapBlock.after(respBlock);
+
+    function renderRespList(){
+      const selecionadas = Array.from(document.querySelectorAll("#modal-companies-grid-root .user-select-card.selected"))
+        .map(c => c.querySelector(".user-name-label").textContent);
+      const list = document.getElementById("ext-resp-emp-list");
+      if(!list) return;
+      if(!selecionadas.length){ list.innerHTML = `<small style="color:var(--muted);">Selecione empresas acima.</small>`; return; }
+      list.innerHTML = selecionadas.map(emp => {
+        const atual = (atv.responsaveisPorEmpresa && atv.responsaveisPorEmpresa[emp]) || "";
+        return `
+          <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap:8px; align-items:center;">
+            <span style="font-size:12px; font-weight:600;">🏢 ${emp}</span>
+            <select data-emp="${emp}" class="ext-resp-emp-sel" style="padding:6px; border-radius:8px; border:1px solid var(--border); font-size:12px;">
+              <option value="">— Usar lista geral —</option>
+              ${PROFISSIONAIS_TIME.map(p => `<option value="${p}" ${p===atual?'selected':''}>${p}</option>`).join("")}
+            </select>
+          </div>
+        `;
+      }).join("");
+    }
+    renderRespList();
+    // Re-render quando o usuário marcar/desmarcar empresas
+    document.querySelectorAll("#modal-companies-grid-root .user-select-card").forEach(card => {
+      card.addEventListener("click", () => setTimeout(renderRespList, 0));
+    });
+  };
+
+  // ---------- C) Patch salvarEmpresasElegiveisLote para gravar responsáveis + mapeamento ----------
+  const _origSalvarEmps = window.salvarEmpresasElegiveisLote;
+  window.salvarEmpresasElegiveisLote = function(){
+    const actId = document.getElementById("modal-comp-act-id").value;
+    const atv = dbAtividades.find(a => a.id === actId);
+    if(!atv){ _origSalvarEmps(); return; }
+    // capture novos campos ANTES do save original (que fecha o modal)
+    const mapSel = document.getElementById("ext-mapeamento-pis");
+    if(mapSel) atv.mapeamentoPIS = mapSel.value || "";
+    const respMap = {};
+    document.querySelectorAll(".ext-resp-emp-sel").forEach(sel => {
+      const v = sel.value; if(v) respMap[sel.dataset.emp] = v;
+    });
+    atv.responsaveisPorEmpresa = respMap;
+    _origSalvarEmps();
+  };
+
+  // ---------- D) Patch sub-row para mostrar responsável da empresa ----------
+  const _origRenderPainel = window.renderizarPainelAtividades;
+  window.renderizarPainelAtividades = function(){
+    _origRenderPainel();
+    // injetar nome do responsável ao lado de cada empresa nas sub-rows
+    document.querySelectorAll(".activity-card").forEach(card => {
+      const actId = card.id;
+      const atv = dbAtividades.find(a => a.id === actId); if(!atv) return;
+      const subs = card.querySelectorAll(".sub-row .sub-name");
+      const elegiveis = (atv.empresasElegiveis || []);
+      const empsNomes = atv.empresas.filter(e => elegiveis.includes(e.nome)).map(e => e.nome);
+      subs.forEach((nameEl, i) => {
+        const empNome = empsNomes[i]; if(!empNome) return;
+        if(nameEl.querySelector(".ext-resp-chip")) return;
+        const resp = getRespEmpresa(atv, empNome);
+        const first = (resp || "").split(" ")[0];
+        const chip = document.createElement("span");
+        chip.className = "ext-resp-chip";
+        chip.style.cssText = "display:inline-block; margin-left:8px; padding:2px 8px; font-size:10px; font-weight:600; background:var(--arco-blue); color:#fff; border-radius:8px; vertical-align:middle;";
+        chip.title = resp;
+        chip.textContent = "👤 " + first;
+        nameEl.appendChild(chip);
+      });
+    });
+  };
+
+  // ---------- E) Subtotais "Por Responsável" contando por responsável da empresa ----------
+  const _origRenderSubtotais = window.renderizarSubtotaisEGrafico;
+  window.renderizarSubtotaisEGrafico = function(){
+    _origRenderSubtotais();
+    // Substitui o card "Por Responsável" pelo cálculo por empresa
+    const sgRoot = document.getElementById("subtotal-grid-root"); if(!sgRoot) return;
+    const cards = sgRoot.querySelectorAll(".subtotal-card");
+    if(!cards.length) return;
+    const porResp = {};
+    dbAtividades.forEach(act => {
+      const elegiveis = act.empresas.filter(e => (act.empresasElegiveis||[]).includes(e.nome));
+      elegiveis.forEach(e => {
+        const r = getRespEmpresa(act, e.nome) || "A Atribuir";
+        if(!porResp[r]) porResp[r] = { total:0, ok:0 };
+        porResp[r].total++;
+        if(e.status === 'OK') porResp[r].ok++;
+      });
+    });
+    const entries = Object.entries(porResp).sort((a,b)=>b[1].total-a[1].total);
+    const rows = entries.map(([k,v])=>{
+      const pct = v.total>0 ? Math.round((v.ok/v.total)*100) : 0;
+      return `<div class="subtotal-row">
+        <div class="subtotal-name" title="${k}">${k}</div>
+        <div class="subtotal-bar-wrap">
+          <span style="font-size:11px; color:var(--muted); font-family:'IBM Plex Mono';">${v.ok}/${v.total}</span>
+          <div class="subtotal-bar"><div class="subtotal-bar-fill" style="width:${pct}%"></div></div>
+          <span class="subtotal-pct">${pct}%</span>
+        </div>
+      </div>`;
+    }).join("");
+    cards[0].innerHTML = `<h4>👤 Por Responsável (da empresa)</h4><div class="scroll-list">${rows||'<small style="color:var(--muted)">Sem dados</small>'}</div>`;
+  };
+
+  // ---------- F) PIS/COFINS sync ao mudar status ----------
+  function recalcularLiberada(empPisNome){
+    const empObj = getLibEmpresas().find(e => e.empresa === empPisNome);
+    if(!empObj) return;
+    // pula se override manual de "Liberada"
+    const ovKey = empPisNome + "||Liberada";
+    if(window.dbLiberacoesOverrides[ovKey]) return;
+    const cols = getLibAtividadesNomes();
+    const todasOk = cols.every(c => {
+      const s = (empObj.status[c]||"").toLowerCase();
+      return s.includes("liberad") || s.includes("n/a");
+    });
+    empObj.status["Liberada"] = todasOk ? "Liberado" : "Não iniciado";
+  }
+  window.recalcularLiberada = recalcularLiberada;
+
+  function aplicarStatusEmLiberacoes(act, empChecklistNome, novoStatus){
+    if(!act.mapeamentoPIS) return false;
+    const empPis = empParaPis(empChecklistNome);
+    const empObj = getLibEmpresas().find(e => e.empresa === empPis);
+    if(!empObj) return false;
+    const ovKey = empPis + "||" + act.mapeamentoPIS;
+    if(window.dbLiberacoesOverrides[ovKey]) return false; // não pisa em override manual
+    let novo;
+    if(novoStatus === "OK") novo = "Liberado";
+    else if(novoStatus === "N/A") novo = "n/a";
+    else novo = "Não iniciado";
+    empObj.status[act.mapeamentoPIS] = novo;
+    recalcularLiberada(empPis);
+    return true;
+  }
+
+  const _origAlterarStatus = window.alterarStatusLinha;
+  window.alterarStatusLinha = function(actId, empIdx, status){
+    const atv = dbAtividades.find(a => a.id === actId);
+    const empNome = atv ? atv.empresas[empIdx].nome : "";
+    _origAlterarStatus(actId, empIdx, status);
+    if(atv && aplicarStatusEmLiberacoes(atv, empNome, status)){
+      salvarLiberacoes();
+      // re-render do painel de liberações se estiver visível
+      if(document.getElementById("tab-liberacoes") && document.getElementById("tab-liberacoes").classList.contains("active")){
+        renderizarLibéracoesFiscal();
+      }
+    }
+  };
+
+  // ---------- G) Persistência dbLiberacoes ----------
+  function salvarLiberacoes(){
+    if(!_fbDb) return;
+    const ts = Date.now();
+    const updates = {
+      "cronograma/liberacoes": window.dbLiberacoes,
+      "cronograma/liberacoesOverrides": window.dbLiberacoesOverrides,
+      "cronograma/_ts": ts,
+      "cronograma/_savedBy": usuarioLogadoAtual || "sistema"
+    };
+    _fbDb.ref().update(updates).catch(e => console.error("Erro salvar liberacoes:", e));
+    _tsUltimoSave = ts; _tsUltimoCarregado = ts;
+  }
+  window.salvarLiberacoes = salvarLiberacoes;
+
+  // ---------- H) Carregar dbLiberacoes + seed atividade ATECH no init ----------
+  const _origInit = window.inicializarSistema;
+  window.inicializarSistema = async function(){
+    await _origInit();
+    try {
+      const snap = await _fbRef.once("value");
+      const d = snap.val() || {};
+      window.dbLiberacoes = d.liberacoes ? d.liberacoes : JSON.parse(JSON.stringify(DADOS_LIBERACOES));
+      window.dbLiberacoesOverrides = d.liberacoesOverrides || {};
+    } catch(e){
+      window.dbLiberacoes = JSON.parse(JSON.stringify(DADOS_LIBERACOES));
+      window.dbLiberacoesOverrides = {};
+    }
+
+    // Seed da atividade "Comissão de antecipações de repasse ATECH"
+    const nomeSeed = "Comissão de antecipações de repasse ATECH";
+    if(!dbAtividades.some(a => (a.atividade||"").trim() === nomeSeed)){
+      dbAtividades.push({
+        id: "atv_seed_comissao_atech_" + Date.now(),
+        atividade: nomeSeed,
+        area: "Contábil",
+        diaUtil: "0",
+        previaReceita: "Não",
+        responveisLista: ["Leonardo Candido Felix"],
+        empresasElegiveis: ["ATECH"],
+        responsaveisPorEmpresa: { "ATECH": "Leonardo Candido Felix" },
+        mapeamentoPIS: nomeSeed,
+        empresas: EMPRESAS_CHECKLIST.map(emp => ({
+          nome: emp, status: emp === "ATECH" ? "PENDENTE" : "N/A",
+          dataConclusao: "", obs: ""
+        }))
+      });
+      salvarDados("Adicionou atividade seed: " + nomeSeed);
+    }
+    renderizarPainelAtividades();
+  };
+
+  // ---------- I) Override do painel PIS/COFINS — editável p/ Leonardo & Emerson ----------
+  const _origRenderLib = window.renderizarLibéracoesFiscal;
+  window.renderizarLibéracoesFiscal = function(){
+    // garante dbLiberacoes
+    if(!window.dbLiberacoes) window.dbLiberacoes = JSON.parse(JSON.stringify(DADOS_LIBERACOES));
+    // recalcula Liberada em todas as empresas (caso algo tenha mudado)
+    getLibEmpresas().forEach(e => recalcularLiberada(e.empresa));
+
+    // re-render usando dbLiberacoes em vez de DADOS_LIBERACOES
+    const root = document.getElementById("liberacoes-root");
+    if(!root) return;
+    const pis = window.dbLiberacoes.pis_cofins;
+    const painel = window.dbLiberacoes.painel || DADOS_LIBERACOES.painel;
+    const ehEditor = EDITORES_LIBERACOES.includes(usuarioLogadoAtual);
+
+    function statusClass(s){ s=(s||"").toLowerCase();
+      if(s.includes("liberad")) return "lib-ok";
+      if(s.includes("n/a")) return "lib-na";
+      if(s.includes("execu")||s.includes("finaliz")) return "lib-exec";
+      return "lib-pend"; }
+    function statusLabel(s){ s=(s||"").toLowerCase();
+      if(s.includes("liberad")) return "✓ Liberado";
+      if(s.includes("n/a")) return "n/a";
+      if(s.includes("finaliz")) return "Finalizado";
+      if(s.includes("execu")) return "Em execução";
+      return "Não iniciado"; }
+
+    const ativs = pis.atividades;
+    const headCols = ativs.map(a => {
+      const resp = a.responsavel ? `<div style="font-size:10px; color:var(--muted); margin-top:3px;">${a.responsavel.split("//")[0].trim().split(" ")[0]}</div>` : "";
+      return `<th style="font-size:11px; padding:10px 8px; text-align:center; max-width:120px; white-space:normal; line-height:1.3;">${a.nome}${resp}</th>`;
+    }).join("");
+
+    const bodyRows = pis.empresas.map(e => {
+      const cells = ativs.map(a => {
+        const s = e.status[a.nome] || "n/a";
+        const ovKey = e.empresa + "||" + a.nome;
+        const overrideTag = window.dbLiberacoesOverrides[ovKey] ? `<span title="Override manual" style="font-size:9px;">📌</span>` : '';
+        if(ehEditor){
+          return `<td style="text-align:center; padding:8px;">
+            <select onchange="window.editarLibCell('${e.empresa.replace(/'/g,"\\'")}','${a.nome.replace(/'/g,"\\'")}', this.value)"
+              style="padding:4px 6px; font-size:11px; border-radius:8px; border:1px solid var(--border); background:#fff;">
+              <option value="Liberado" ${s==='Liberado'?'selected':''}>✓ Liberado</option>
+              <option value="Em execução" ${s==='Em execução'?'selected':''}>Em execução</option>
+              <option value="Não iniciado" ${s==='Não iniciado'?'selected':''}>Não iniciado</option>
+              <option value="n/a" ${s==='n/a'?'selected':''}>n/a</option>
+              <option value="__auto__">↺ Voltar ao automático</option>
+            </select>${overrideTag}
+          </td>`;
+        }
+        return `<td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(s)}">${statusLabel(s)}</span>${overrideTag}</td>`;
+      }).join("");
+      return `<tr><td style="font-weight:700; padding:8px 12px; font-size:13px; white-space:nowrap;">${e.empresa}</td>${cells}</tr>`;
+    }).join("");
+
+    const painelRows = painel.map(p => `<tr>
+      <td style="padding:8px 12px; font-size:12px; color:var(--muted);">${p.grupo}</td>
+      <td style="font-weight:700; padding:8px 12px; font-size:13px;">${p.empresa_label}</td>
+      <td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(p.pis_cofins_contab)}">${statusLabel(p.pis_cofins_contab)}</span></td>
+      <td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(p.pis_cofins_fiscal)}">${statusLabel(p.pis_cofins_fiscal)}</span></td>
+      <td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(p.irpj_csll_contab)}">${statusLabel(p.irpj_csll_contab)}</span></td>
+      <td style="text-align:center; padding:8px;"><span class="lib-pill ${statusClass(p.irpj_csll_fiscal)}">${statusLabel(p.irpj_csll_fiscal)}</span></td>
+    </tr>`).join("");
+
+    const editorBadge = ehEditor
+      ? `<div style="font-size:12px; color:var(--arco-green); margin-bottom:8px;">✏️ Modo edição habilitado — você pode forçar status. Use "↺ Voltar ao automático" para liberar o cálculo automático.</div>`
+      : `<div style="font-size:12px; color:var(--muted); margin-bottom:8px;">🔒 Edição manual restrita a Leonardo e Emerson.</div>`;
+
+    root.innerHTML = `
+      <div style="margin-bottom:32px;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:24px; margin-bottom:24px;">
+          <h3 style="font-size:14px; font-weight:700; color:var(--arco-blue); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">📊 Status Liberações PIS/COFINS por Empresa</h3>
+          ${editorBadge}
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead><tr style="background:#f8fafc; border-bottom:2px solid var(--border);">
+                <th style="text-align:left; padding:10px 12px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">Empresa</th>
+                ${headCols}
+              </tr></thead>
+              <tbody>${bodyRows}</tbody>
+            </table>
+          </div>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:24px;">
+          <h3 style="font-size:14px; font-weight:700; color:var(--arco-blue); text-transform:uppercase; letter-spacing:.05em; margin-bottom:16px;">🧾 Painel de Apurações Fiscais — PIS/COFINS & IRPJ/CSLL</h3>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead><tr style="background:#f8fafc; border-bottom:2px solid var(--border);">
+                <th style="text-align:left; padding:10px 12px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">Grupo</th>
+                <th style="text-align:left; padding:10px 12px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">Empresa</th>
+                <th style="text-align:center; padding:10px 8px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">PIS/COFINS Contab.</th>
+                <th style="text-align:center; padding:10px 8px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">PIS/COFINS Fiscal</th>
+                <th style="text-align:center; padding:10px 8px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">IRPJ/CSLL Contab.</th>
+                <th style="text-align:center; padding:10px 8px; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase;">IRPJ/CSLL Fiscal</th>
+              </tr></thead>
+              <tbody>${painelRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+  };
+
+  window.editarLibCell = function(empresa, coluna, valor){
+    const empObj = getLibEmpresas().find(e => e.empresa === empresa); if(!empObj) return;
+    const ovKey = empresa + "||" + coluna;
+    if(valor === "__auto__"){
+      delete window.dbLiberacoesOverrides[ovKey];
+      // recomputa: se houver atividade mapeada, refaz; caso não, mantém valor atual
+      if(coluna === "Liberada"){
+        recalcularLiberada(empresa);
+      }
+    } else {
+      window.dbLiberacoesOverrides[ovKey] = true;
+      empObj.status[coluna] = valor;
+      if(coluna !== "Liberada") recalcularLiberada(empresa);
+    }
+    salvarLiberacoes();
+    renderizarLibéracoesFiscal();
+    showToast("Atualizado!");
+  };
+})();
+
 window.onload = inicializarSistema;
 </script>
 </body>
