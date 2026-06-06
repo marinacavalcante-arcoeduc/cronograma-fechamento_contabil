@@ -252,8 +252,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .nome-edit:focus{background:#fff;border-color:var(--blue);}
 .area-edit{width:100%;padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;outline:none;}
 .du-input{width:64px;text-align:center;padding:5px 7px;font-family:'IBM Plex Mono',monospace;font-weight:600;border:1px solid var(--border);border-radius:8px;}
-.comp-tag{background:#f1f5f9;color:var(--blue);font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;border:1px solid var(--border);}
-.comp-badge-btn{background:#f1f5f9;border:1px solid var(--border);color:var(--blue);font-weight:700;font-size:11px;padding:4px 10px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.comp-tag{background:#f1f5f9;color:var(--blue);font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;border:1px solid var(--border);white-space:nowrap;}
+.comp-badge-btn{background:#f1f5f9;border:1px solid var(--border);color:var(--blue);font-weight:700;font-size:11px;padding:4px 8px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;text-align:left;}
 
 /* CDD */
 .cdd-wrap{position:relative;}
@@ -928,7 +928,7 @@ function renderizarPainel(){
         tr.innerHTML=`<td><input class="nome-edit" value="${act.atividade}" onchange="atualizarCampo('${act.id}','atividade',this.value)"></td>
           <td>${areaSelHtml(act.area,act.id)}</td>
           <td><button class="comp-badge-btn" onclick="abrirModalResp('${act.id}')" style="display:flex;align-items:center;gap:3px;">${avChips}</button></td>
-          <td><button class="comp-badge-btn" onclick="abrirModalEmps('${act.id}')">${tags||"Nenhuma"}</button></td>
+          <td><button class="comp-badge-btn" onclick="abrirModalEmps('${act.id}')" style="width:100%;">${tags||"Nenhuma"}</button></td>
           <td>${rmBtn}</td>
           <td><select class="form-input" style="padding:4px 7px;height:30px;" onchange="atualizarCampo('${act.id}','previaReceita',this.value)"><option ${act.previaReceita==="Não"?"selected":""}>Não</option><option ${act.previaReceita==="Sim"?"selected":""}>Sim</option></select></td>
           <td><input type="number" class="du-input" value="${act.diaUtil}" onchange="atualizarDU('${act.id}',this.value)"></td>
