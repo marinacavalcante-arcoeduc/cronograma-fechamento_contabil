@@ -714,22 +714,26 @@ function salvarAtividade(actId,desc){
     const atv=dbAtv.find(a=>a.id===actId);
     if(!atv){_savePend=false;return;}
     const ts=Date.now();
-    // Backup do estado atual ANTES de salvar
     backup(dbAtv);
-    // Salva pelo ID da atividade — nunca sobrescreve outra
     const updates={};
     updates[`cronograma/atividadesMap/${actId}`]=atv;
     updates["cronograma/_ts"]=ts;
     updates["cronograma/_savedBy"]=userAtual||"sistema";
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
+    // Marca como "salvando agora" — impede que o echo do Firebase sobrescreva
+    if(!window._salvando) window._salvando={};
+    window._salvando[actId]=true;
     _fbDb.ref().update(updates)
       .then(()=>{
         _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
         atualizarSave();
         if(desc) logAcao(desc);
+        // Libera o bloqueio após 2s — tempo suficiente pro echo passar
+        setTimeout(()=>{ if(window._salvando) delete window._salvando[actId]; }, 2000);
       })
       .catch(e=>{
         _savePend=false;
+        if(window._salvando) delete window._salvando[actId];
         console.error("Erro ao salvar atividade:",e);
         showToast("⚠️ Erro ao salvar. Tente novamente.");
       });
@@ -764,12 +768,10 @@ function syncAoVivo(){
     const id=snap.key, novo=snap.val();
     if(!id||!novo) return;
     const idx=dbAtv.findIndex(a=>a.id===id);
-    if(idx===-1) return; // atividade não existe localmente, ignora
-    // Merge seguro: só atualiza se o dado do Firebase for mais recente
-    // Não toca atividades com save pendente
-    if(_debAtv[id]) return; // tem save em andamento — não sobrescreve
+    if(idx===-1) return;
+    // Ignora echo do próprio save ou save em andamento
+    if((window._salvando&&window._salvando[id])||_debAtv[id]) return;
     dbAtv[idx]={...dbAtv[idx],...novo};
-    // Atualiza só o card afetado no DOM, sem re-renderizar tudo
     _atualizarCardDom(id);
     _atualizarKpisRapido();
     if(document.getElementById("tab-pis").classList.contains("active")) renderPIS();
