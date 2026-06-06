@@ -752,26 +752,76 @@ function salvarDados(desc){
   },500);
 }
 
-// ── SYNC AO VIVO — lê atividadesMap por ID ──
+// ── SYNC AO VIVO — ouve cada atividade diretamente por ID ──
+// Mesma arquitetura do sistema do Eliomar: listener por path de ID
+// Nunca re-lê o banco inteiro, nunca sobrescreve dados em memória
 function syncAoVivo(){
-  if(!_fbDb||window._syncAtivo) return; window._syncAtivo=true;
-  _fbDb.ref("cronograma/_ts").on("value",snap=>{
-    const tsR=snap.val()||0;
-    if(!tsR||tsR===_tsSave||tsR<=_tsCarregado) return;
-    _fbRef.once("value").then(s=>{
-      const d=s.val(); if(!d) return;
-      _tsCarregado=d._ts||tsR;_tsSave=d._ts||_tsSave;_quemSave=d._savedBy||_quemSave;
-      // Lê do atividadesMap por ID — merge seguro
-      if(d.atividadesMap){
-        const mapa=d.atividadesMap;
-        dbAtv=dbAtv.map(a=>mapa[a.id]?{...a,...mapa[a.id]}:a);
-      }
-      if(d.historicos) dbHist=d.historicos;
-      if(d.config) comp=d.config;
-      atualizarSave(); renderizarPainel();
-      showToast(`🔄 ${(d._savedBy||"Alguém").split(" ")[0]} atualizou`);
-    });
+  if(!_fbDb||window._syncAtivo) return;
+  window._syncAtivo=true;
+
+  // Ouve mudanças em qualquer atividade do mapa
+  _fbDb.ref("cronograma/atividadesMap").on("child_changed", snap=>{
+    const id=snap.key, novo=snap.val();
+    if(!id||!novo) return;
+    const idx=dbAtv.findIndex(a=>a.id===id);
+    if(idx===-1) return; // atividade não existe localmente, ignora
+    // Merge seguro: só atualiza se o dado do Firebase for mais recente
+    // Não toca atividades com save pendente
+    if(_debAtv[id]) return; // tem save em andamento — não sobrescreve
+    dbAtv[idx]={...dbAtv[idx],...novo};
+    // Atualiza só o card afetado no DOM, sem re-renderizar tudo
+    _atualizarCardDom(id);
+    _atualizarKpisRapido();
+    if(document.getElementById("tab-pis").classList.contains("active")) renderPIS();
   });
+
+  // Ouve novas atividades adicionadas por outra sessão
+  _fbDb.ref("cronograma/atividadesMap").on("child_added", snap=>{
+    const id=snap.key, nova=snap.val();
+    if(!id||!nova) return;
+    if(dbAtv.find(a=>a.id===id)) return; // já existe
+    dbAtv.push(nova);
+    dbAtv.sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
+    renderizarPainel();
+    popularFiltros();
+  });
+
+  // Ouve exclusões
+  _fbDb.ref("cronograma/atividadesMap").on("child_removed", snap=>{
+    const id=snap.key;
+    const idx=dbAtv.findIndex(a=>a.id===id);
+    if(idx!==-1){ dbAtv.splice(idx,1); renderizarPainel(); }
+  });
+
+  // Ouve mudanças de config (mês/ano, profissionais, empresas)
+  _fbDb.ref("cronograma/config").on("value", snap=>{
+    const v=snap.val(); if(!v) return;
+    if(JSON.stringify(v)===JSON.stringify(comp)) return;
+    comp=v; atualizarLabels();
+  });
+}
+
+// Atualiza só o card de uma atividade no DOM sem re-renderizar tudo
+function _atualizarCardDom(actId){
+  const card=document.getElementById(actId);
+  if(!card) return; // card não está visível (filtrado)
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  const sg=statusGeral(atv);
+  const pill=card.querySelector(".activity-header .status-pill");
+  if(pill){
+    const c=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
+    pill.className=`status-pill ${c}`;
+    pill.textContent=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
+  }
+}
+
+function _atualizarKpisRapido(){
+  let tot=0,ok=0,pend=0,atras=0,chk=0;
+  dbAtv.forEach(a=>{const s=statusGeral(a);tot++;if(s==="OK") ok++;else if(s==="PENDENTE") pend++;else atras++;chk+=a.empresas.filter(e=>(a.empresasElegiveis||[]).includes(e.nome)).length;});
+  ["k-total","k-conc","k-pend","k-atras","k-chk"].forEach((id,i)=>{const el=document.getElementById(id);if(el) el.textContent=[tot,ok,pend,atras,chk][i];});
+  const pct=tot>0?Math.round((ok/tot)*100):0;
+  const pf=document.getElementById("prog-fill");if(pf) pf.style.width=pct+"%";
+  const pp=document.getElementById("prog-pct");if(pp) pp.textContent=pct+"%";
 }
 
 function iniciarLog(){
@@ -1175,14 +1225,7 @@ function okTodas(actId){
 
 function salvarObs(actId,idx,txt){const atv=dbAtv.find(a=>a.id===actId);if(!atv) return;atv.empresas[idx].obs=txt;salvarAtividade(actId);}
 
-function kpisRapido(){
-  let tot=0,ok=0,pend=0,atras=0,chk=0;
-  dbAtv.forEach(a=>{const s=statusGeral(a);tot++;if(s==="OK") ok++;else if(s==="PENDENTE") pend++;else if(s==="ATRASADO") atras++;chk+=a.empresas.filter(e=>(a.empresasElegiveis||[]).includes(e.nome)).length;});
-  ["k-total","k-conc","k-pend","k-atras","k-chk"].forEach((id,i)=>{const el=document.getElementById(id);if(el) el.textContent=[tot,ok,pend,atras,chk][i];});
-  const pct=tot>0?Math.round((ok/tot)*100):0;
-  const pf=document.getElementById("prog-fill");if(pf) pf.style.width=pct+"%";
-  const pp=document.getElementById("prog-pct");if(pp) pp.textContent=pct+"%";
-}
+function kpisRapido(){ _atualizarKpisRapido(); }
 
 // ═══════════════════════════════════════════
 // PIS/COFINS
