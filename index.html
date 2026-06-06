@@ -236,13 +236,16 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .config-table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .config-table th{background:#f8fafc;padding:12px 9px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
 .config-table td{padding:8px 9px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;}
-.config-table th:nth-child(1),.config-table td:nth-child(1){width:22%;}
-.config-table th:nth-child(2),.config-table td:nth-child(2){width:10%;}
-.config-table th:nth-child(3),.config-table td:nth-child(3){width:10%;}
-.config-table th:nth-child(4),.config-table td:nth-child(4){width:12%;}
-.config-table th:nth-child(5),.config-table td:nth-child(5){width:6%;}
-.config-table th:nth-child(6),.config-table td:nth-child(6){width:5%;}
-.config-table th:nth-child(7),.config-table td:nth-child(7){width:9%;}
+.config-table th:nth-child(1),.config-table td:nth-child(1){width:21%;}
+.config-table th:nth-child(2),.config-table td:nth-child(2){width:9%;}
+.config-table th:nth-child(3),.config-table td:nth-child(3){width:9%;}
+.config-table th:nth-child(4),.config-table td:nth-child(4){width:11%;}
+.config-table th:nth-child(5),.config-table td:nth-child(5){width:11%;}
+.config-table th:nth-child(6),.config-table td:nth-child(6){width:6%;}
+.config-table th:nth-child(7),.config-table td:nth-child(7){width:5%;}
+.config-table th:nth-child(8),.config-table td:nth-child(8){width:8%;}
+.config-table th:nth-child(9),.config-table td:nth-child(9){width:13%;}
+.config-table th:nth-child(10),.config-table td:nth-child(10){width:7%;text-align:right;}
 .config-table th:nth-child(8),.config-table td:nth-child(8){width:16%;}
 .config-table th:nth-child(9),.config-table td:nth-child(9){width:10%;text-align:right;}
 .nome-edit{width:100%;padding:7px 11px;font-weight:700;font-size:12px;color:var(--blue);background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;outline:none;}
@@ -345,6 +348,19 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
       <button class="filter-btn" onclick="fecharModalEmps()">Cancelar</button>
       <button class="btn-arco" onclick="salvarEmpresasLote()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-resp-marca">
+  <div class="modal-card" style="max-width:420px;">
+    <h3 style="color:var(--blue);font-weight:700;font-size:15px;">Responsável por marca</h3>
+    <p id="modal-rm-title" style="font-size:13px;font-weight:700;background:#f1f5f9;border-left:3px solid var(--blue);padding:7px 12px;border-radius:0 8px 8px 0;margin:8px 0;"></p>
+    <input type="hidden" id="modal-rm-act-id">
+    <div id="modal-rm-rows" style="margin-top:4px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="filter-btn" onclick="fecharModalRespMarca()">Cancelar</button>
+      <button class="btn-arco" onclick="salvarRespMarca()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -501,7 +517,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         </div>
       </div>
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;">
-        <table class="config-table"><thead><tr><th>Nome</th><th>Área</th><th>Responsáveis</th><th>Marcas</th><th>Prévia?</th><th>D.U.</th><th>Data</th><th>PIS/COFINS</th><th style="text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
+        <table class="config-table"><thead><tr><th>Nome</th><th>Área</th><th>Responsáveis</th><th>Marcas</th><th>Resp. por marca</th><th>Prévia?</th><th>D.U.</th><th>Data</th><th>PIS/COFINS</th><th style="text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
       </div>
     </div>
     <div class="form-card">
@@ -903,10 +919,17 @@ function renderizarPainel(){
       if(pe){
         const tr=document.createElement("tr");
         const tags=(act.empresasElegiveis||[]).map(s=>`<span class="comp-tag">${s.substring(0,4)}</span>`).join("");
+        const avChips=(act.responveisLista||[]).map(p=>{const ini=p.split(" ").filter(w=>w).map(w=>w[0]).join("").substring(0,2).toUpperCase();return`<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;background:#e0eaff;color:#185FA5;font-size:10px;font-weight:700;">${ini}</span>`;}).join("");
+        const rmMap=act.responsaveisPorEmpresa||{};
+        const rmCount=Object.keys(rmMap).length;
+        const rmBtn=rmCount>0
+          ?`<button class="comp-badge-btn" style="color:var(--blue);border-color:var(--blue);" onclick="abrirModalRespMarca('${act.id}')">✓ ${rmCount} atribuído${rmCount>1?"s":""}</button>`
+          :`<button class="comp-badge-btn" style="color:var(--muted);" onclick="abrirModalRespMarca('${act.id}')">— Atribuir</button>`;
         tr.innerHTML=`<td><input class="nome-edit" value="${act.atividade}" onchange="atualizarCampo('${act.id}','atividade',this.value)"></td>
           <td>${areaSelHtml(act.area,act.id)}</td>
-          <td><button class="comp-badge-btn" onclick="abrirModalResp('${act.id}')">👤 ${act.responveisLista.length}</button></td>
+          <td><button class="comp-badge-btn" onclick="abrirModalResp('${act.id}')" style="display:flex;align-items:center;gap:3px;">${avChips}</button></td>
           <td><button class="comp-badge-btn" onclick="abrirModalEmps('${act.id}')">${tags||"Nenhuma"}</button></td>
+          <td>${rmBtn}</td>
           <td><select class="form-input" style="padding:4px 7px;height:30px;" onchange="atualizarCampo('${act.id}','previaReceita',this.value)"><option ${act.previaReceita==="Não"?"selected":""}>Não</option><option ${act.previaReceita==="Sim"?"selected":""}>Sim</option></select></td>
           <td><input type="number" class="du-input" value="${act.diaUtil}" onchange="atualizarDU('${act.id}',this.value)"></td>
           <td style="font-family:'IBM Plex Mono';font-size:11px;font-weight:700;color:var(--blue);">${df}</td>
@@ -1214,6 +1237,57 @@ function salvarEmpresasLote(){
   const mapa={}; atv.empresas.forEach(e=>{mapa[e.nome]=e;});
   atv.empresas=novos.map(nome=>mapa[nome]||{nome,status:"PENDENTE",dataConclusao:"",obs:""});
   salvarAtividade(actId,"Atualizou marcas");fecharModalEmps();renderizarPainel();showToast("✓ Marcas salvas!");
+}
+
+// ═══════════════════════════════════════════
+// MODAL RESPONSÁVEL POR MARCA
+// ═══════════════════════════════════════════
+function abreviarNome(nome){
+  if(!nome) return "";
+  const p=nome.trim().split(/\s+/);
+  if(p.length===1) return p[0];
+  return p[0]+" "+p[p.length-1];
+}
+
+function abrirModalRespMarca(actId){
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  document.getElementById("modal-rm-act-id").value=actId;
+  document.getElementById("modal-rm-title").textContent=atv.atividade;
+  const elegiveis=atv.empresasElegiveis||[];
+  const mapa=atv.responsaveisPorEmpresa||{};
+  const opts=PROF.map(p=>`<option value="${p}">${abreviarNome(p)}</option>`).join("");
+  document.getElementById("modal-rm-rows").innerHTML=elegiveis.map(emp=>{
+    const safeKey=emp.replace(/[\/\.#\[\]\$]/g,"_");
+    const cur=mapa[safeKey]||mapa[emp]||"";
+    const ini=emp.substring(0,1).toUpperCase();
+    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;background:#e0eaff;color:#185FA5;font-size:11px;font-weight:700;">${ini}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text);">${emp}</span>
+      </div>
+      <select data-emp="${safeKey}" style="font-size:12px;width:190px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);">
+        <option value="">— Sem atribuição —</option>
+        ${PROF.map(p=>`<option value="${p}" ${p===cur?"selected":""}>${abreviarNome(p)}</option>`).join("")}
+      </select>
+    </div>`;
+  }).join("");
+  document.getElementById("modal-resp-marca").classList.add("open");
+}
+
+function fecharModalRespMarca(){document.getElementById("modal-resp-marca").classList.remove("open");}
+
+function salvarRespMarca(){
+  const actId=document.getElementById("modal-rm-act-id").value;
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  const mapa={};
+  document.querySelectorAll("#modal-rm-rows select").forEach(sel=>{
+    if(sel.value) mapa[sel.dataset.emp]=sel.value;
+  });
+  atv.responsaveisPorEmpresa=mapa;
+  salvarAtividade(actId,"Atualizou responsáveis por marca");
+  fecharModalRespMarca();
+  renderizarPainel();
+  showToast("✓ Responsáveis por marca salvos!");
 }
 
 // ═══════════════════════════════════════════
