@@ -686,6 +686,24 @@ function saveForcar(payload){
 }
 
 // ── SAVE GRANULAR por atividade ──
+// ── BACKUP ──
+function backup(atvs){
+  if(!_fbDb||!atvs||!atvs.length) return;
+  const ts=Date.now(), dt=new Date(ts);
+  const k=`bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}_${String(dt.getSeconds()).padStart(2,'0')}`;
+  // Salva backup com mapa por ID (não array) pra ser atômico
+  const mapa={};
+  atvs.forEach(a=>{ mapa[a.id]=a; });
+  _fbDb.ref("cronograma/backups/"+k).set({ts, por:userAtual||"sistema", atividades:mapa})
+    .catch(e=>console.warn("Backup falhou:",e));
+  // Mantém só os últimos 30 backups
+  _fbDb.ref("cronograma/backups").orderByChild("ts").once("value",s=>{
+    const ks=[]; s.forEach(c=>ks.push(c.key));
+    if(ks.length>30) ks.slice(0,ks.length-30).forEach(k=>_fbDb.ref("cronograma/backups/"+k).remove());
+  });
+}
+
+// ── SAVE ATIVIDADE — por ID, nunca por índice ──
 function salvarAtividade(actId,desc){
   if(!_fbDb) return;
   if(_debAtv[actId]) clearTimeout(_debAtv[actId]);
@@ -693,14 +711,28 @@ function salvarAtividade(actId,desc){
   const el=document.getElementById("ultimo-save");if(el) el.textContent="⏳ Salvando...";
   _debAtv[actId]=setTimeout(()=>{
     delete _debAtv[actId];
-    const idx=dbAtv.findIndex(a=>a.id===actId);
-    if(idx===-1){_savePend=false;return;}
-    const ts=Date.now(),updates={};
-    updates[`cronograma/atividades/${idx}`]=dbAtv[idx];
+    const atv=dbAtv.find(a=>a.id===actId);
+    if(!atv){_savePend=false;return;}
+    const ts=Date.now();
+    // Backup do estado atual ANTES de salvar
+    backup(dbAtv);
+    // Salva pelo ID da atividade — nunca sobrescreve outra
+    const updates={};
+    updates[`cronograma/atividadesMap/${actId}`]=atv;
     updates["cronograma/_ts"]=ts;
     updates["cronograma/_savedBy"]=userAtual||"sistema";
-    if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão.");_savePend=false;return;}
-    _fbDb.ref().update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();if(desc) logAcao(desc);}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
+    if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
+    _fbDb.ref().update(updates)
+      .then(()=>{
+        _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
+        atualizarSave();
+        if(desc) logAcao(desc);
+      })
+      .catch(e=>{
+        _savePend=false;
+        console.error("Erro ao salvar atividade:",e);
+        showToast("⚠️ Erro ao salvar. Tente novamente.");
+      });
   },500);
 }
 
@@ -715,19 +747,25 @@ function salvarDados(desc){
     const ts=Date.now(),updates={"cronograma/config":comp,"cronograma/profissionais":PROF,"cronograma/empresas":EMPS,"cronograma/areas":AREAS,"cronograma/_ts":ts,"cronograma/_savedBy":userAtual||"sistema"};
     if(dbHist&&Object.keys(dbHist).length) updates["cronograma/historicos"]=dbHist;
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão.");_savePend=false;return;}
-    backup(dbAtv); if(desc) logAcao(desc);
+    if(desc) logAcao(desc);
     _fbDb.ref().update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
   },500);
 }
 
+// ── SYNC AO VIVO — lê atividadesMap por ID ──
 function syncAoVivo(){
   if(!_fbDb||window._syncAtivo) return; window._syncAtivo=true;
   _fbDb.ref("cronograma/_ts").on("value",snap=>{
-    const tsR=snap.val()||0; if(!tsR||tsR===_tsSave||tsR<=_tsCarregado) return;
+    const tsR=snap.val()||0;
+    if(!tsR||tsR===_tsSave||tsR<=_tsCarregado) return;
     _fbRef.once("value").then(s=>{
       const d=s.val(); if(!d) return;
       _tsCarregado=d._ts||tsR;_tsSave=d._ts||_tsSave;_quemSave=d._savedBy||_quemSave;
-      if(d.atividades) dbAtv=d.atividades;
+      // Lê do atividadesMap por ID — merge seguro
+      if(d.atividadesMap){
+        const mapa=d.atividadesMap;
+        dbAtv=dbAtv.map(a=>mapa[a.id]?{...a,...mapa[a.id]}:a);
+      }
       if(d.historicos) dbHist=d.historicos;
       if(d.config) comp=d.config;
       atualizarSave(); renderizarPainel();
@@ -768,7 +806,21 @@ async function init(){
       if(d.profissionais&&d.profissionais.length) PROF=d.profissionais;
       if(d.empresas&&d.empresas.length) EMPS=d.empresas;
       if(d.areas&&d.areas.length) AREAS=d.areas;
-      if(d.atividades&&d.atividades.length){
+      // Carrega atividades — preferência pelo atividadesMap (por ID, sem risco de posição)
+      if(d.atividadesMap&&Object.keys(d.atividadesMap).length){
+        dbAtv=Object.values(d.atividadesMap).map((item,i)=>({
+          id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:item.area||"",
+          diaUtil:item.diaUtil||item.du||"0", previaReceita:item.previaReceita||item.previa||"Não",
+          responveisLista:item.responveisLista||item.resps||["A Atribuir"],
+          empresasElegiveis:item.empresasElegiveis||item.emps||[...EMPS],
+          responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
+          empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
+          colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||""
+        }));
+        // Ordena por diaUtil pra manter consistência visual
+        dbAtv.sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
+      } else if(d.atividades&&d.atividades.length){
+        // Fallback: array legado — carrega e migra pra atividadesMap no próximo save
         dbAtv=d.atividades.map((item,i)=>({
           id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:item.area||"",
           diaUtil:item.diaUtil||item.du||"0", previaReceita:item.previaReceita||item.previa||"Não",
@@ -778,6 +830,11 @@ async function init(){
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||""
         }));
+        // Migra automaticamente para atividadesMap
+        console.log("Migrando atividades para atividadesMap...");
+        const migUpdates={"cronograma/_ts":Date.now(),"cronograma/_savedBy":"migracao_automatica"};
+        dbAtv.forEach(a=>{ migUpdates[`cronograma/atividadesMap/${a.id}`]=a; });
+        _fbDb.ref().update(migUpdates).then(()=>console.log("Migração concluída.")).catch(e=>console.warn("Migração falhou:",e));
       }
     }
     if(!dbAtv.length) dbAtv=[];
@@ -1244,11 +1301,13 @@ function atualizarPIS(actId,col){const atv=dbAtv.find(a=>a.id===actId);if(!atv) 
 function excluirAtv(id,e){
   e.stopPropagation(); if(!confirm("Apagar permanentemente?")) return;
   const idx=dbAtv.findIndex(a=>a.id===id); if(idx===-1) return;
+  backup(dbAtv); // backup antes de excluir
   dbAtv.splice(idx,1);
   const ts2=Date.now(),updates={};
-  dbAtv.forEach((a,i)=>{updates[`cronograma/atividades/${i}`]=a;});
-  updates[`cronograma/atividades/${dbAtv.length}`]=null;
-  updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
+  // Remove do atividadesMap por ID
+  updates[`cronograma/atividadesMap/${id}`]=null;
+  updates["cronograma/_ts"]=ts2;
+  updates["cronograma/_savedBy"]=userAtual||"sistema";
   _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Excluiu atividade");atualizarSave();renderizarPainel();showToast("✓ Excluída!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 
@@ -1407,7 +1466,7 @@ function salvarNovaAtividade(){
   const nova={id:"atv_"+Date.now(),atividade:nome,area,diaUtil:String(du),previaReceita:prev,responveisLista:resps,empresasElegiveis:emps,responsaveisPorEmpresa:{},empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),colunaPIS:""};
   dbAtv.push(nova);
   const newIdx=dbAtv.length-1,ts2=Date.now(),updates={};
-  updates[`cronograma/atividades/${newIdx}`]=nova;updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
+  updates[`cronograma/atividadesMap/${nova.id}`]=nova;updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
   _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Criou "${nome}"`);atualizarSave();}).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
   document.getElementById("add-nome").value="";cddResps=[];cddEmps=[];toggleForm();renderizarPainel();popularFiltros();showToast(`✓ Atividade criada!`);
 }
@@ -1435,18 +1494,20 @@ function delArea(n){if(!confirm(`Remover "${n}"?`)) return;AREAS=AREAS.filter(a=
 function salvarPeriodo(){comp.mes=document.getElementById("cfg-mes").value;comp.ano=document.getElementById("cfg-ano").value;salvarDados("Alterou mês ativo");atualizarLabels();renderizarPainel();showToast("✓ Competência aplicada!");}
 function arquivarMes(){
   const k=comp.mes+"_"+comp.ano; if(!confirm(`Arquivar ${comp.mes}/${comp.ano} e baixar Excel?`)) return;
+  backup(dbAtv); // backup antes de arquivar
   dbHist[k]={label:comp.mes+" / "+comp.ano,competencia:{...comp},arquivadoEm:new Date().toLocaleString("pt-BR"),dados:JSON.parse(JSON.stringify(dbAtv))};
   exportarExcel();
   dbAtv.forEach(a=>a.empresas.forEach(e=>{e.status="PENDENTE";e.dataConclusao="";e.obs="";}));
   const ts2=Date.now(),updates={"cronograma/config":comp,"cronograma/historicos":dbHist,"cronograma/_ts":ts2,"cronograma/_savedBy":userAtual||"sistema"};
-  dbAtv.forEach((a,i)=>{updates[`cronograma/atividades/${i}`]=a;});
+  dbAtv.forEach(a=>{updates[`cronograma/atividadesMap/${a.id}`]=a;});
   _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Arquivou mês");atualizarSave();renderHist();renderizarPainel();showToast("✓ Arquivado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 function resetarStatus(){
   if(!confirm(`Resetar TODOS os status para PENDENTE?\n\nDados atuais serão perdidos.`)) return;
+  backup(dbAtv); // backup antes de resetar
   dbAtv.forEach(a=>a.empresas.forEach(e=>{e.status="PENDENTE";e.dataConclusao="";e.obs="";}));
   const ts2=Date.now(),updates={"cronograma/_ts":ts2,"cronograma/_savedBy":userAtual||"sistema"};
-  dbAtv.forEach((a,i)=>{updates[`cronograma/atividades/${i}`]=a;});
+  dbAtv.forEach(a=>{updates[`cronograma/atividadesMap/${a.id}`]=a;});
   _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Resetou status");atualizarSave();renderizarPainel();showToast("🔄 Resetado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 function renderHist(){
@@ -1502,7 +1563,7 @@ function importarCSV(event){
     }
     event.target.value="";
     const bIdx=dbAtv.length-cont,ts2=Date.now(),updates={};
-    for(let i=bIdx;i<dbAtv.length;i++) updates[`cronograma/atividades/${i}`]=dbAtv[i];
+    for(let i=bIdx;i<dbAtv.length;i++) updates[`cronograma/atividadesMap/${dbAtv[i].id}`]=dbAtv[i];
     updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
     _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Importou ${cont} atividades`);atualizarSave();renderizarPainel();popularFiltros();}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
     showToast(`✓ ${cont} atividades importadas!`);
