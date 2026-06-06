@@ -491,8 +491,15 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         <select class="filter-select" id="filter-resp" onchange="renderizarPainel()"><option value="todos">👤 Todos Responsáveis</option></select>
         <select class="filter-select" id="filter-area" onchange="renderizarPainel()"><option value="todos">📂 Todas as Áreas</option></select>
         <select class="filter-select" id="filter-empresa" onchange="renderizarPainel()"><option value="todos">🏢 Todas as Empresas</option></select>
-        <select class="filter-select" id="filter-previa" onchange="renderizarPainel()">
-          <option value="todos">💰 Todas</option><option value="Sim">💰 Impacta Receita</option><option value="Não">Não impacta</option>
+        <select class="filter-select" id="filter-previa" onchange="renderizarPainel()" title="Filtrar por impacto em Prévia de Receita">
+          <option value="todos">💰 Prévia de Receita — Todas</option>
+          <option value="Sim">💰 Impacta Prévia de Receita</option>
+          <option value="Não">💰 Não impacta Prévia</option>
+        </select>
+        <select class="filter-select" id="filter-pis" onchange="renderizarPainel()" title="Filtrar por impacto em PIS/COFINS">
+          <option value="todos">📊 PIS/COFINS — Todas</option>
+          <option value="Sim">📊 Impacta PIS/COFINS</option>
+          <option value="Não">📊 Não impacta PIS/COFINS</option>
         </select>
         <input type="date" id="filter-data" class="form-input" style="height:36px;border-radius:24px;" onchange="renderizarPainel()">
       </div>
@@ -880,6 +887,7 @@ function renderizarPainel(){
   const empF=(document.getElementById("filter-empresa")||{}).value||"todos";
   const dataF=(document.getElementById("filter-data")||{}).value||"";
   const previaF=(document.getElementById("filter-previa")||{}).value||"todos";
+  const pisF=(document.getElementById("filter-pis")||{}).value||"todos";
   const eNome=(document.getElementById("edit-filter-nome")||{}).value?.toLowerCase()||"";
   const eResp=(document.getElementById("edit-filter-resp")||{}).value||"todos";
   const eArea=(document.getElementById("edit-filter-area")||{}).value||"todos";
@@ -901,6 +909,8 @@ function renderizarPainel(){
     if(busca&&!act.atividade.toLowerCase().includes(busca)) return;
     if(empF!=="todos"&&!(act.empresasElegiveis||[]).includes(empF)) return;
     if(previaF!=="todos"&&(act.previaReceita||"Não")!==previaF) return;
+    if(pisF==="Sim"&&!act.colunaPIS) return;
+    if(pisF==="Não"&&act.colunaPIS) return;
 
     // Subtotais
     const el=act.empresas.filter(e=>(act.empresasElegiveis||[]).includes(e.nome));
@@ -1201,10 +1211,6 @@ function renderPIS(){
   root.innerHTML=`<div class="pis-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
       <h3 style="font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;">📊 Status PIS/COFINS por Empresa</h3>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:11px;color:var(--muted);">Ver atividades de:</span>
-        <select class="filter-select" style="height:32px;font-size:11px;" onchange="window._pisFiltroCol=this.value;renderPIS();">${filtroOpts}</select>
-      </div>
     </div>
     <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Células ⚙️ = calculadas pelo checklist · Passe o mouse para ver o responsável.</p>
     ${atvPanel}
