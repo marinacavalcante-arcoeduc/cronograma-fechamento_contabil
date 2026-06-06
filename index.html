@@ -716,14 +716,13 @@ function salvarAtividade(actId,desc){
     const ts=Date.now();
     backup(dbAtv);
     const updates={};
-    updates[`cronograma/atividadesMap/${actId}`]=atv;
-    updates["cronograma/_ts"]=ts;
-    updates["cronograma/_savedBy"]=userAtual||"sistema";
+    updates[`atividadesMap/${actId}`]=atv;
+    updates["_ts"]=ts;
+    updates["_savedBy"]=userAtual||"sistema";
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
-    // Marca como "salvando agora" — impede que o echo do Firebase sobrescreva
     if(!window._salvando) window._salvando={};
     window._salvando[actId]=true;
-    _fbDb.ref().update(updates)
+    _fbRef.update(updates)
       .then(()=>{
         _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
         atualizarSave();
@@ -748,11 +747,11 @@ function salvarDados(desc){
   if(_debDados) clearTimeout(_debDados);
   _debDados=setTimeout(()=>{
     _debDados=null;
-    const ts=Date.now(),updates={"cronograma/config":comp,"cronograma/profissionais":PROF,"cronograma/empresas":EMPS,"cronograma/areas":AREAS,"cronograma/_ts":ts,"cronograma/_savedBy":userAtual||"sistema"};
-    if(dbHist&&Object.keys(dbHist).length) updates["cronograma/historicos"]=dbHist;
+    const ts=Date.now(),updates={"config":comp,"profissionais":PROF,"empresas":EMPS,"areas":AREAS,"_ts":ts,"_savedBy":userAtual||"sistema"};
+    if(dbHist&&Object.keys(dbHist).length) updates["historicos"]=dbHist;
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão.");_savePend=false;return;}
     if(desc) logAcao(desc);
-    _fbDb.ref().update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
+    _fbRef.update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
   },500);
 }
 
@@ -885,8 +884,9 @@ async function init(){
         // Migra automaticamente para atividadesMap
         console.log("Migrando atividades para atividadesMap...");
         const migUpdates={"cronograma/_ts":Date.now(),"cronograma/_savedBy":"migracao_automatica"};
-        dbAtv.forEach(a=>{ migUpdates[`cronograma/atividadesMap/${a.id}`]=a; });
-        _fbDb.ref().update(migUpdates).then(()=>console.log("Migração concluída.")).catch(e=>console.warn("Migração falhou:",e));
+        migUpdates["_ts"]=Date.now();migUpdates["_savedBy"]="migracao";
+        dbAtv.forEach(a=>{ migUpdates[`atividadesMap/${a.id}`]=a; });
+        _fbRef.update(migUpdates).then(()=>console.log("Migração concluída.")).catch(e=>console.warn("Migração falhou:",e));
       }
     }
     if(!dbAtv.length) dbAtv=[];
@@ -1350,10 +1350,10 @@ function excluirAtv(id,e){
   dbAtv.splice(idx,1);
   const ts2=Date.now(),updates={};
   // Remove do atividadesMap por ID
-  updates[`cronograma/atividadesMap/${id}`]=null;
-  updates["cronograma/_ts"]=ts2;
-  updates["cronograma/_savedBy"]=userAtual||"sistema";
-  _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Excluiu atividade");atualizarSave();renderizarPainel();showToast("✓ Excluída!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
+  updates[`atividadesMap/${id}`]=null;
+  updates["_ts"]=ts2;
+  updates["_savedBy"]=userAtual||"sistema";
+  _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Excluiu atividade");atualizarSave();renderizarPainel();showToast("✓ Excluída!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 
 // ═══════════════════════════════════════════
@@ -1511,8 +1511,8 @@ function salvarNovaAtividade(){
   const nova={id:"atv_"+Date.now(),atividade:nome,area,diaUtil:String(du),previaReceita:prev,responveisLista:resps,empresasElegiveis:emps,responsaveisPorEmpresa:{},empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),colunaPIS:""};
   dbAtv.push(nova);
   const newIdx=dbAtv.length-1,ts2=Date.now(),updates={};
-  updates[`cronograma/atividadesMap/${nova.id}`]=nova;updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
-  _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Criou "${nome}"`);atualizarSave();}).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
+  updates[`atividadesMap/${nova.id}`]=nova;updates["_ts"]=ts2;updates["_savedBy"]=userAtual||"sistema";
+  _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Criou "${nome}"`);atualizarSave();}).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
   document.getElementById("add-nome").value="";cddResps=[];cddEmps=[];toggleForm();renderizarPainel();popularFiltros();showToast(`✓ Atividade criada!`);
 }
 
@@ -1544,16 +1544,16 @@ function arquivarMes(){
   exportarExcel();
   dbAtv.forEach(a=>a.empresas.forEach(e=>{e.status="PENDENTE";e.dataConclusao="";e.obs="";}));
   const ts2=Date.now(),updates={"cronograma/config":comp,"cronograma/historicos":dbHist,"cronograma/_ts":ts2,"cronograma/_savedBy":userAtual||"sistema"};
-  dbAtv.forEach(a=>{updates[`cronograma/atividadesMap/${a.id}`]=a;});
-  _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Arquivou mês");atualizarSave();renderHist();renderizarPainel();showToast("✓ Arquivado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
+  dbAtv.forEach(a=>{updates[`atividadesMap/${a.id}`]=a;});
+  _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Arquivou mês");atualizarSave();renderHist();renderizarPainel();showToast("✓ Arquivado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 function resetarStatus(){
   if(!confirm(`Resetar TODOS os status para PENDENTE?\n\nDados atuais serão perdidos.`)) return;
   backup(dbAtv); // backup antes de resetar
   dbAtv.forEach(a=>a.empresas.forEach(e=>{e.status="PENDENTE";e.dataConclusao="";e.obs="";}));
   const ts2=Date.now(),updates={"cronograma/_ts":ts2,"cronograma/_savedBy":userAtual||"sistema"};
-  dbAtv.forEach(a=>{updates[`cronograma/atividadesMap/${a.id}`]=a;});
-  _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Resetou status");atualizarSave();renderizarPainel();showToast("🔄 Resetado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
+  dbAtv.forEach(a=>{updates[`atividadesMap/${a.id}`]=a;});
+  _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao("Resetou status");atualizarSave();renderizarPainel();showToast("🔄 Resetado!");}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
 }
 function renderHist(){
   const root=document.getElementById("hist-lista"); if(!root) return;
@@ -1608,9 +1608,9 @@ function importarCSV(event){
     }
     event.target.value="";
     const bIdx=dbAtv.length-cont,ts2=Date.now(),updates={};
-    for(let i=bIdx;i<dbAtv.length;i++) updates[`cronograma/atividadesMap/${dbAtv[i].id}`]=dbAtv[i];
-    updates["cronograma/_ts"]=ts2;updates["cronograma/_savedBy"]=userAtual||"sistema";
-    _fbDb.ref().update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Importou ${cont} atividades`);atualizarSave();renderizarPainel();popularFiltros();}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
+    for(let i=bIdx;i<dbAtv.length;i++) updates[`atividadesMap/${dbAtv[i].id}`]=dbAtv[i];
+    updates["_ts"]=ts2;updates["_savedBy"]=userAtual||"sistema";
+    _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Importou ${cont} atividades`);atualizarSave();renderizarPainel();popularFiltros();}).catch(e=>{console.error(e);showToast("⚠️ Erro.");});
     showToast(`✓ ${cont} atividades importadas!`);
   };
   reader.readAsText(file,"UTF-8");
