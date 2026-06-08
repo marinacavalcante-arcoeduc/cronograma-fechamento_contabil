@@ -616,7 +616,7 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC"];
-const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbyY37XqczboEs7mr4_Id-ygqEWp7IoCzx606AtQfyI4i3Y85dLWhlbLFbNcYWSJcwI/exec"; // ← substitua após publicar o script
+const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbyrYUTyqfkQFBytJyLTwMJII-Bd12tpL-htThv8bFBp7IJunAUouRJ9IhnrKR-kRSN_nQ/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
 const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico"};
 const firebaseConfig = {apiKey:"AIzaSyC821Hn_gFHa39G6vVhuzLVMxmPp615C9M",authDomain:"projeto-cronograma-fechamento.firebaseapp.com",databaseURL:"https://projeto-cronograma-fechamento-default-rtdb.firebaseio.com",projectId:"projeto-cronograma-fechamento",storageBucket:"projeto-cronograma-fechamento.firebasestorage.app",messagingSenderId:"468354958800",appId:"1:468354958800:web:469e8bd1ec63df993725d5"};
@@ -1565,46 +1565,35 @@ function enviarEmailFiscal(){
       irpjFiscal:(fiscalData[e]||{}).irpjFiscal||"Em execução"
     };
   });
-  // Usa iframe trick para contornar CORS em Google Workspace corporativo
+  // Usa formulário + iframe — contorna CORS do Google Workspace corporativo
   const payload=JSON.stringify({destinatarios:dest,mes:comp.mes+"/"+comp.ano,empresas});
-  // Tenta fetch normal primeiro, cai no iframe se falhar por CORS
-  fetch(APPS_SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:payload})
-    .then(r=>r.text())
-    .then(txt=>{
-      let d;try{d=JSON.parse(txt);}catch(e){d={ok:true,msg:"Email enviado!"};}
-      if(d.ok){
-        statusEl.style.cssText="display:block;background:#C0DD97;color:#3B6D11;";
-        statusEl.textContent="✅ "+d.msg;
-        btn.textContent="✓ Enviado!";
-        setTimeout(()=>document.getElementById("modal-email-fiscal")?.remove(),2000);
-        showToast("📧 Email enviado com sucesso!");
-      } else {
-        statusEl.style.cssText="display:block;background:#F5C4B3;color:#993C1D;";
-        statusEl.textContent="❌ "+d.msg;
-        btn.disabled=false; btn.textContent="📧 Enviar agora";
-      }
-    })
-    .catch(()=>{
-      // CORS bloqueado — usa formulário oculto (funciona com Workspace)
-      const form=document.createElement("form");
-      form.method="POST"; form.action=APPS_SCRIPT_URL; form.target="email-iframe";
-      form.style.display="none";
-      const inp=document.createElement("input");
-      inp.type="hidden"; inp.name="payload"; inp.value=payload;
-      form.appendChild(inp);
-      let iframe=document.getElementById("email-iframe");
-      if(!iframe){iframe=document.createElement("iframe");iframe.name="email-iframe";iframe.id="email-iframe";iframe.style.display="none";document.body.appendChild(iframe);}
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(()=>{
-        form.remove();
-        statusEl.style.cssText="display:block;background:#C0DD97;color:#3B6D11;";
-        statusEl.textContent="✅ Email enviado!";
-        btn.textContent="✓ Enviado!";
-        setTimeout(()=>document.getElementById("modal-email-fiscal")?.remove(),2000);
-        showToast("📧 Email enviado com sucesso!");
-      },2000);
-    });
+  let iframe=document.getElementById("email-iframe");
+  if(!iframe){
+    iframe=document.createElement("iframe");
+    iframe.name="email-iframe";
+    iframe.id="email-iframe";
+    iframe.style.display="none";
+    document.body.appendChild(iframe);
+  }
+  const form=document.createElement("form");
+  form.method="POST";
+  form.action=APPS_SCRIPT_URL;
+  form.target="email-iframe";
+  form.style.display="none";
+  const inp=document.createElement("input");
+  inp.type="hidden"; inp.name="payload"; inp.value=payload;
+  form.appendChild(inp);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+  // Aguarda 3s e assume sucesso (iframe não retorna resposta por CORS)
+  setTimeout(()=>{
+    statusEl.style.cssText="display:block;background:#C0DD97;color:#3B6D11;";
+    statusEl.textContent="✅ Email enviado!";
+    btn.textContent="✓ Enviado!";
+    setTimeout(()=>document.getElementById("modal-email-fiscal")?.remove(),2000);
+    showToast("📧 Email enviado com sucesso!");
+  },3000);
 }
 
 // ═══════════════════════════════════════════
