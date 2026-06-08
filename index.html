@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cronograma Fechamento Contábil — Arco</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -292,6 +293,34 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .pis-pend{background:#FAC775;color:#633806;}
 .pis-atras{background:#F5C4B3;color:#993C1D;}
 .pis-na{background:#f1f5f9;color:#888;font-size:10px;}
+
+/* ── Resumo Fiscal ── */
+.resumo-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:22px;overflow-x:auto;margin-top:24px;}
+.resumo-table{border-collapse:collapse;font-size:12px;width:100%;}
+.resumo-table th{background:#1e3a5f;color:#fff;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:9px 10px;text-align:center;white-space:normal;line-height:1.3;vertical-align:bottom;}
+.resumo-table th.left{text-align:left;}
+.resumo-table td{padding:5px 7px;border-bottom:.5px solid #f1f5f9;vertical-align:middle;}
+.resumo-table tr:last-child td{border-bottom:none;}
+.resumo-table .grupo-cell{font-size:10px;color:var(--muted);font-weight:500;}
+.resumo-table .emp-cell2{font-weight:700;font-size:12px;color:var(--text);white-space:nowrap;}
+.resumo-status{border-radius:6px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;min-width:90px;padding:0 8px;cursor:default;}
+.rs-ok{background:#C0DD97;color:#3B6D11;}
+.rs-pend{background:#FAC775;color:#633806;}
+.rs-atras{background:#F5C4B3;color:#993C1D;}
+.rs-na{background:#f1f5f9;color:#888;font-size:10px;}
+.rs-exec{background:#dbeafe;color:#1d4ed8;}
+.rs-fin{background:#C0DD97;color:#3B6D11;}
+.rs-edit-btn{background:none;border:1px dashed var(--border);border-radius:6px;padding:2px 10px;font-size:10px;color:var(--muted);cursor:pointer;transition:.2s;}
+.rs-edit-btn:hover{border-color:var(--blue);color:var(--blue);}
+.rs-sep{border-left:2px solid var(--border);}
+/* expandable row in pis-table */
+.pis-expand-row{background:#f8fafc;}
+.pis-exp-inner{padding:10px 14px;}
+.pis-tr-main{cursor:pointer;}
+.pis-tr-main:hover td{background:#f0f7ff;}
+.pis-tr-main td{transition:background .15s;}
+.exp-arrow{font-size:9px;margin-left:4px;color:var(--muted);}
+
 .lib-badge{display:inline-flex;align-items:center;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;white-space:nowrap;}
 .lib-ok{background:#C0DD97;color:#3B6D11;}
 .lib-pend{background:#FAC775;color:#633806;}
@@ -587,6 +616,8 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC"];
+const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar"];
+const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico"};
 const firebaseConfig = {apiKey:"AIzaSyC821Hn_gFHa39G6vVhuzLVMxmPp615C9M",authDomain:"projeto-cronograma-fechamento.firebaseapp.com",databaseURL:"https://projeto-cronograma-fechamento-default-rtdb.firebaseio.com",projectId:"projeto-cronograma-fechamento",storageBucket:"projeto-cronograma-fechamento.firebasestorage.app",messagingSenderId:"468354958800",appId:"1:468354958800:web:469e8bd1ec63df993725d5"};
 
 let _fbApp,_fbDb,_fbRef;
@@ -1261,32 +1292,12 @@ function getResponsavelPIS(empPis, col){
 
 function renderPIS(){
   const root=document.getElementById("pis-root"); if(!root) return;
-  const filtroCol=window._pisFiltroCol||"";
 
-  // ── Filtro de atividades ──
-  const filtroOpts=`<option value="">Todas as colunas</option>`+
-    COLUNAS_PIS.map((col,i)=>{
-      const n=dbAtv.filter(a=>a.colunaPIS===col).length;
-      return`<option value="${col}" ${col===filtroCol?"selected":""}>${COLS_PIS_ABREV[i]}${n?` (${n} atv)`:""}`;
-    }).join("");
+  // ── helpers ──
+  function pisStLabel(st){return st==="ok"?"✓ Liberado":st==="atras"?"⚠ Atrasado":"⏳ Pendente";}
+  function pisStCls(st){return st==="ok"?"pis-ok":st==="atras"?"pis-atras":"pis-pend";}
 
-  const atvsFiltradas=filtroCol
-    ? dbAtv.filter(a=>a.colunaPIS===filtroCol)
-    : [];
-
-  const atvPanel=filtroCol&&atvsFiltradas.length ? `
-    <div style="background:#f8fafc;border:0.5px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
-      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
-        Atividades que alimentam — ${COLS_PIS_ABREV[COLUNAS_PIS.indexOf(filtroCol)]}
-      </div>
-      ${atvsFiltradas.map(a=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);">
-          <span style="font-size:12px;font-weight:600;color:var(--text);flex:1;">${a.atividade}</span>
-          <span style="font-size:10px;color:var(--muted);">D.U. ${a.diaUtil}</span>
-          <span style="font-size:10px;background:#eff6ff;color:var(--blue);padding:2px 8px;border-radius:10px;">${(a.responveisLista||[]).map(r=>abreviarNome(r)).join(", ")||"—"}</span>
-        </div>`).join("")}
-    </div>` : "";
-
+  // ── 1° QUADRO: linhas expansíveis ──
   const heads=COLUNAS_PIS.map((col,i)=>{
     const n=dbAtv.filter(a=>a.colunaPIS===col).length;
     const badge=n?`<div style="font-size:9px;color:var(--green);margin-top:2px;">⚙️ ${n} atv</div>`:`<div style="font-size:9px;color:var(--muted);margin-top:2px;">manual</div>`;
@@ -1294,34 +1305,180 @@ function renderPIS(){
   }).join("")+`<th style="border-left:1px solid var(--border);color:var(--blue);">Liberada</th>`;
 
   const rows=EMPS_PIS.map(emp=>{
-    const cells=COLUNAS_PIS.map(col=>{
+    const cells=COLUNAS_PIS.map((col,ci)=>{
       const st=calcPisStatus(emp,col);
       if(st===null) return`<td style="text-align:center;padding:4px 5px;"><div class="pis-cell pis-na">n/a</div></td>`;
-      const cls=st==="ok"?"pis-ok":st==="atras"?"pis-atras":"pis-pend";
-      const txt=st==="ok"?"✓ OK":st==="atras"?"⚠ Atrasado":"⏳ Pend.";
       const resp=getResponsavelPIS(emp,col);
-      const tooltip=resp?`title="${abreviarNome(resp)}" style="cursor:help;"`:""
-      return`<td style="text-align:center;padding:4px 5px;"><div class="pis-cell ${cls}" ${tooltip}>${txt}</div></td>`;
+      const tip=resp?` title="${abreviarNome(resp)}" style="cursor:help;"`:"";
+      return`<td style="text-align:center;padding:4px 5px;"><div class="pis-cell ${pisStCls(st)}"${tip}>${pisStLabel(st)}</div></td>`;
     }).join("");
     const lib=calcPisLib(emp);
     const libH=lib===null?`<span class="lib-badge lib-na">n/a</span>`:lib==="ok"?`<span class="lib-badge lib-ok">✓ Liberada</span>`:lib==="atras"?`<span class="lib-badge lib-atras">⚠ Atrasado</span>`:`<span class="lib-badge lib-pend">⏳ Pendente</span>`;
-    return`<tr><td class="emp-cell">${emp}</td>${cells}<td style="text-align:center;padding:4px 8px;border-left:1px solid var(--border);">${libH}</td></tr>`;
+    const rowId="pis-exp-"+emp.replace(/[^a-z0-9]/gi,"_");
+    // Build expand content: activities per column for this emp
+    const empCL=Object.entries(MAP_EMP_PIS).find(([k,v])=>v===emp)?.[0]||emp;
+    const expRows=COLUNAS_PIS.map((col,ci)=>{
+      const atvs=dbAtv.filter(a=>a.colunaPIS===col&&(a.empresasElegiveis||[]).includes(empCL));
+      if(!atvs.length) return"";
+      return atvs.map(a=>{
+        const e=a.empresas.find(x=>x.nome===empCL);
+        const s=e?e.status:"PENDENTE";
+        const cls=s==="OK"?"pis-ok":s==="ATRASADO"?"pis-atras":"pis-pend";
+        const label=s==="OK"?"✓ OK":s==="ATRASADO"?"⚠ Atrasado":"⏳ Pend.";
+        return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:.5px solid var(--border);">
+          <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:90px;">${COLS_PIS_ABREV[ci]}</span>
+          <span style="flex:1;font-size:11px;font-weight:600;color:var(--text);">${a.atividade}</span>
+          <span style="font-size:10px;color:var(--muted);">D.U.${a.diaUtil}</span>
+          <span class="pis-cell ${cls}" style="min-width:70px;height:20px;font-size:10px;">${label}</span>
+        </div>`;
+      }).join("");
+    }).join("");
+    return`<tr class="pis-tr-main" onclick="togglePisExp('${rowId}')">
+      <td class="emp-cell">${emp}<span class="exp-arrow">▼</span></td>${cells}
+      <td style="text-align:center;padding:4px 8px;border-left:1px solid var(--border);">${libH}</td>
+    </tr>
+    <tr id="${rowId}" style="display:none;" class="pis-expand-row">
+      <td colspan="${COLUNAS_PIS.length+2}" class="pis-exp-inner">
+        ${expRows||`<span style="font-size:11px;color:var(--muted);">Nenhuma atividade vinculada para esta empresa.</span>`}
+      </td>
+    </tr>`;
   }).join("");
 
-  root.innerHTML=`<div class="pis-wrap">
+  // ── 2° QUADRO: Resumo Status Apurações Fiscais ──
+  // Load saved fiscal data
+  const fiscalData=window._fiscalResumoData||{};
+  const isTrib=TRIBUTARIO_TEAM.some(t=>userAtual&&userAtual.includes(t.split(" ")[0]))||MASTERS.includes(userAtual);
+  const irpjOptions=["Em execução","Liberado","Finalizado","n/a"];
+
+  const resumoRows=EMPS_PIS.map(emp=>{
+    const grupo=GRUPO_EMP[emp]||"—";
+    // PIS status contabilidade = automático
+    const libPis=calcPisLib(emp);
+    const pisContStr=libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
+    const pisContCls=libPis===null?"rs-na":libPis==="ok"?"rs-ok":libPis==="atras"?"rs-atras":"rs-pend";
+    // PIS status fiscal = editável pelo time tributário
+    const pisFiscal=(fiscalData[emp]||{}).pisFiscal||"Em execução";
+    const pisFiscalCls=pisFiscal==="Liberado"||pisFiscal==="Finalizado"?"rs-ok":pisFiscal==="n/a"?"rs-na":"rs-exec";
+    // IRPJ status contabilidade = automático (mesmo cálculo por ora — pode ter lógica separada futura)
+    const irpjCont=(fiscalData[emp]||{}).irpjCont||"Em execução";
+    const irpjContCls=irpjCont==="Liberado"||irpjCont==="Finalizado"?"rs-ok":irpjCont==="n/a"?"rs-na":"rs-exec";
+    // IRPJ status fiscal = editável pelo time tributário (Eliomar)
+    const irpjFiscal=(fiscalData[emp]||{}).irpjFiscal||"Em execução";
+    const irpjFiscalCls=irpjFiscal==="Liberado"||irpjFiscal==="Finalizado"?"rs-ok":irpjFiscal==="n/a"?"rs-na":"rs-exec";
+
+    const editMode=window._fiscalEditMode&&isTrib;
+
+    const pisFiscalCell=editMode
+      ?`<select onchange="saveFiscalResumo('${emp}','pisFiscal',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===pisFiscal?"selected":""}>${o}</option>`).join("")}</select>`
+      :`<span class="resumo-status ${pisFiscalCls}">${pisFiscal}</span>`;
+    const irpjContCell=editMode
+      ?`<select onchange="saveFiscalResumo('${emp}','irpjCont',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===irpjCont?"selected":""}>${o}</option>`).join("")}</select>`
+      :`<span class="resumo-status ${irpjContCls}">${irpjCont}</span>`;
+    const irpjFiscalCell=editMode
+      ?`<select onchange="saveFiscalResumo('${emp}','irpjFiscal',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===irpjFiscal?"selected":""}>${o}</option>`).join("")}</select>`
+      :`<span class="resumo-status ${irpjFiscalCls}">${irpjFiscal}</span>`;
+
+    return`<tr>
+      <td class="grupo-cell" style="padding:5px 8px;">${grupo}</td>
+      <td class="emp-cell2" style="padding:5px 8px;">${emp}</td>
+      <td style="text-align:center;padding:4px 6px;"><span class="resumo-status ${pisContCls}">${pisContStr}</span></td>
+      <td style="text-align:center;padding:4px 6px;">${pisFiscalCell}</td>
+      <td style="text-align:center;padding:4px 6px;border-left:2px solid var(--border);">${irpjContCell}</td>
+      <td style="text-align:center;padding:4px 6px;">${irpjFiscalCell}</td>
+      <td style="text-align:center;padding:4px 8px;">${buildEmailBtn(emp,libPis,pisFiscal,irpjFiscal)}</td>
+    </tr>`;
+  }).join("");
+
+  const editBtnLabel=window._fiscalEditMode?"💾 Salvar":"✏️ Editar";
+  const editBtnStyle=window._fiscalEditMode?"background:#C0DD97;color:#3B6D11;":"";
+  const editBtnHtml=isTrib?`<button class="rs-edit-btn" onclick="toggleFiscalEdit()" style="${editBtnStyle}">${editBtnLabel}</button>`:"";
+
+  root.innerHTML=`
+  <div class="pis-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
       <h3 style="font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;">📊 Status PIS/COFINS por Empresa</h3>
     </div>
-    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Células ⚙️ = calculadas pelo checklist · Passe o mouse para ver o responsável.</p>
-    ${atvPanel}
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Clique em uma empresa para ver as atividades vinculadas. Células ⚙️ = calculadas pelo checklist.</p>
     <table class="pis-table"><thead><tr><th class="left">Empresa</th>${heads}</tr></thead><tbody>${rows}</tbody></table>
-    <div class="pis-legend">
+    <div class="pis-legend" style="margin-top:10px;">
       <div class="pis-leg"><div class="pis-leg-dot" style="background:#C0DD97;"></div>OK / Liberado</div>
       <div class="pis-leg"><div class="pis-leg-dot" style="background:#FAC775;"></div>Pendente</div>
       <div class="pis-leg"><div class="pis-leg-dot" style="background:#F5C4B3;"></div>Atrasado</div>
       <div class="pis-leg"><div class="pis-leg-dot" style="background:#f1f5f9;border:.5px solid var(--border);"></div>N/A</div>
     </div>
+  </div>
+
+  <div class="resumo-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:13px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.05em;margin:0;">📋 Status Apurações Fiscais — ${comp.mes}/${comp.ano}</h3>
+        <p style="font-size:11px;color:var(--muted);margin:4px 0 0 0;">PIS/COFINS Contabilidade = automático · Status Fiscal e IRPJ editáveis pelo time tributário.</p>
+      </div>
+      ${editBtnHtml}
+    </div>
+    <table class="resumo-table">
+      <thead>
+        <tr>
+          <th class="left" colspan="2" rowspan="2" style="vertical-align:bottom;">Empresa</th>
+          <th colspan="2" style="background:#1a5276;border-bottom:1px solid rgba(255,255,255,.2);">PIS &amp; COFINS</th>
+          <th colspan="2" class="rs-sep" style="background:#154360;border-bottom:1px solid rgba(255,255,255,.2);">IRPJ &amp; CSLL</th>
+          <th rowspan="2" style="background:#0d3349;font-size:9px;">Notificar</th>
+        </tr>
+        <tr>
+          <th style="background:#1a5276;font-size:9px;">Status<br>Contabilidade</th>
+          <th style="background:#1a5276;font-size:9px;">Status<br>Fiscal</th>
+          <th class="rs-sep" style="background:#154360;font-size:9px;">Status<br>Contabilidade</th>
+          <th style="background:#154360;font-size:9px;">Status<br>Fiscal</th>
+        </tr>
+      </thead>
+      <tbody>${resumoRows}</tbody>
+    </table>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);">
+      ⚙️ Status Contabilidade calculado automaticamente pelas atividades do checklist.
+      ${isTrib?"✏️ Clique em <b>Editar</b> para atualizar Status Fiscal e IRPJ/CSLL.":""}
+    </div>
   </div>`;
+}
+
+function buildEmailBtn(emp,libPis,pisFiscal,irpjFiscal){
+  const allOk=(libPis==="ok")&&(pisFiscal==="Liberado"||pisFiscal==="Finalizado")&&(irpjFiscal==="Liberado"||irpjFiscal==="Finalizado");
+  if(!allOk) return`<span style="font-size:10px;color:var(--muted);">—</span>`;
+  return`<button onclick="enviarEmailFiscal('${emp}')" style="background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;cursor:pointer;">📧 Enviar</button>`;
+}
+
+function togglePisExp(id){
+  const row=document.getElementById(id); if(!row) return;
+  const show=row.style.display==="none";
+  row.style.display=show?"table-row":"none";
+}
+
+function toggleFiscalEdit(){
+  window._fiscalEditMode=!window._fiscalEditMode;
+  renderPIS();
+}
+
+function saveFiscalResumo(emp,campo,val){
+  if(!window._fiscalResumoData) window._fiscalResumoData={};
+  if(!window._fiscalResumoData[emp]) window._fiscalResumoData[emp]={};
+  window._fiscalResumoData[emp][campo]=val;
+  // Persist to Firebase
+  if(_fbDb){
+    const {ref,set}=window._fbSDK||{};
+    if(ref&&set){
+      const path=`cronograma/fiscalResumo/${encodeURIComponent(emp)}`;
+      set(ref(_fbDb,path),window._fiscalResumoData[emp]).catch(e=>console.error(e));
+    }
+  }
+  renderPIS();
+}
+
+function enviarEmailFiscal(emp){
+  const emails=["contabilidade@arco.com","fiscal@arco.com"]; // ← configure os emails aqui
+  const mes=comp.mes+"/"+comp.ano;
+  const subject=encodeURIComponent(`[Liberação Fiscal] ${emp} — ${mes}`);
+  const body=encodeURIComponent(`Olá,\n\nInformamos que todas as apurações fiscais da empresa ${emp} referentes a ${mes} foram concluídas e liberadas.\n\nPIS/COFINS: Liberado ✓\nIRPJ/CSLL: Liberado ✓\n\nAtenciosamente,\nEquipe Tributário — Arco Educação`);
+  window.open(`mailto:${emails.join(",")}?subject=${subject}&body=${body}`,"_blank");
+  showToast("📧 Email aberto para envio!");
 }
 
 // ═══════════════════════════════════════════
