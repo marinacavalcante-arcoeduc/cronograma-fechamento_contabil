@@ -616,6 +616,7 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC"];
+const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbwrPTWyI-aJqR3fCH7Syk5ZmaXgB6MN6Y0jrnXQXjQsZ1UhR63zduauZlJW_W0Wj-0ihg/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
 const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico"};
 const firebaseConfig = {apiKey:"AIzaSyC821Hn_gFHa39G6vVhuzLVMxmPp615C9M",authDomain:"projeto-cronograma-fechamento.firebaseapp.com",databaseURL:"https://projeto-cronograma-fechamento-default-rtdb.firebaseio.com",projectId:"projeto-cronograma-fechamento",storageBucket:"projeto-cronograma-fechamento.firebasestorage.app",messagingSenderId:"468354958800",appId:"1:468354958800:web:469e8bd1ec63df993725d5"};
@@ -1472,33 +1473,67 @@ function saveFiscalResumo(emp,campo,val){
 }
 
 function abrirModalEmail(emp,allOk){
-  // Remove modal se já existir
   document.getElementById("modal-email-fiscal")?.remove();
   const mes=comp.mes+"/"+comp.ano;
-  const statusAviso=allOk==="true"?"":"<div style='background:#FEF3C7;color:#92400E;border-radius:6px;padding:8px 12px;font-size:11px;margin-bottom:12px;'>⚠️ Esta empresa ainda possui status pendente. Você pode enviar mesmo assim.</div>";
-  const defaultBody=`Olá,\n\nInformamos que as apurações fiscais da empresa ${emp} referentes a ${mes} foram concluídas.\n\nPIS/COFINS: Liberado ✓\nIRPJ/CSLL: Liberado ✓\n\nAtenciosamente,\nEquipe Tributário — Arco Educação`;
+  // Montar preview da tabela com dados reais
+  const fiscalData=window._fiscalResumoData||{};
+  const previewRows=EMPS_PIS.map(e=>{
+    const libPis=calcPisLib(e);
+    const pisContStr=libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
+    const pisFiscal=(fiscalData[e]||{}).pisFiscal||"Em execução";
+    const irpjCont=(fiscalData[e]||{}).irpjCont||"Em execução";
+    const irpjFiscal=(fiscalData[e]||{}).irpjFiscal||"Em execução";
+    function badge(s){const c=s==="Liberado"||s==="Finalizado"?"#C0DD97;color:#3B6D11":s==="Em execução"?"#dbeafe;color:#1d4ed8":s==="Atrasado"?"#F5C4B3;color:#993C1D":s==="n/a"?"#f1f5f9;color:#888":"#FAC775;color:#633806";return`<span style="background:${c};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;">${s}</span>`;}
+    return`<tr style="border-bottom:.5px solid #e2e8f0;">
+      <td style="padding:5px 8px;font-size:11px;color:#64748b;">${GRUPO_EMP[e]||"—"}</td>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700;">${e}</td>
+      <td style="padding:5px 8px;text-align:center;">${badge(pisContStr)}</td>
+      <td style="padding:5px 8px;text-align:center;">${badge(pisFiscal)}</td>
+      <td style="padding:5px 8px;text-align:center;border-left:1px solid #e2e8f0;">${badge(irpjCont)}</td>
+      <td style="padding:5px 8px;text-align:center;">${badge(irpjFiscal)}</td>
+    </tr>`;
+  }).join("");
+
   const modal=document.createElement("div");
   modal.id="modal-email-fiscal";
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px;";
   modal.innerHTML=`
-    <div style="background:#fff;border-radius:14px;padding:24px;width:480px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.18);">
+    <div style="background:#fff;border-radius:14px;padding:24px;width:680px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.2);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div>
-          <div style="font-size:14px;font-weight:700;color:#1e3a5f;">📧 Enviar notificação fiscal</div>
-          <div style="font-size:11px;color:#64748b;margin-top:2px;">${emp} — ${mes}</div>
+          <div style="font-size:14px;font-weight:700;color:#1e3a5f;">📧 Enviar Status Apurações Fiscais</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Competência: ${mes} — dados em tempo real do painel</div>
         </div>
         <button onclick="document.getElementById('modal-email-fiscal').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;">✕</button>
       </div>
-      ${statusAviso}
-      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Para (emails separados por vírgula)</label>
-      <input id="email-dest" type="text" placeholder="email1@arco.com, email2@arco.com" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Assunto</label>
-      <input id="email-subj" type="text" value="[Liberação Fiscal] ${emp} — ${mes}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Mensagem</label>
-      <textarea id="email-body" rows="6" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;resize:vertical;">${defaultBody}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Para (emails separados por vírgula) *</label>
+      <input id="email-dest" type="text" placeholder="email1@gmail.com, email2@arco.com" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Preview do email que será enviado</label>
+      <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+        <div style="background:#1e3a5f;padding:10px 14px;">
+          <div style="font-size:13px;font-weight:700;color:#fff;">arco</div>
+          <div style="font-size:10px;color:#93c5fd;">Status Apurações Fiscais — ${mes}</div>
+        </div>
+        <div style="overflow-x:auto;padding:8px;">
+          <table style="border-collapse:collapse;width:100%;font-family:sans-serif;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:5px 8px;font-size:9px;color:#94a3b8;text-align:left;">Grupo</th>
+                <th style="padding:5px 8px;font-size:9px;color:#94a3b8;text-align:left;">Empresa</th>
+                <th style="padding:5px 8px;font-size:9px;color:#1a5276;text-align:center;">PIS Cont.</th>
+                <th style="padding:5px 8px;font-size:9px;color:#1a5276;text-align:center;">PIS Fiscal</th>
+                <th style="padding:5px 8px;font-size:9px;color:#154360;text-align:center;border-left:1px solid #e2e8f0;">IRPJ Cont.</th>
+                <th style="padding:5px 8px;font-size:9px;color:#154360;text-align:center;">IRPJ Fiscal</th>
+              </tr>
+            </thead>
+            <tbody>${previewRows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div id="email-send-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button onclick="document.getElementById('modal-email-fiscal').remove()" style="background:#f1f5f9;color:#374151;border:none;border-radius:8px;padding:8px 18px;font-size:12px;cursor:pointer;">Cancelar</button>
-        <button onclick="enviarEmailFiscal()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;">📧 Abrir no email</button>
+        <button id="btn-enviar-email" onclick="enviarEmailFiscal()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:12px;font-weight:600;cursor:pointer;">📧 Enviar agora</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -1507,13 +1542,49 @@ function abrirModalEmail(emp,allOk){
 
 function enviarEmailFiscal(){
   const dest=(document.getElementById("email-dest").value||"").trim();
-  const subj=(document.getElementById("email-subj").value||"").trim();
-  const body=(document.getElementById("email-body").value||"").trim();
   if(!dest){alert("Informe ao menos um email de destino.");return;}
-  const url=`mailto:${dest}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-  window.open(url,"_blank");
-  document.getElementById("modal-email-fiscal")?.remove();
-  showToast("📧 Email aberto para envio!");
+  if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes("COLE_AQUI")){
+    // Fallback mailto se script não configurado
+    const mes=comp.mes+"/"+comp.ano;
+    window.open(`mailto:${dest}?subject=${encodeURIComponent("[Arco] Status Fiscal — "+mes)}`,"_blank");
+    showToast("⚠️ Apps Script não configurado. Abrindo email manual.");
+    return;
+  }
+  const btn=document.getElementById("btn-enviar-email");
+  const statusEl=document.getElementById("email-send-status");
+  btn.disabled=true; btn.textContent="Enviando...";
+  const fiscalData=window._fiscalResumoData||{};
+  const empresas=EMPS_PIS.map(e=>{
+    const libPis=calcPisLib(e);
+    return{
+      nome:e,
+      grupo:GRUPO_EMP[e]||"—",
+      pisCont:libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente",
+      pisFiscal:(fiscalData[e]||{}).pisFiscal||"Em execução",
+      irpjCont:(fiscalData[e]||{}).irpjCont||"Em execução",
+      irpjFiscal:(fiscalData[e]||{}).irpjFiscal||"Em execução"
+    };
+  });
+  fetch(APPS_SCRIPT_URL,{method:"POST",body:JSON.stringify({destinatarios:dest,mes:comp.mes+"/"+comp.ano,empresas})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.ok){
+        statusEl.style.cssText="display:block;background:#C0DD97;color:#3B6D11;";
+        statusEl.textContent="✅ "+d.msg;
+        btn.textContent="✓ Enviado!";
+        setTimeout(()=>document.getElementById("modal-email-fiscal")?.remove(),2000);
+        showToast("📧 Email enviado com sucesso!");
+      } else {
+        statusEl.style.cssText="display:block;background:#F5C4B3;color:#993C1D;";
+        statusEl.textContent="❌ "+d.msg;
+        btn.disabled=false; btn.textContent="📧 Enviar agora";
+      }
+    })
+    .catch(err=>{
+      statusEl.style.cssText="display:block;background:#F5C4B3;color:#993C1D;";
+      statusEl.textContent="❌ Erro de conexão: "+err.message;
+      btn.disabled=false; btn.textContent="📧 Enviar agora";
+    });
 }
 
 // ═══════════════════════════════════════════
