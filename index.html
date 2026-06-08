@@ -937,7 +937,7 @@ async function init(){
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
   const areas=new Set(); dbAtv.forEach(a=>areas.add(a.area));
-  sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
+  sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Tributário</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
   filtrarRespsLogin();
 }
 function filtrarRespsLogin(){
@@ -945,6 +945,7 @@ function filtrarRespsLogin(){
   const rSel=document.getElementById("login-resp-sel"), sGrp=document.getElementById("login-senha-group");
   if(!area){rSel.innerHTML='<option value="">— Selecione a área —</option>';if(sGrp) sGrp.style.display="none";return;}
   if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";return;}
+  if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";return;}
   if(sGrp) sGrp.style.display="none";
   if(!["Contábil","Contabilidade"].includes(area)){rSel.innerHTML='<option value="__LEITURA__">👁 Acessar como leitura</option>';return;}
   const rs=new Set(); dbAtv.forEach(a=>{if(a.area===area)(a.responveisLista||[]).forEach(r=>{if(r!=="A Atribuir") rs.add(r);});});
@@ -954,7 +955,8 @@ function efetuarLogin(){
   const area=document.getElementById("login-area-sel").value, resp=document.getElementById("login-resp-sel").value;
   if(!area){alert("Selecione uma área.");return;} if(!resp){alert("Selecione um responsável.");return;}
   if(area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab")){const s=prompt("🔒 Senha da Contabilidade:");if(s!=="123"){alert("Senha incorreta.");return;}}
-  if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
+  if(area==="__TRIBUTARIO__"){const s=prompt("🔒 Senha do Tributário:");if(s!=="123"){alert("Senha incorreta.");return;}userAtual=resp;subArea="__TRIBUTARIO__";}
+  else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
   sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea}));
   iniciarPresenca(userAtual);
   verificarSessao(userAtual,()=>{aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");});
@@ -1315,24 +1317,21 @@ function renderPIS(){
     const lib=calcPisLib(emp);
     const libH=lib===null?`<span class="lib-badge lib-na">n/a</span>`:lib==="ok"?`<span class="lib-badge lib-ok">✓ Liberada</span>`:lib==="atras"?`<span class="lib-badge lib-atras">⚠ Atrasado</span>`:`<span class="lib-badge lib-pend">⏳ Pendente</span>`;
     const rowId="pis-exp-"+emp.replace(/[^a-z0-9]/gi,"_");
-    // Build expand content: activities per column for this emp
+    // Build expand content: simplified — atividade + responsável
     const empCL=Object.entries(MAP_EMP_PIS).find(([k,v])=>v===emp)?.[0]||emp;
-    const expRows=COLUNAS_PIS.map((col,ci)=>{
-      const atvs=dbAtv.filter(a=>a.colunaPIS===col&&(a.empresasElegiveis||[]).includes(empCL));
-      if(!atvs.length) return"";
-      return atvs.map(a=>{
-        const e=a.empresas.find(x=>x.nome===empCL);
-        const s=e?e.status:"PENDENTE";
-        const cls=s==="OK"?"pis-ok":s==="ATRASADO"?"pis-atras":"pis-pend";
-        const label=s==="OK"?"✓ OK":s==="ATRASADO"?"⚠ Atrasado":"⏳ Pend.";
-        return`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:.5px solid var(--border);">
-          <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:90px;">${COLS_PIS_ABREV[ci]}</span>
-          <span style="flex:1;font-size:11px;font-weight:600;color:var(--text);">${a.atividade}</span>
-          <span style="font-size:10px;color:var(--muted);">D.U.${a.diaUtil}</span>
-          <span class="pis-cell ${cls}" style="min-width:70px;height:20px;font-size:10px;">${label}</span>
-        </div>`;
-      }).join("");
-    }).join("");
+    const atvsDaEmp=dbAtv.filter(a=>a.colunaPIS&&(a.empresasElegiveis||[]).includes(empCL));
+    const expRows=atvsDaEmp.length?atvsDaEmp.map(a=>{
+      const e=a.empresas.find(x=>x.nome===empCL);
+      const s=e?e.status:"PENDENTE";
+      const cls=s==="OK"?"pis-ok":s==="ATRASADO"?"pis-atras":"pis-pend";
+      const label=s==="OK"?"✓ OK":s==="ATRASADO"?"⚠":s==="NÃO APLICÁVEL"?"N/A":"⏳";
+      const resp=(a.responveisLista||[]).map(r=>abreviarNome(r)).join(", ")||"—";
+      return`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:.5px solid var(--border);">
+        <span class="pis-cell ${cls}" style="min-width:36px;height:20px;font-size:10px;padding:0 6px;">${label}</span>
+        <span style="flex:1;font-size:11px;color:var(--text);">${a.atividade}</span>
+        <span style="font-size:10px;color:var(--muted);">${resp}</span>
+      </div>`;
+    }).join(""):"<span style='font-size:11px;color:var(--muted);'>Nenhuma atividade vinculada.</span>";
     return`<tr class="pis-tr-main" onclick="togglePisExp('${rowId}')">
       <td class="emp-cell">${emp}<span class="exp-arrow">▼</span></td>${cells}
       <td style="text-align:center;padding:4px 8px;border-left:1px solid var(--border);">${libH}</td>
@@ -1347,7 +1346,7 @@ function renderPIS(){
   // ── 2° QUADRO: Resumo Status Apurações Fiscais ──
   // Load saved fiscal data
   const fiscalData=window._fiscalResumoData||{};
-  const isTrib=TRIBUTARIO_TEAM.includes(userAtual)||MASTERS.includes(userAtual);
+  const isTrib=TRIBUTARIO_TEAM.includes(userAtual)||MASTERS.includes(userAtual)||subArea==="__TRIBUTARIO__";
   const irpjOptions=["Em execução","Liberado","Finalizado","n/a"];
 
   const resumoRows=EMPS_PIS.map(emp=>{
@@ -1385,13 +1384,12 @@ function renderPIS(){
       <td style="text-align:center;padding:4px 6px;">${pisFiscalCell}</td>
       <td style="text-align:center;padding:4px 6px;border-left:2px solid var(--border);">${irpjContCell}</td>
       <td style="text-align:center;padding:4px 6px;">${irpjFiscalCell}</td>
-      <td style="text-align:center;padding:4px 8px;">${buildEmailBtn(emp,libPis,pisFiscal,irpjFiscal)}</td>
     </tr>`;
   }).join("");
 
   const editBtnLabel=window._fiscalEditMode?"💾 Salvar":"✏️ Editar";
   const editBtnStyle=window._fiscalEditMode?"background:#C0DD97;color:#3B6D11;":"";
-  const editBtnHtml=isTrib?`<button class="rs-edit-btn" onclick="toggleFiscalEdit()" style="${editBtnStyle}">${editBtnLabel}</button>`:"";
+  const editBtnHtml=isTrib?`<button class="rs-edit-btn" onclick="toggleFiscalEdit()" style="${editBtnStyle}">${editBtnLabel}</button> <button class="rs-edit-btn" onclick="abrirModalEmail('Geral','true')" style="margin-left:4px;">📧 Enviar email</button>`:"";
 
   root.innerHTML=`
   <div class="pis-wrap">
@@ -1422,7 +1420,7 @@ function renderPIS(){
           <th class="left" colspan="2" rowspan="2" style="vertical-align:bottom;">Empresa</th>
           <th colspan="2" style="background:#1a5276;border-bottom:1px solid rgba(255,255,255,.2);">PIS &amp; COFINS</th>
           <th colspan="2" class="rs-sep" style="background:#154360;border-bottom:1px solid rgba(255,255,255,.2);">IRPJ &amp; CSLL</th>
-          <th rowspan="2" style="background:#0d3349;font-size:9px;">Notificar</th>
+          
         </tr>
         <tr>
           <th style="background:#1a5276;font-size:9px;">Status<br>Contabilidade</th>
