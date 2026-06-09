@@ -615,6 +615,8 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC","ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
+const EMAIL_PARA_PADRAO = "emersonnunes@arcoeducacao.com.br";
+const EMAIL_CC_PADRAO = "leonardofelix@arcoeducacao.com.br,cv_tributario@arcoeducacao.com.br,luis.venancio@arcoeducacao.com.br,cv_contabilidade@arcoeducacao.com.br,cv_reporting@arcoeducacao.com.br,kamila.rodrigues@arcoeducacao.com.br,jose.filho@arcoeducacao.com.br,natanaelsousa@arcoeducacao.com.br";
 const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbzIGnoOiVhP7ha0vYkFMVI4FCUyHTLstATyXjyG60t2n-b08kcKusUpMzZTrgkRYJII/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
 const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico","ActiveSoft":"F&M","ClassApp":"F&M","Escolas Exponencias - (EX)":"F&M","Isaac":"F&M"};
@@ -1478,6 +1480,7 @@ function toggleFiscalEdit(){
 function saveFiscalResumo(emp,campo,val){
   if(!window._fiscalResumoData) window._fiscalResumoData={};
   if(!window._fiscalResumoData[emp]) window._fiscalResumoData[emp]={};
+  const anterior=window._fiscalResumoData[emp][campo];
   window._fiscalResumoData[emp][campo]=val;
   // Persist to Firebase
   if(_fbDb){
@@ -1487,7 +1490,48 @@ function saveFiscalResumo(emp,campo,val){
       set(ref(_fbDb,path),window._fiscalResumoData[emp]).catch(e=>console.error(e));
     }
   }
+  // ── Disparo automático a partir do 4° DU ──
+  const liberado=(val==="Liberado"||val==="Finalizado");
+  const anteriorLiberado=(anterior==="Liberado"||anterior==="Finalizado");
+  if(liberado && !anteriorLiberado){
+    // Verifica se hoje >= 4° DU do mês
+    const quarto4DU=calcData("4");
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    if(quarto4DU && hoje>=quarto4DU){
+      const tipoLabel=campo==="pisCont"?"PIS/COFINS Contabilidade":campo==="pisFiscal"?"PIS/COFINS Fiscal":campo==="irpjCont"?"IRPJ/CSLL Contabilidade":"IRPJ/CSLL Fiscal";
+      dispararEmailAutoFiscal(emp, tipoLabel);
+    }
+  }
   renderPIS();
+}
+
+function dispararEmailAutoFiscal(emp, tipoLabel){
+  if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes("COLE_AQUI")) return;
+  const fd=window._fiscalResumoData||{};
+  const FM_EMPS2=["ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
+  const libPis=calcPisLib(emp);
+  const pisCont=FM_EMPS2.includes(emp)?(fd[emp]||{}).pisCont||"Em execução":libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
+  const empresas=[{
+    nome:emp, grupo:GRUPO_EMP[emp]||"—",
+    pisCont, pisFiscal:(fd[emp]||{}).pisFiscal||"Em execução",
+    irpjCont:(fd[emp]||{}).irpjCont||"Em execução",
+    irpjFiscal:(fd[emp]||{}).irpjFiscal||"Em execução"
+  }];
+  const payload=JSON.stringify({
+    destinatarios:EMAIL_PARA_PADRAO,
+    cc:EMAIL_CC_PADRAO,
+    mes:comp.mes+"/"+comp.ano,
+    empresas,
+    assuntoExtra:`[${tipoLabel} Liberado] ${emp}`
+  });
+  // iframe form dispatch
+  let iframe=document.getElementById("email-iframe-auto");
+  if(!iframe){iframe=document.createElement("iframe");iframe.name="email-iframe-auto";iframe.id="email-iframe-auto";iframe.style.display="none";document.body.appendChild(iframe);}
+  const form=document.createElement("form");
+  form.method="POST"; form.action=APPS_SCRIPT_URL; form.target="email-iframe-auto"; form.style.display="none";
+  const inp=document.createElement("input"); inp.type="hidden"; inp.name="payload"; inp.value=payload;
+  form.appendChild(inp); document.body.appendChild(form); form.submit(); form.remove();
+  showToast(`📧 Email enviado automaticamente — ${emp} (${tipoLabel})`);
 }
 
 function abrirModalEmail(emp,allOk){
@@ -1524,8 +1568,10 @@ function abrirModalEmail(emp,allOk){
         </div>
         <button onclick="document.getElementById('modal-email-fiscal').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;">✕</button>
       </div>
-      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Para (emails separados por vírgula) *</label>
-      <input id="email-dest" type="text" placeholder="email1@gmail.com, email2@arco.com" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Para *</label>
+      <input id="email-dest" type="text" value="\${EMAIL_PARA_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">CC</label>
+      <input id="email-cc" type="text" value="\${EMAIL_CC_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:14px;">
       <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Preview do email que será enviado</label>
       <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">
         <div style="background:#1e3a5f;padding:10px 14px;">
@@ -1574,17 +1620,21 @@ function enviarEmailFiscal(){
   const fiscalData=window._fiscalResumoData||{};
   const empresas=EMPS_PIS.map(e=>{
     const libPis=calcPisLib(e);
+    const fd2=window._fiscalResumoData||{};
+    const isFM2=["ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"].includes(e);
+    const pisCont2=isFM2?(fd2[e]||{}).pisCont||"Em execução":libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
     return{
       nome:e,
       grupo:GRUPO_EMP[e]||"—",
-      pisCont:libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente",
-      pisFiscal:(fiscalData[e]||{}).pisFiscal||"Em execução",
-      irpjCont:(fiscalData[e]||{}).irpjCont||"Em execução",
-      irpjFiscal:(fiscalData[e]||{}).irpjFiscal||"Em execução"
+      pisCont:pisCont2,
+      pisFiscal:(fd2[e]||{}).pisFiscal||"Em execução",
+      irpjCont:(fd2[e]||{}).irpjCont||"Em execução",
+      irpjFiscal:(fd2[e]||{}).irpjFiscal||"Em execução"
     };
   });
   // Usa formulário + iframe — contorna CORS do Google Workspace corporativo
-  const payload=JSON.stringify({destinatarios:dest,mes:comp.mes+"/"+comp.ano,empresas});
+  const cc=(document.getElementById("email-cc")?.value||"").trim();
+  const payload=JSON.stringify({destinatarios:dest,cc:cc,mes:comp.mes+"/"+comp.ano,empresas});
   let iframe=document.getElementById("email-iframe");
   if(!iframe){
     iframe=document.createElement("iframe");
