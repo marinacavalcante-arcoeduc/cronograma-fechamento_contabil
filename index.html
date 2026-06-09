@@ -405,7 +405,6 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       </div>
       <div class="login-sep"></div>
       <div class="login-fin">
-        <div class="login-fin-icon"><div class="fw"></div><div class="fs"></div></div>
         <div class="login-fin-txt"><div class="f1">finlegal</div><div class="f2">por Arco Educação</div></div>
       </div>
     </div>
@@ -413,7 +412,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     <div class="login-sub">Selecione sua área e responsável</div>
     <div class="fg"><label>Área</label><select id="login-area-sel" onchange="filtrarRespsLogin()"></select></div>
     <div class="fg"><label>Responsável</label><select id="login-resp-sel"></select></div>
-    <div class="fg" id="login-senha-group" style="display:none;"><label>Senha</label><input type="password" id="login-senha-inp" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')efetuarLogin()"></div>
+    <div class="fg" id="login-senha-group" style="display:none;"><label>Senha Admin</label><input type="password" id="login-senha-inp" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')efetuarLogin()"></div>
     <button class="btn-arco full" onclick="efetuarLogin()">Entrar →</button>
   </div>
 </div>
@@ -615,10 +614,10 @@ const COLUNAS_PIS = ["Finalização lançamentos - Depósitos Judiciais","Deság
 const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","Comissão ATECH","Aplicações Fin.","Mútuos/Dívidas"];
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
-const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC","ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
+const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC"];
 const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbzIGnoOiVhP7ha0vYkFMVI4FCUyHTLstATyXjyG60t2n-b08kcKusUpMzZTrgkRYJII/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
-const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico","ActiveSoft":"F&M","ClassApp":"F&M","Escolas Exponencias - (EX)":"F&M","Isaac":"F&M"};
+const GRUPO_EMP = {"SAS":"Pedagógico","SAE":"Pedagógico","IS":"Pedagógico","Arco Educação":"Pedagógico","Atech":"Pedagógico","PSD":"Pedagógico","P2D/COC":"Pedagógico","GEEKIE":"Pedagógico","NAVE":"Pedagógico","NCC":"Pedagógico"};
 const firebaseConfig = {apiKey:"AIzaSyC821Hn_gFHa39G6vVhuzLVMxmPp615C9M",authDomain:"projeto-cronograma-fechamento.firebaseapp.com",databaseURL:"https://projeto-cronograma-fechamento-default-rtdb.firebaseio.com",projectId:"projeto-cronograma-fechamento",storageBucket:"projeto-cronograma-fechamento.firebasestorage.app",messagingSenderId:"468354958800",appId:"1:468354958800:web:469e8bd1ec63df993725d5"};
 
 let _fbApp,_fbDb,_fbRef;
@@ -938,7 +937,7 @@ async function init(){
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
   const areas=new Set(); dbAtv.forEach(a=>areas.add(a.area));
-  sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
+  sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Tributário</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
   filtrarRespsLogin();
 }
 function filtrarRespsLogin(){
@@ -956,7 +955,7 @@ function efetuarLogin(){
   const area=document.getElementById("login-area-sel").value, resp=document.getElementById("login-resp-sel").value;
   if(!area){alert("Selecione uma área.");return;} if(!resp){alert("Selecione um responsável.");return;}
   if(area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab")){const s=prompt("🔒 Senha da Contabilidade:");if(s!=="123"){alert("Senha incorreta.");return;}}
-  if(area==="__TRIBUTARIO__"){userAtual=resp;subArea="__TRIBUTARIO__";}
+  if(area==="__TRIBUTARIO__"){const s=prompt("🔒 Senha do Tributário:");if(s!=="123"){alert("Senha incorreta.");return;}userAtual=resp;subArea="__TRIBUTARIO__";}
   else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
   sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea}));
   iniciarPresenca(userAtual);
@@ -1321,18 +1320,21 @@ function renderPIS(){
     // Build expand content: simplified — atividade + responsável
     const empCL=Object.entries(MAP_EMP_PIS).find(([k,v])=>v===emp)?.[0]||emp;
     const atvsDaEmp=dbAtv.filter(a=>a.colunaPIS&&(a.empresasElegiveis||[]).includes(empCL));
-    const expRows=atvsDaEmp.length?atvsDaEmp.map(a=>{
+    const expRows=atvsDaEmp.length?`<div style="display:flex;flex-wrap:wrap;gap:7px;padding:4px 0;">`+atvsDaEmp.map(a=>{
       const e=a.empresas.find(x=>x.nome===empCL);
       const s=e?e.status:"PENDENTE";
-      const cls=s==="OK"?"pis-ok":s==="ATRASADO"?"pis-atras":"pis-pend";
-      const label=s==="OK"?"✓ OK":s==="ATRASADO"?"⚠":s==="NÃO APLICÁVEL"?"N/A":"⏳";
+      const bg=s==="OK"?"#C0DD97":s==="ATRASADO"?"#F5C4B3":"#FAC775";
+      const fg=s==="OK"?"#3B6D11":s==="ATRASADO"?"#993C1D":"#633806";
+      const icon=s==="OK"?"✓":s==="ATRASADO"?"⚠":"⏳";
       const resp=(a.responveisLista||[]).map(r=>abreviarNome(r)).join(", ")||"—";
-      return`<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:.5px solid var(--border);">
-        <span class="pis-cell ${cls}" style="min-width:36px;height:20px;font-size:10px;padding:0 6px;">${label}</span>
-        <span style="flex:1;font-size:11px;color:var(--text);">${a.atividade}</span>
-        <span style="font-size:10px;color:var(--muted);">${resp}</span>
+      return`<div style="background:${bg};border-radius:8px;padding:6px 10px;min-width:140px;max-width:200px;flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <span style="font-size:10px;font-weight:700;color:${fg};">${icon} ${s==="OK"?"OK":s==="ATRASADO"?"Atrasado":"Pendente"}</span>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#1e293b;line-height:1.3;margin-bottom:3px;">${a.atividade}</div>
+        <div style="font-size:10px;color:#64748b;">${resp}</div>
       </div>`;
-    }).join(""):"<span style='font-size:11px;color:var(--muted);'>Nenhuma atividade vinculada.</span>";
+    }).join("")+`</div>`:"<span style='font-size:11px;color:var(--muted);'>Nenhuma atividade vinculada.</span>";
     return`<tr class="pis-tr-main" onclick="togglePisExp('${rowId}')">
       <td class="emp-cell">${emp}<span class="exp-arrow">▼</span></td>${cells}
       <td style="text-align:center;padding:4px 8px;border-left:1px solid var(--border);">${libH}</td>
@@ -1350,30 +1352,44 @@ function renderPIS(){
   const isTrib=TRIBUTARIO_TEAM.includes(userAtual)||MASTERS.includes(userAtual)||subArea==="__TRIBUTARIO__";
   const irpjOptions=["Em execução","Liberado","Finalizado","n/a"];
 
+  const FM_EMPS=["ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
   const resumoRows=EMPS_PIS.map(emp=>{
     const grupo=GRUPO_EMP[emp]||"—";
-    // PIS status contabilidade = automático
-    const libPis=calcPisLib(emp);
-    const pisContStr=libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
-    const pisContCls=libPis===null?"rs-na":libPis==="ok"?"rs-ok":libPis==="atras"?"rs-atras":"rs-pend";
-    // PIS status fiscal = editável pelo time tributário
-    const pisFiscal=(fiscalData[emp]||{}).pisFiscal||"Em execução";
-    const pisFiscalCls=pisFiscal==="Liberado"||pisFiscal==="Finalizado"?"rs-ok":pisFiscal==="n/a"?"rs-na":"rs-exec";
-    // IRPJ status contabilidade = automático (mesmo cálculo por ora — pode ter lógica separada futura)
-    const irpjCont=(fiscalData[emp]||{}).irpjCont||"Em execução";
-    const irpjContCls=irpjCont==="Liberado"||irpjCont==="Finalizado"?"rs-ok":irpjCont==="n/a"?"rs-na":"rs-exec";
-    // IRPJ status fiscal = editável pelo time tributário (Eliomar)
-    const irpjFiscal=(fiscalData[emp]||{}).irpjFiscal||"Em execução";
-    const irpjFiscalCls=irpjFiscal==="Liberado"||irpjFiscal==="Finalizado"?"rs-ok":irpjFiscal==="n/a"?"rs-na":"rs-exec";
-
+    const isFM=FM_EMPS.includes(emp);
     const editMode=window._fiscalEditMode&&isTrib;
 
+    // PIS status contabilidade: F&M = editável, demais = automático
+    let pisContStr,pisContCls,pisContCell;
+    if(isFM){
+      pisContStr=(fiscalData[emp]||{}).pisCont||"Em execução";
+      pisContCls=pisContStr==="Liberado"||pisContStr==="Finalizado"?"rs-ok":pisContStr==="n/a"?"rs-na":"rs-exec";
+      pisContCell=editMode
+        ?`<select onchange="saveFiscalResumo('${emp}','pisCont',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===pisContStr?"selected":""}>${o}</option>`).join("")}</select>`
+        :`<span class="resumo-status ${pisContCls}">${pisContStr}</span>`;
+    } else {
+      const libPis=calcPisLib(emp);
+      pisContStr=libPis===null?"n/a":libPis==="ok"?"Liberado":libPis==="atras"?"Atrasado":"Pendente";
+      pisContCls=libPis===null?"rs-na":libPis==="ok"?"rs-ok":libPis==="atras"?"rs-atras":"rs-pend";
+      pisContCell=`<span class="resumo-status ${pisContCls}">${pisContStr}</span>`;
+    }
+
+    // PIS status fiscal = editável
+    const pisFiscal=(fiscalData[emp]||{}).pisFiscal||"Em execução";
+    const pisFiscalCls=pisFiscal==="Liberado"||pisFiscal==="Finalizado"?"rs-ok":pisFiscal==="n/a"?"rs-na":"rs-exec";
     const pisFiscalCell=editMode
       ?`<select onchange="saveFiscalResumo('${emp}','pisFiscal',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===pisFiscal?"selected":""}>${o}</option>`).join("")}</select>`
       :`<span class="resumo-status ${pisFiscalCls}">${pisFiscal}</span>`;
+
+    // IRPJ status contabilidade = editável
+    const irpjCont=(fiscalData[emp]||{}).irpjCont||"Em execução";
+    const irpjContCls=irpjCont==="Liberado"||irpjCont==="Finalizado"?"rs-ok":irpjCont==="n/a"?"rs-na":"rs-exec";
     const irpjContCell=editMode
       ?`<select onchange="saveFiscalResumo('${emp}','irpjCont',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===irpjCont?"selected":""}>${o}</option>`).join("")}</select>`
       :`<span class="resumo-status ${irpjContCls}">${irpjCont}</span>`;
+
+    // IRPJ status fiscal = editável
+    const irpjFiscal=(fiscalData[emp]||{}).irpjFiscal||"Em execução";
+    const irpjFiscalCls=irpjFiscal==="Liberado"||irpjFiscal==="Finalizado"?"rs-ok":irpjFiscal==="n/a"?"rs-na":"rs-exec";
     const irpjFiscalCell=editMode
       ?`<select onchange="saveFiscalResumo('${emp}','irpjFiscal',this.value)" style="border-radius:6px;border:1px solid var(--border);font-size:11px;padding:2px 5px;">${irpjOptions.map(o=>`<option ${o===irpjFiscal?"selected":""}>${o}</option>`).join("")}</select>`
       :`<span class="resumo-status ${irpjFiscalCls}">${irpjFiscal}</span>`;
@@ -1381,7 +1397,7 @@ function renderPIS(){
     return`<tr>
       <td class="grupo-cell" style="padding:5px 8px;">${grupo}</td>
       <td class="emp-cell2" style="padding:5px 8px;">${emp}</td>
-      <td style="text-align:center;padding:4px 6px;"><span class="resumo-status ${pisContCls}">${pisContStr}</span></td>
+      <td style="text-align:center;padding:4px 6px;">${pisContCell}</td>
       <td style="text-align:center;padding:4px 6px;">${pisFiscalCell}</td>
       <td style="text-align:center;padding:4px 6px;border-left:2px solid var(--border);">${irpjContCell}</td>
       <td style="text-align:center;padding:4px 6px;">${irpjFiscalCell}</td>
@@ -1512,10 +1528,7 @@ function abrirModalEmail(emp,allOk){
       <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">
         <div style="background:#1e3a5f;padding:10px 14px;">
           <div style="font-size:13px;font-weight:700;color:#fff;">arco</div>
-          <div style="font-size:10px;color:#93c5fd;">Liberações Fiscais — ${mes}</div>
-        </div>
-        <div style="padding:8px 12px;font-size:11px;color:#374151;border-bottom:1px solid #e2e8f0;">
-          Prezados,<br>Segue status das liberações PIS e COFINS, IRPJ e CSLL do fechamento atual:
+          <div style="font-size:10px;color:#93c5fd;">Status Apurações Fiscais — ${mes}</div>
         </div>
         <div style="overflow-x:auto;padding:8px;">
           <table style="border-collapse:collapse;width:100%;font-family:sans-serif;">
@@ -1549,7 +1562,7 @@ function enviarEmailFiscal(){
   if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL.includes("COLE_AQUI")){
     // Fallback mailto se script não configurado
     const mes=comp.mes+"/"+comp.ano;
-    window.open(`mailto:${dest}?subject=${encodeURIComponent("Liberações Fiscais — "+mes)}`,"_blank");
+    window.open(`mailto:${dest}?subject=${encodeURIComponent("[Arco] Status Fiscal — "+mes)}`,"_blank");
     showToast("⚠️ Apps Script não configurado. Abrindo email manual.");
     return;
   }
