@@ -940,7 +940,7 @@ async function init(){
 // ═══════════════════════════════════════════
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
-  const areas=new Set(); dbAtv.forEach(a=>areas.add(a.area));
+  const areas=new Set(AREAS); dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
   sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
   filtrarRespsLogin();
 }
