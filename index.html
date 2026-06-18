@@ -1876,6 +1876,8 @@ function mudarAba(id){
 // CALENDÁRIO
 // ═══════════════════════════════════════════
 let _calAno=null, _calMes=null;
+const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
 
 function calGetAtvDoUsuario(){
   // Filtra atividades conforme perfil do usuário logado
@@ -1884,21 +1886,9 @@ function calGetAtvDoUsuario(){
 }
 
 function calCalcularData(a){
-  // Retorna Date com base no diaUtil da atividade e competência atual
-  const du=parseInt(a.diaUtil)||0;
-  if(!du) return null;
-  const ano=_calAno||comp.ano||new Date().getFullYear();
-  const mes=(_calMes!==null?_calMes:(parseInt(comp.mes||1)-1));
-  // Calcula o N-ésimo dia útil do mês (seg-sex, sem feriados por ora)
-  let count=0, d=new Date(ano,mes,1);
-  while(d.getMonth()===mes){
-    if(d.getDay()>=1&&d.getDay()<=5){
-      count++;
-      if(count===du) return new Date(d);
-    }
-    d.setDate(d.getDate()+1);
-  }
-  return null;
+  // Usa a mesma lógica de calcData() — datas caem no mês seguinte à competência
+  const dt=calcData(a.diaUtil);
+  return dt||null;
 }
 
 function calStatusColor(status){
@@ -1930,8 +1920,13 @@ function calIntensidadeText(n){
 
 function renderCalendario(){
   const hoje=new Date();
-  if(_calAno===null) _calAno=parseInt(comp.ano)||hoje.getFullYear();
-  if(_calMes===null) _calMes=(parseInt(comp.mes||1)-1);
+  if(_calAno===null||_calMes===null){
+    // Mês das datas = mês seguinte à competência (mesma lógica de calcData)
+    const idxComp=_MESES_CAL.indexOf(comp.mes);
+    const mesData=(idxComp+1)%12;
+    const anoData=idxComp===11?parseInt(comp.ano)+1:parseInt(comp.ano)||hoje.getFullYear();
+    _calMes=mesData; _calAno=anoData;
+  }
 
   const ano=_calAno, mes=_calMes;
   const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
