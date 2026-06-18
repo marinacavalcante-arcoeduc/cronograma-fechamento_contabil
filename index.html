@@ -14,6 +14,7 @@
   --border:#e2e8f0;--muted:#64748b;--text:#0f172a;--surface:#fff;--bg:#f8fafc;
   --s-ok:#52b747;--s-ok-bg:#dcfce7;--s-pend-bg:#fef9c3;--s-atras:#f05323;--s-atras-bg:#fee2e2;
   --radius:16px;--radius-sm:10px;
+  --arco-laranja:#f05323;--text-muted:#64748b;--bg2:#f8fafc;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Sora',sans-serif;}
 body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-webkit-font-smoothing:antialiased;}
@@ -586,12 +587,14 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         </div>
       </div>
       <div id="cal-legendas" style="display:flex;gap:16px;padding:10px 24px;border-bottom:1px solid var(--border);font-size:0.78rem;align-items:center;flex-wrap:wrap;background:var(--bg2);">
-        <span>Intensidade de atividades:</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f4fd;border:1px solid #b8d4ed;vertical-align:middle;"></span> 1</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#90c2e7;border:1px solid #5a9fd4;vertical-align:middle;"></span> 2–3</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de8c4e;border:1px solid #c06830;vertical-align:middle;"></span> 4–6</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de4e2b;border:1px solid #b83a1f;vertical-align:middle;"></span> 7+</span>
-        <span style="margin-left:auto;color:var(--text-muted);font-size:0.74rem;" id="cal-scope-label"></span>
+        <span style="font-weight:600;color:var(--muted);">Legenda:</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1px solid #86efac;vertical-align:middle;"></span> ✅ Tudo concluído</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f4fd;border:1px solid #b8d4ed;vertical-align:middle;"></span> 1 ativ.</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#90c2e7;border:1px solid #5a9fd4;vertical-align:middle;"></span> 2–3 ativs.</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de8c4e;border:1px solid #c06830;vertical-align:middle;"></span> 4–6 ativs.</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de4e2b;border:1px solid #b83a1f;vertical-align:middle;"></span> 7+ ativs.</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1px solid #fca5a5;vertical-align:middle;"></span> ⚠ Com atraso</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:0.74rem;" id="cal-scope-label"></span>
       </div>
       <div id="cal-grid-wrap" style="padding:16px 24px 24px;min-height:400px;">
         <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;min-height:300px;">
@@ -653,7 +656,7 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC","ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
-const EMAIL_PARA_PADRAO = "emersonnunes@arcoeducacao.com.br, marinacavalcante@arcoeducacao.com.br";
+const EMAIL_PARA_PADRAO = "marinacavalcante@arcoeducacao.com.br";
 const EMAIL_CC_PADRAO = "leonardofelix@arcoeducacao.com.br";
 const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbyN0L8gYx2WYZqNEmEw5HvlL3EUWQn13DgtNJv8U8qZJy-ZDvT2orROtlFNYvcMWq6YcA/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
@@ -1877,18 +1880,29 @@ function mudarAba(id){
 // ═══════════════════════════════════════════
 let _calAno=null, _calMes=null;
 const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
+
+// ── Helper: resolve se o user é admin de forma segura (ehM é local em renderizarPainel) ──
+function _calIsAdmin(){ return MASTERS.includes(userAtual)||subArea==="__ADMIN__"; }
 
 function calGetAtvDoUsuario(){
-  // Filtra atividades conforme perfil do usuário logado
-  if(ehM) return dbAtv; // admin vê tudo
-  return dbAtv.filter(a=>a.area===subArea);
+  if(_calIsAdmin()||subArea==="__TRIBUTARIO__") return dbAtv;
+  if(userAtual==="Outra Área") return dbAtv.filter(a=>a.area.toLowerCase()===subArea.toLowerCase());
+  return dbAtv.filter(a=>a.area===subArea||(a.responveisLista||[]).includes(userAtual));
 }
 
 function calCalcularData(a){
-  // Usa a mesma lógica de calcData() — datas caem no mês seguinte à competência
   const dt=calcData(a.diaUtil);
   return dt||null;
+}
+
+// Status geral de uma atividade considerando só empresas elegíveis
+function calStatusGeralAtv(a){
+  const emps=(a.empresas||[]).filter(e=>(a.empresasElegiveis||[]).includes(e.nome));
+  if(!emps.length) return "PENDENTE";
+  if(emps.every(e=>e.status==="OK"||e.status==="N/A")) return "OK";
+  if(emps.some(e=>e.status==="ATRASADO")) return "ATRASADO";
+  if(emps.some(e=>e.status==="NAO_OK")) return "NAO_OK";
+  return "PENDENTE";
 }
 
 function calStatusColor(status){
@@ -1898,24 +1912,23 @@ function calStatusColor(status){
   return "#94a3b8";
 }
 
-function calIntensidadeBg(n){
-  if(!n) return "transparent";
-  if(n===1) return "#e8f4fd";
-  if(n<=3) return "#90c2e7";
-  if(n<=6) return "#de8c4e";
-  return "#de4e2b";
-}
-function calIntensidadeBorder(n){
-  if(!n) return "transparent";
-  if(n===1) return "#b8d4ed";
-  if(n<=3) return "#5a9fd4";
-  if(n<=6) return "#c06830";
-  return "#b83a1f";
-}
-function calIntensidadeText(n){
-  if(!n) return "var(--text-muted)";
-  if(n<=3) return "#1e3a5f";
-  return "#fff";
+// Retorna info visual do dia baseado nas atividades dele
+function calDiaInfo(atividades){
+  if(!atividades||!atividades.length) return {bg:"transparent",border:"transparent",text:"#94a3b8",verde:false};
+  const n=atividades.length;
+  // Dia verde: todas as atividades com todas empresas elegíveis em OK ou N/A
+  const todasOk=atividades.every(a=>calStatusGeralAtv(a)==="OK");
+  if(todasOk){
+    return {bg:"#dcfce7",border:"#86efac",text:"#166534",verde:true};
+  }
+  // Tem alguma atrasada?
+  const temAtras=atividades.some(a=>calStatusGeralAtv(a)==="ATRASADO");
+  if(temAtras) return {bg:"#fee2e2",border:"#fca5a5",text:"#991b1b",verde:false};
+  // Intensidade por qtd de atividades
+  if(n===1) return {bg:"#e8f4fd",border:"#b8d4ed",text:"#1e3a5f",verde:false};
+  if(n<=3)  return {bg:"#90c2e7",border:"#5a9fd4",text:"#1e3a5f",verde:false};
+  if(n<=6)  return {bg:"#de8c4e",border:"#c06830",text:"#fff",verde:false};
+  return {bg:"#de4e2b",border:"#b83a1f",text:"#fff",verde:false};
 }
 
 function renderCalendario(){
@@ -1929,10 +1942,10 @@ function renderCalendario(){
   }
 
   const ano=_calAno, mes=_calMes;
-  const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
+  const nomeMes=_MESES_CAL[mes];
   document.getElementById("cal-titulo").textContent=`${nomeMes} ${ano}`;
 
-  const isAdmin=ehM;
+  const isAdmin=_calIsAdmin();
   document.getElementById("cal-scope-label").textContent=isAdmin?"Visão: todas as áreas":`Visão: ${subArea}`;
 
   const atv=calGetAtvDoUsuario();
@@ -1943,51 +1956,75 @@ function renderCalendario(){
     const dt=calCalcularData(a); if(!dt) return;
     if(dt.getFullYear()===ano&&dt.getMonth()===mes){
       const d=dt.getDate();
-      if(!porDia[d]) porDia[d]={atividades:[]};
-      porDia[d].atividades.push(a);
+      if(!porDia[d]) porDia[d]=[];
+      porDia[d].push(a);
     }
   });
 
   // Gerar grid
   const grid=document.getElementById("cal-grid");
-  const dias=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const diasSemana=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const primeiroDia=new Date(ano,mes,1).getDay();
   const totalDias=new Date(ano,mes+1,0).getDate();
 
-  let html=dias.map(d=>`<div style="text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);padding:4px 0;">${d}</div>`).join("");
+  // Cabeçalhos dos dias
+  let html=diasSemana.map(d=>`<div style="text-align:center;font-size:0.72rem;font-weight:700;color:var(--muted);padding:6px 0 4px;">${d}</div>`).join("");
 
   // Células vazias antes do dia 1
   for(let i=0;i<primeiroDia;i++) html+=`<div></div>`;
 
   for(let d=1;d<=totalDias;d++){
-    const info=porDia[d];
-    const n=info?info.atividades.length:0;
-    const bg=calIntensidadeBg(n);
-    const border=calIntensidadeBorder(n);
-    const color=calIntensidadeText(n);
+    const ativs=porDia[d]||[];
+    const n=ativs.length;
+    const {bg,border,text,verde}=calDiaInfo(ativs);
     const isHoje=hoje.getFullYear()===ano&&hoje.getMonth()===mes&&hoje.getDate()===d;
     const dt=new Date(ano,mes,d);
     const fimSem=dt.getDay()===0||dt.getDay()===6;
-    html+=`<div onclick="${n?`calAbrirDia(${d})`:'void 0'}" style="
-      border-radius:8px;padding:8px 6px;min-height:64px;text-align:center;cursor:${n?'pointer':'default'};
-      background:${bg};border:2px solid ${isHoje?'var(--arco-laranja)':border};
-      opacity:${fimSem&&!n?'0.45':'1'};
-      transition:transform .1s,box-shadow .1s;
-      ${n?'box-shadow:0 1px 4px rgba(0,0,0,.08);':''}"
-      onmouseover="${n?`this.style.transform='scale(1.04)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.13)'`:''}"
-      onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'`:''}">
-      <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:4px;">${d}</div>
-      ${n?`<div style="font-size:0.72rem;font-weight:700;color:${color};">${n} atv${n>1?'s':''}</div>`:''}
+
+    // Contadores de status para mostrar no dia
+    const nOk=ativs.filter(a=>calStatusGeralAtv(a)==="OK").length;
+    const nPend=ativs.filter(a=>calStatusGeralAtv(a)==="PENDENTE").length;
+    const nAtras=ativs.filter(a=>calStatusGeralAtv(a)==="ATRASADO").length;
+
+    // Mini-dots de status
+    let dots="";
+    if(n>0&&!verde){
+      dots=`<div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;margin-top:3px;">
+        ${nOk>0?`<span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;" title="${nOk} OK"></span>`:""}
+        ${nPend>0?`<span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;" title="${nPend} pendente(s)"></span>`:""}
+        ${nAtras>0?`<span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;" title="${nAtras} atrasada(s)"></span>`:""}
+      </div>`;
+    }
+
+    const borderFinal=isHoje?'#f05323':border;
+    const borderW=isHoje?'3px':'2px';
+
+    html+=`<div
+      onclick="${n?`calAbrirDia(${d})`:'void 0'}"
+      style="
+        border-radius:10px;padding:8px 5px;min-height:72px;text-align:center;
+        cursor:${n?'pointer':'default'};
+        background:${bg||"transparent"};
+        border:${borderW} solid ${borderFinal};
+        opacity:${fimSem&&!n?'0.4':'1'};
+        transition:transform .12s,box-shadow .12s;
+        ${n?'box-shadow:0 1px 4px rgba(0,0,0,.07);':''}
+        position:relative;"
+      onmouseover="${n?`this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.13)'`:''}"
+      onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.07)'`:''}">
+      ${verde?`<div style="position:absolute;top:4px;right:5px;font-size:9px;">✅</div>`:""}
+      <div style="font-size:0.84rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'#f05323':n?text:'#94a3b8'};margin-bottom:2px;">${d}</div>
+      ${n?`<div style="font-size:0.7rem;font-weight:700;color:${text};line-height:1.2;">${n} atv${n>1?'s':''}</div>${dots}`:''}
+      ${verde?`<div style="font-size:0.65rem;font-weight:700;color:#166534;margin-top:2px;">✓ Tudo OK</div>`:""}
     </div>`;
   }
   grid.innerHTML=html;
-  console.log("[CAL] renderizado:", ano, mes, "total atividades mapeadas:", Object.keys(porDia).length, "porDia:", porDia);
   fecharDetalhe();
 }
 
 function calAbrirDia(d){
   const ano=_calAno, mes=_calMes;
-  const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
+  const nomeMes=_MESES_CAL[mes];
   const atv=calGetAtvDoUsuario();
 
   const atvDia=atv.filter(a=>{
@@ -1995,38 +2032,51 @@ function calAbrirDia(d){
     return dt&&dt.getFullYear()===ano&&dt.getMonth()===mes&&dt.getDate()===d;
   });
 
+  if(!atvDia.length) return;
+
   document.getElementById("cal-detalhe-titulo").textContent=`📅 ${d} de ${nomeMes} de ${ano} — ${atvDia.length} atividade${atvDia.length!==1?'s':''}`;
 
-  // Contadores por status
+  // Contadores por status (por atividade, não por empresa)
   const cnt={OK:0,PENDENTE:0,ATRASADO:0,NAO_OK:0};
-  atvDia.forEach(a=>(a.empresas||[]).forEach(e=>{if(cnt[e.status]!==undefined) cnt[e.status]++;}));
-  const total=Object.values(cnt).reduce((s,v)=>s+v,0)||1;
-  document.getElementById("cal-contadores").innerHTML=[
-    {k:"OK",label:"✓ OK",c:"#22c55e"},
-    {k:"PENDENTE",label:"⏳ Pendente",c:"#f59e0b"},
-    {k:"ATRASADO",label:"⚠ Atrasado",c:"#ef4444"},
-    {k:"NAO_OK",label:"✕ Não OK",c:"#ef4444"},
-  ].map(({k,label,c})=>cnt[k]?`<div style="background:${c}18;border:1px solid ${c}44;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:${c};">${label}: ${cnt[k]}</div>`:'').join("");
+  atvDia.forEach(a=>{const s=calStatusGeralAtv(a);if(cnt[s]!==undefined)cnt[s]++;else cnt.PENDENTE++;});
 
-  // Lista de atividades
+  document.getElementById("cal-contadores").innerHTML=[
+    {k:"OK",label:"✓ Concluídas",c:"#22c55e"},
+    {k:"PENDENTE",label:"⏳ Pendentes",c:"#f59e0b"},
+    {k:"ATRASADO",label:"⚠ Atrasadas",c:"#ef4444"},
+    {k:"NAO_OK",label:"✕ Não OK",c:"#ef4444"},
+  ].map(({k,label,c})=>cnt[k]?`<div style="background:${c}18;border:1px solid ${c}44;border-radius:20px;padding:5px 16px;font-size:0.8rem;font-weight:700;color:${c};">${label}: ${cnt[k]}</div>`:'').join("");
+
+  // Lista de atividades do dia
   document.getElementById("cal-lista").innerHTML=atvDia.map(a=>{
-    const statusGeral=(()=>{
-      const emps=a.empresas||[];
-      if(emps.every(e=>e.status==="OK")) return "OK";
-      if(emps.some(e=>e.status==="ATRASADO")) return "ATRASADO";
-      if(emps.some(e=>e.status==="NAO_OK")) return "NAO_OK";
-      return "PENDENTE";
-    })();
-    const c=calStatusColor(statusGeral);
-    const okCount=(a.empresas||[]).filter(e=>e.status==="OK").length;
-    const total=(a.empresas||[]).length;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid ${c}44;background:${c}0d;">
-      <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:0.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${a.area} · D.U. ${a.diaUtil} · ${okCount}/${total} empresas OK</div>
+    const sg=calStatusGeralAtv(a);
+    const c=calStatusColor(sg);
+    const empsEl=(a.empresas||[]).filter(e=>(a.empresasElegiveis||[]).includes(e.nome));
+    const okCount=empsEl.filter(e=>e.status==="OK"||e.status==="N/A").length;
+    const total=empsEl.length;
+    const pct=total>0?Math.round((okCount/total)*100):0;
+    const barColor=sg==="OK"?"#22c55e":sg==="ATRASADO"?"#ef4444":"#f59e0b";
+
+    // Mini-lista de empresas
+    const empChips=empsEl.map(e=>{
+      const ec=e.status==="OK"?"#22c55e":e.status==="N/A"?"#94a3b8":e.status==="ATRASADO"?"#ef4444":"#f59e0b";
+      const icon=e.status==="OK"?"✓":e.status==="N/A"?"—":e.status==="ATRASADO"?"⚠":"⏳";
+      return`<span style="display:inline-flex;align-items:center;gap:3px;background:${ec}15;color:${ec};border:1px solid ${ec}44;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:600;">${icon} ${e.nome}</span>`;
+    }).join(" ");
+
+    return `<div style="padding:12px 16px;border-radius:10px;border:1.5px solid ${c}44;background:${c}08;margin-bottom:2px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.88rem;font-weight:700;color:#0f172a;">${a.atividade}</div>
+          <div style="font-size:0.73rem;color:#64748b;margin-top:2px;">📂 ${a.area} · D.U. ${a.diaUtil}</div>
+        </div>
+        <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;padding:3px 10px;background:${c}18;border-radius:20px;">${sg==="OK"?"✓ Concluído":sg==="ATRASADO"?"⚠ Atrasado":sg==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
       </div>
-      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${statusGeral==="OK"?"✓ OK":statusGeral==="ATRASADO"?"⚠ Atrasado":statusGeral==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        <div style="flex:1;height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;transition:width .4s;"></div></div>
+        <span style="font-size:10px;font-weight:700;color:${barColor};min-width:42px;text-align:right;">${okCount}/${total} OK</span>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">${empChips}</div>
     </div>`;
   }).join("");
 
