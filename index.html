@@ -593,8 +593,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de4e2b;border:1px solid #b83a1f;vertical-align:middle;"></span> 7+</span>
         <span style="margin-left:auto;color:var(--text-muted);font-size:0.74rem;" id="cal-scope-label"></span>
       </div>
-      <div id="cal-grid-wrap" style="padding:16px 24px 24px;">
-        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+      <div id="cal-grid-wrap" style="padding:16px 24px 24px;min-height:400px;">
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;min-height:300px;">
           <!-- gerado por JS -->
         </div>
       </div>
@@ -1869,7 +1869,7 @@ function mudarAba(id){
   if(id==="tab-config") renderConfigListas();
   if(id==="tab-pis") renderPIS();
   if(id==="tab-periodo") renderHist();
-  if(id==="tab-calendario") renderCalendario();
+  if(id==="tab-calendario") requestAnimationFrame(()=>renderCalendario());
 }
 
 // ═══════════════════════════════════════════
@@ -1981,6 +1981,7 @@ function renderCalendario(){
     </div>`;
   }
   grid.innerHTML=html;
+  console.log("[CAL] renderizado:", ano, mes, "total atividades mapeadas:", Object.keys(porDia).length, "porDia:", porDia);
   fecharDetalhe();
 }
 
