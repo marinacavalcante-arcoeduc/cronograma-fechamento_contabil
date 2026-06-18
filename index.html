@@ -501,6 +501,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
   <div class="tabs-navigation" id="main-tabs">
     <button class="tab-link active" onclick="mudarAba('tab-exec')">📋 Atividades</button>
     <button class="tab-link" onclick="mudarAba('tab-pis')">📊 PIS/COFINS</button>
+    <button class="tab-link" id="tab-link-calendario" onclick="mudarAba('tab-calendario')">📅 Calendário</button>
     <button class="tab-link" id="tab-link-config" onclick="mudarAba('tab-config')">⚙️ Configurações</button>
     <button class="tab-link" id="tab-link-periodo" onclick="mudarAba('tab-periodo')">🗂 Competência</button>
   </div>
@@ -569,6 +570,43 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       <h2 class="competence-title">📂 Áreas</h2>
       <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;"><input type="text" id="cfg-new-area" class="form-input" placeholder="Nova área..." style="flex:1;min-width:230px;"><button class="btn-arco" onclick="addArea()">➕ Adicionar</button></div>
       <div id="cfg-area-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:7px;"></div>
+    </div>
+  </div>
+
+  <div id="tab-calendario" class="tab-content">
+    <div class="form-card" style="padding:0;overflow:hidden;">
+      <div id="cal-header" style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--bg2);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="cal-titulo" style="font-size:1.1rem;font-weight:700;color:var(--text);"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="filter-btn" onclick="calNavegar(-1)">‹ Anterior</button>
+          <button class="filter-btn active" onclick="calHoje()">Hoje</button>
+          <button class="filter-btn" onclick="calNavegar(1)">Próximo ›</button>
+        </div>
+      </div>
+      <div id="cal-legendas" style="display:flex;gap:16px;padding:10px 24px;border-bottom:1px solid var(--border);font-size:0.78rem;align-items:center;flex-wrap:wrap;background:var(--bg2);">
+        <span>Intensidade de atividades:</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f4fd;border:1px solid #b8d4ed;vertical-align:middle;"></span> 1</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#90c2e7;border:1px solid #5a9fd4;vertical-align:middle;"></span> 2–3</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de8c4e;border:1px solid #c06830;vertical-align:middle;"></span> 4–6</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de4e2b;border:1px solid #b83a1f;vertical-align:middle;"></span> 7+</span>
+        <span style="margin-left:auto;color:var(--text-muted);font-size:0.74rem;" id="cal-scope-label"></span>
+      </div>
+      <div id="cal-grid-wrap" style="padding:16px 24px 24px;">
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+          <!-- gerado por JS -->
+        </div>
+      </div>
+      <!-- Painel de detalhe do dia -->
+      <div id="cal-detalhe" style="display:none;border-top:1px solid var(--border);padding:20px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span id="cal-detalhe-titulo" style="font-weight:700;font-size:1rem;color:var(--text);"></span>
+          <button class="filter-btn" onclick="fecharDetalhe()">✕ Fechar</button>
+        </div>
+        <div id="cal-contadores" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;"></div>
+        <div id="cal-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
     </div>
   </div>
 
@@ -940,6 +978,13 @@ async function init(){
 // ═══════════════════════════════════════════
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
+  if(!AREAS.length && !dbAtv.length){
+    // Firebase ainda não respondeu — mostrar estado de carregando
+    sel.innerHTML='<option value="">⏳ Carregando áreas...</option>';
+    sel.disabled=true;
+    return;
+  }
+  sel.disabled=false;
   const areas=new Set(AREAS); dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
   sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
   filtrarRespsLogin();
@@ -977,6 +1022,7 @@ function aplicarLogin(){
   else badge.textContent=`${abrev(userAtual)} · ${subArea}`;
   document.getElementById("tab-link-config").style.display=ehM?"":"none";
   document.getElementById("tab-link-periodo").style.display=ehM?"":"none";
+  document.getElementById("tab-link-calendario").style.display="";
   document.getElementById("admin-bar").style.display=ehM?"flex":"none";
   if(ehM) iniciarLog();
   const fR=document.getElementById("filter-resp"),fA=document.getElementById("filter-area");
@@ -1823,6 +1869,187 @@ function mudarAba(id){
   if(id==="tab-config") renderConfigListas();
   if(id==="tab-pis") renderPIS();
   if(id==="tab-periodo") renderHist();
+  if(id==="tab-calendario") renderCalendario();
+}
+
+// ═══════════════════════════════════════════
+// CALENDÁRIO
+// ═══════════════════════════════════════════
+let _calAno=null, _calMes=null;
+
+function calGetAtvDoUsuario(){
+  // Filtra atividades conforme perfil do usuário logado
+  if(ehM) return dbAtv; // admin vê tudo
+  return dbAtv.filter(a=>a.area===subArea);
+}
+
+function calCalcularData(a){
+  // Retorna Date com base no diaUtil da atividade e competência atual
+  const du=parseInt(a.diaUtil)||0;
+  if(!du) return null;
+  const ano=_calAno||comp.ano||new Date().getFullYear();
+  const mes=(_calMes!==null?_calMes:(parseInt(comp.mes||1)-1));
+  // Calcula o N-ésimo dia útil do mês (seg-sex, sem feriados por ora)
+  let count=0, d=new Date(ano,mes,1);
+  while(d.getMonth()===mes){
+    if(d.getDay()>=1&&d.getDay()<=5){
+      count++;
+      if(count===du) return new Date(d);
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return null;
+}
+
+function calStatusColor(status){
+  if(status==="OK") return "#22c55e";
+  if(status==="NAO_OK"||status==="ATRASADO") return "#ef4444";
+  if(status==="PENDENTE") return "#f59e0b";
+  return "#94a3b8";
+}
+
+function calIntensidadeBg(n){
+  if(!n) return "transparent";
+  if(n===1) return "#e8f4fd";
+  if(n<=3) return "#90c2e7";
+  if(n<=6) return "#de8c4e";
+  return "#de4e2b";
+}
+function calIntensidadeBorder(n){
+  if(!n) return "transparent";
+  if(n===1) return "#b8d4ed";
+  if(n<=3) return "#5a9fd4";
+  if(n<=6) return "#c06830";
+  return "#b83a1f";
+}
+function calIntensidadeText(n){
+  if(!n) return "var(--text-muted)";
+  if(n<=3) return "#1e3a5f";
+  return "#fff";
+}
+
+function renderCalendario(){
+  const hoje=new Date();
+  if(_calAno===null) _calAno=parseInt(comp.ano)||hoje.getFullYear();
+  if(_calMes===null) _calMes=(parseInt(comp.mes||1)-1);
+
+  const ano=_calAno, mes=_calMes;
+  const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
+  document.getElementById("cal-titulo").textContent=`${nomeMes} ${ano}`;
+
+  const isAdmin=ehM;
+  document.getElementById("cal-scope-label").textContent=isAdmin?"Visão: todas as áreas":`Visão: ${subArea}`;
+
+  const atv=calGetAtvDoUsuario();
+
+  // Mapeia dia (1-31) → lista de atividades
+  const porDia={};
+  atv.forEach(a=>{
+    const dt=calCalcularData(a); if(!dt) return;
+    if(dt.getFullYear()===ano&&dt.getMonth()===mes){
+      const d=dt.getDate();
+      if(!porDia[d]) porDia[d]={atividades:[]};
+      porDia[d].atividades.push(a);
+    }
+  });
+
+  // Gerar grid
+  const grid=document.getElementById("cal-grid");
+  const dias=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const primeiroDia=new Date(ano,mes,1).getDay();
+  const totalDias=new Date(ano,mes+1,0).getDate();
+
+  let html=dias.map(d=>`<div style="text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);padding:4px 0;">${d}</div>`).join("");
+
+  // Células vazias antes do dia 1
+  for(let i=0;i<primeiroDia;i++) html+=`<div></div>`;
+
+  for(let d=1;d<=totalDias;d++){
+    const info=porDia[d];
+    const n=info?info.atividades.length:0;
+    const bg=calIntensidadeBg(n);
+    const border=calIntensidadeBorder(n);
+    const color=calIntensidadeText(n);
+    const isHoje=hoje.getFullYear()===ano&&hoje.getMonth()===mes&&hoje.getDate()===d;
+    const dt=new Date(ano,mes,d);
+    const fimSem=dt.getDay()===0||dt.getDay()===6;
+    html+=`<div onclick="${n?`calAbrirDia(${d})`:'void 0'}" style="
+      border-radius:8px;padding:8px 6px;min-height:64px;text-align:center;cursor:${n?'pointer':'default'};
+      background:${bg};border:2px solid ${isHoje?'var(--arco-laranja)':border};
+      opacity:${fimSem&&!n?'0.45':'1'};
+      transition:transform .1s,box-shadow .1s;
+      ${n?'box-shadow:0 1px 4px rgba(0,0,0,.08);':''}"
+      onmouseover="${n?`this.style.transform='scale(1.04)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.13)'`:''}"
+      onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'`:''}">
+      <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:4px;">${d}</div>
+      ${n?`<div style="font-size:0.72rem;font-weight:700;color:${color};">${n} atv${n>1?'s':''}</div>`:''}
+    </div>`;
+  }
+  grid.innerHTML=html;
+  fecharDetalhe();
+}
+
+function calAbrirDia(d){
+  const ano=_calAno, mes=_calMes;
+  const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
+  const atv=calGetAtvDoUsuario();
+
+  const atvDia=atv.filter(a=>{
+    const dt=calCalcularData(a);
+    return dt&&dt.getFullYear()===ano&&dt.getMonth()===mes&&dt.getDate()===d;
+  });
+
+  document.getElementById("cal-detalhe-titulo").textContent=`📅 ${d} de ${nomeMes} de ${ano} — ${atvDia.length} atividade${atvDia.length!==1?'s':''}`;
+
+  // Contadores por status
+  const cnt={OK:0,PENDENTE:0,ATRASADO:0,NAO_OK:0};
+  atvDia.forEach(a=>(a.empresas||[]).forEach(e=>{if(cnt[e.status]!==undefined) cnt[e.status]++;}));
+  const total=Object.values(cnt).reduce((s,v)=>s+v,0)||1;
+  document.getElementById("cal-contadores").innerHTML=[
+    {k:"OK",label:"✓ OK",c:"#22c55e"},
+    {k:"PENDENTE",label:"⏳ Pendente",c:"#f59e0b"},
+    {k:"ATRASADO",label:"⚠ Atrasado",c:"#ef4444"},
+    {k:"NAO_OK",label:"✕ Não OK",c:"#ef4444"},
+  ].map(({k,label,c})=>cnt[k]?`<div style="background:${c}18;border:1px solid ${c}44;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:${c};">${label}: ${cnt[k]}</div>`:'').join("");
+
+  // Lista de atividades
+  document.getElementById("cal-lista").innerHTML=atvDia.map(a=>{
+    const statusGeral=(()=>{
+      const emps=a.empresas||[];
+      if(emps.every(e=>e.status==="OK")) return "OK";
+      if(emps.some(e=>e.status==="ATRASADO")) return "ATRASADO";
+      if(emps.some(e=>e.status==="NAO_OK")) return "NAO_OK";
+      return "PENDENTE";
+    })();
+    const c=calStatusColor(statusGeral);
+    const okCount=(a.empresas||[]).filter(e=>e.status==="OK").length;
+    const total=(a.empresas||[]).length;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid ${c}44;background:${c}0d;">
+      <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${a.area} · D.U. ${a.diaUtil} · ${okCount}/${total} empresas OK</div>
+      </div>
+      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${statusGeral==="OK"?"✓ OK":statusGeral==="ATRASADO"?"⚠ Atrasado":statusGeral==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("cal-detalhe").style.display="block";
+  document.getElementById("cal-detalhe").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function fecharDetalhe(){ document.getElementById("cal-detalhe").style.display="none"; }
+
+function calNavegar(dir){
+  _calMes+=dir;
+  if(_calMes>11){_calMes=0;_calAno++;}
+  if(_calMes<0){_calMes=11;_calAno--;}
+  renderCalendario();
+}
+function calHoje(){
+  const h=new Date();
+  _calAno=h.getFullYear(); _calMes=h.getMonth();
+  renderCalendario();
 }
 function filtrarStatus(btn,status){document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");filtroStatus=status;renderizarPainel();}
 
