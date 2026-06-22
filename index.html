@@ -1007,12 +1007,11 @@ async function init(){
   // Popula login imediatamente — antes do Firebase, já mostra Admin/Tributário
   // O overlay pode ainda estar hidden, mas o select já fica pronto
   popularLogin();
-  // Também mostra o overlay agora caso o Firebase demore muito
-  // (o overlay fecha sozinho após login ou se sessionStorage já tiver sessão)
+  // Fallback: se Firebase demorar >2s, mostra login com o que tiver
   setTimeout(()=>{
-    if(document.getElementById("login-overlay")?.classList.contains("hidden")===false) return;
-    // Firebase ainda não voltou — exibe o login com o que temos
-    document.getElementById("login-overlay")?.classList.remove("hidden");
+    const ov=document.getElementById("login-overlay");
+    if(!ov||!ov.classList.contains("hidden")) return;
+    ov.classList.remove("hidden");
     popularLogin();
   }, 2000);
   try{
@@ -2384,9 +2383,7 @@ function _importarFMXlsx(file){
 function _importarFMCsv(file){
   const reader=new FileReader();
   reader.onload=e=>{
-    const lines=e.target.result.split(/
-?
-/);
+    const lines=e.target.result.split(/\r?\n/);
     const rows=lines
       .map(l=>l.split(";").map(c=>c.replace(/^"|"$/g,"").trim()))
       .filter(r=>r.length>=2);
