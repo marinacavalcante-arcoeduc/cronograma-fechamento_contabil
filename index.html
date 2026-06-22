@@ -21,6 +21,18 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Sora',sans-serif;}
 body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-webkit-font-smoothing:antialiased;}
+
+/* DESCRITIVO DA ATIVIDADE */
+.desc-toggle{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;padding:3px 8px;border-radius:8px;transition:all .15s;}
+.desc-toggle:hover{background:#f1f5f9;color:var(--blue);}
+.desc-toggle.fm{color:var(--fm);}
+.desc-toggle.fm:hover{background:var(--fm-bg);}
+.desc-panel{display:none;margin:8px 16px 4px;padding:10px 14px;background:#f8fafc;border-left:3px solid var(--border);border-radius:0 8px 8px 0;font-size:12px;color:var(--muted);line-height:1.6;}
+.desc-panel.fm{border-left-color:var(--fm);background:var(--fm-bg);}
+.desc-panel.open{display:block;}
+.desc-edit{width:100%;min-height:60px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:'Sora',sans-serif;resize:vertical;outline:none;color:var(--text);background:#fff;}
+.desc-edit:focus{border-color:var(--blue);}
+.desc-placeholder{color:var(--muted);font-style:italic;}
 /* GRUPO TABS (Pedagógico | F&M | Todas) */
 .grupo-tabs{display:flex;gap:4px;padding:0 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .grupo-tab{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;}
@@ -538,6 +550,10 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       <div class="cdd-chips" id="cdd-resp-chips"></div>
       <div class="hint-mini">💡 Vazio = "A Atribuir"</div>
     </div>
+    <div class="form-group" style="margin-top:10px;">
+      <label>Descritivo <span style="font-size:10px;color:var(--muted);font-weight:400;">(opcional — explica o que é a atividade)</span></label>
+      <textarea id="add-descritivo" class="desc-edit" placeholder="Ex: Conciliação das receitas das marcas F&M com o sistema de faturamento..."></textarea>
+    </div>
     <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;">
       <button class="filter-btn" onclick="toggleForm()">Cancelar</button>
       <button class="btn-arco" onclick="salvarNovaAtividade()">Cadastrar</button>
@@ -1010,7 +1026,8 @@ async function init(){
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
-          grupo:item.grupo||"Pedagogico"
+          grupo:item.grupo||"Pedagogico",
+          descritivo:item.descritivo||""
         }));
         // Ordena por diaUtil pra manter consistência visual
         dbAtv.sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
@@ -1024,7 +1041,8 @@ async function init(){
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
-          grupo:item.grupo||"Pedagogico"
+          grupo:item.grupo||"Pedagogico",
+          descritivo:item.descritivo||""
         }));
         // Migra automaticamente para atividadesMap
         console.log("Migrando atividades para atividadesMap...");
@@ -1270,6 +1288,25 @@ function renderizarPainel(){
     const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
 
     const card=document.createElement("div"); card.className="activity-card"; card.id=act.id;
+    const isFmCard=(act.grupo||"").toUpperCase()==="FM";
+    const temDesc=!!(act.descritivo||"").trim();
+    const descBtnHtml=temDesc
+      ?`<button class="desc-toggle ${isFmCard?'fm':''}" onclick="event.stopPropagation();toggleDesc('${act.id}')">ℹ️ Ver descritivo</button>`
+      :"";
+    const descPanelHtml=temDesc
+      ?`<div class="desc-panel ${isFmCard?'fm':''}" id="desc-${act.id}">
+          ${temEscrita
+            ?`<textarea class="desc-edit" onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
+            :`<span>${act.descritivo||""}</span>`
+          }
+        </div>`
+      :(temEscrita
+          ?`<div class="desc-panel ${isFmCard?'fm':''}" id="desc-${act.id}" style="display:none;">
+              <textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()"></textarea>
+            </div>
+            <button class="desc-toggle ${isFmCard?'fm':''}" onclick="event.stopPropagation();toggleDesc('${act.id}')">✏️ Adicionar descritivo</button>`
+          :"");
+
     card.innerHTML=`<div class="activity-header" onclick="toggleCard('${act.id}')">
         <div class="act-title">${act.atividade}${tagPre}</div>
         <div class="owners-row">${chips}</div>
@@ -1277,6 +1314,7 @@ function renderizarPainel(){
         <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0?"+"+act.diaUtil:act.diaUtil} (${df})</div>
         <div style="display:flex;justify-content:flex-end;"><span class="status-pill ${pCls}">${pTxt}</span></div>
       </div>
+      ${descBtnHtml}${descPanelHtml}
       <div class="subs-panel">
         <div class="sub-header-row">
           <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência</div></div>
@@ -1979,6 +2017,30 @@ function mudarAba(id){
   if(id==="tab-calendario") requestAnimationFrame(()=>renderCalendario());
 }
 
+
+// ═══════════════════════════════════════════
+// DESCRITIVO DA ATIVIDADE
+// ═══════════════════════════════════════════
+function toggleDesc(actId){
+  // Abre/fecha em TODOS os clones do card (ped, fm, todos)
+  [`desc-${actId}`,`desc-${actId}_ped`,`desc-${actId}_fm`].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle("open");
+  });
+}
+
+function salvarDescritivo(actId, texto){
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  atv.descritivo=texto.trim();
+  // Sincroniza o valor nos outros clones do card sem re-renderizar tudo
+  [`desc-${actId}`,`desc-${actId}_ped`,`desc-${actId}_fm`].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){const ta=el.querySelector("textarea");if(ta&&ta.value!==atv.descritivo) ta.value=atv.descritivo;}
+  });
+  salvarAtividade(actId,"Atualizou descritivo");
+  showToast("✓ Descritivo salvo!");
+}
+
 // ═══════════════════════════════════════════
 // CALENDÁRIO
 // ═══════════════════════════════════════════
@@ -2224,7 +2286,8 @@ function _processarLinhasFM(rows){
       responsaveisPorEmpresa:{},
       empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
       colunaPIS:"",
-      grupo:"FM"
+      grupo:"FM",
+      descritivo:(col[6]||"").trim()
     };
     dbAtv.push(nova); cont++;
   }
@@ -2292,19 +2355,20 @@ function popularFiltros(){
 // ═══════════════════════════════════════════
 // FORM NOVA ATIVIDADE
 // ═══════════════════════════════════════════
-function toggleForm(){document.getElementById("form-bloco").classList.toggle("open");}
+function toggleForm(){const fb=document.getElementById("form-bloco");fb.classList.toggle("open");if(fb.classList.contains("open")) renderizarFormBase();}
 function salvarNovaAtividade(){
   const nome=document.getElementById("add-nome").value.trim(), area=document.getElementById("add-area").value.trim(), du=document.getElementById("add-diautil").value.trim(), prev=document.getElementById("add-previa").value;
   if(!nome||!area||area==="__novo__"||!du){alert("Preencha nome, área e dia útil.");return;}
   let resps=[...cddResps]; if(!resps.length) resps=["A Atribuir"];
   let emps=[...cddEmps]; if(!emps.length) emps=[...EMPS];
   const grupoNova=document.getElementById("add-grupo")?.value||"Pedagogico";
-  const nova={id:"atv_"+Date.now(),atividade:nome,area,diaUtil:String(du),previaReceita:prev,responveisLista:resps,empresasElegiveis:emps,responsaveisPorEmpresa:{},empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),colunaPIS:"",grupo:grupoNova};
+  const descNova=(document.getElementById("add-descritivo")?.value||"").trim();
+  const nova={id:"atv_"+Date.now(),atividade:nome,area,diaUtil:String(du),previaReceita:prev,responveisLista:resps,empresasElegiveis:emps,responsaveisPorEmpresa:{},empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),colunaPIS:"",grupo:grupoNova,descritivo:descNova};
   dbAtv.push(nova);
   const newIdx=dbAtv.length-1,ts2=Date.now(),updates={};
   updates[`atividadesMap/${nova.id}`]=nova;updates["_ts"]=ts2;updates["_savedBy"]=userAtual||"sistema";
   _fbRef.update(updates).then(()=>{_tsSave=ts2;_tsCarregado=ts2;logAcao(`Criou "${nome}"`);atualizarSave();}).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
-  document.getElementById("add-nome").value="";cddResps=[];cddEmps=[];toggleForm();renderizarPainel();popularFiltros();showToast(`✓ Atividade criada!`);
+  document.getElementById("add-nome").value="";const descEl=document.getElementById("add-descritivo");if(descEl)descEl.value="";cddResps=[];cddEmps=[];toggleForm();renderizarPainel();popularFiltros();showToast(`✓ Atividade criada!`);
 }
 
 // ═══════════════════════════════════════════
