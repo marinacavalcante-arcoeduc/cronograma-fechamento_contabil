@@ -1059,10 +1059,12 @@ async function init(){
   }catch(e){console.error(e);showToast("⚠️ Erro ao conectar.");}
   document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="block";
-  popularFiltros(); popularLogin(); atualizarLabels();
+  popularFiltros(); atualizarLabels();
   const ss=sessionStorage.getItem("arco_sessao_login_v2");
   if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){}}
+  // Mostra login e popula áreas — delay garante que o DOM do overlay está visível
   document.getElementById("login-overlay").classList.remove("hidden");
+  setTimeout(popularLogin, 0);
 }
 
 // ═══════════════════════════════════════════
@@ -1070,15 +1072,22 @@ async function init(){
 // ═══════════════════════════════════════════
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
-  if(!AREAS.length && !dbAtv.length){
-    // Firebase ainda não respondeu — mostrar estado de carregando
-    sel.innerHTML='<option value="">⏳ Carregando áreas...</option>';
+  const areas=new Set(AREAS); dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
+  if(!areas.size){
+    // Firebase ainda não respondeu
+    sel.innerHTML='<option value="">⏳ Aguardando dados...</option>';
     sel.disabled=true;
+    // Tenta novamente em 800ms — cobre casos de conexão lenta
+    clearTimeout(window._loginRetry);
+    window._loginRetry=setTimeout(popularLogin, 800);
     return;
   }
+  clearTimeout(window._loginRetry);
   sel.disabled=false;
-  const areas=new Set(AREAS); dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
-  sel.innerHTML='<option value="">— Selecione —</option><option value="__ADMIN__">🛡 Administrador</option><option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'+Array.from(areas).sort().map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
+  sel.innerHTML='<option value="">— Selecione a área —</option>'
+    +'<option value="__ADMIN__">🛡 Administrador</option>'
+    +'<option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'
+    +Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
   filtrarRespsLogin();
 }
 function filtrarRespsLogin(){
