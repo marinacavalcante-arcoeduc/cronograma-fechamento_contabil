@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cronograma Fechamento Contábil — Arco</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -587,7 +588,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
         <button class="btn-arco" style="height:34px;padding:0 14px;font-size:11px;background:#7c3aed;" onclick="baixarModeloFM()">📥 Modelo CSV F&amp;M</button>
         <button class="btn-arco" style="height:34px;padding:0 14px;font-size:11px;background:#7c3aed;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
-        <input type="file" id="file-import-fm" style="display:none;" onchange="importarCSVFM(event)">
+        <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
       </div>
     </div>
 
@@ -2187,53 +2188,93 @@ function baixarModeloFM(){
   showToast("📥 Modelo F&M baixado!");
 }
 
-function importarCSVFM(event){
+// ── Função unificada: aceita .xlsx e .csv ──
+function importarFM(event){
   const file=event.target.files[0]; if(!file) return;
+  const isXlsx=file.name.toLowerCase().endsWith(".xlsx")||file.name.toLowerCase().endsWith(".xls");
+  if(isXlsx) _importarFMXlsx(file);
+  else _importarFMCsv(file);
+  event.target.value="";
+}
+
+function _processarLinhasFM(rows){
+  // rows = array de arrays [ [col0, col1, ...], ... ]
+  // Pula linha de cabeçalho (linha 0) e linha de dica (se col0 começa com ▶ ou vazio)
+  let cont=0;
+  for(let i=1;i<rows.length;i++){
+    const col=rows[i].map(v=>String(v||"").trim());
+    // ignora linhas de instrução, vazias ou sem atividade/area/diaUtil
+    if(!col[0]||!col[1]||!col[2]) continue;
+    if(col[0].startsWith("#")||col[0].startsWith("▶")) continue;
+    const resps=(col[4]||"").split("|").map(r=>r.trim()).filter(Boolean);
+    if(!resps.length) resps.push("A Atribuir");
+    const empsRaw=(col[5]||"TODAS").trim().toUpperCase();
+    const emps=(empsRaw==="TODAS"||!col[5].trim())
+      ?[...EMPS_FM]
+      :(col[5]||"").split("|").map(e=>e.trim()).filter(Boolean);
+    // garante empresas F&M no EMPS global
+    emps.forEach(emp=>{if(!EMPS.includes(emp)) EMPS.push(emp);});
+    const nova={
+      id:"atv_fm_"+Date.now()+"_"+i,
+      atividade:col[0], area:col[1],
+      diaUtil:String(parseInt(col[2])||1),
+      previaReceita:col[3].toLowerCase()==="sim"?"Sim":"Não",
+      responveisLista:resps,
+      empresasElegiveis:emps,
+      responsaveisPorEmpresa:{},
+      empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
+      colunaPIS:"",
+      grupo:"FM"
+    };
+    dbAtv.push(nova); cont++;
+  }
+  if(!cont){showToast("⚠️ Nenhuma atividade válida encontrada.");return;}
+  const bIdx=dbAtv.length-cont, ts2=Date.now(), updates={};
+  for(let i=bIdx;i<dbAtv.length;i++) updates[`atividadesMap/${dbAtv[i].id}`]=dbAtv[i];
+  updates["_ts"]=ts2; updates["_savedBy"]=userAtual||"sistema";
+  updates["empresas"]=EMPS;
+  _fbRef.update(updates).then(()=>{
+    _tsSave=ts2; _tsCarregado=ts2;
+    logAcao(`Importou ${cont} atividades F&M`);
+    atualizarSave(); renderizarPainel(); popularFiltros();
+    mudarGrupoTab("fm", document.querySelector(".grupo-tab.fm"));
+    showToast(`✓ ${cont} atividade${cont>1?"s":""} F&M importada${cont>1?"s":""}!`);
+  }).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
+}
+
+function _importarFMXlsx(file){
+  if(typeof XLSX==="undefined"){showToast("⚠️ Biblioteca XLSX não carregada.");return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      // Lê a primeira aba (Atividades_FM)
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+      // Remove linhas que são a linha de dica (col A começa com ▶ ou vazia)
+      const filtered=rows.filter((r,i)=>i===0||(String(r[0]||"").trim()&&!String(r[0]).startsWith("▶")));
+      _processarLinhasFM(filtered);
+    }catch(err){console.error(err);showToast("⚠️ Erro ao ler o arquivo xlsx.");}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _importarFMCsv(file){
   const reader=new FileReader();
   reader.onload=e=>{
     const lines=e.target.result.split(/
 ?
-/); let cont=0;
-    for(let i=1;i<lines.length;i++){
-      const raw=lines[i].trim(); if(!raw||raw.startsWith("#")) continue;
-      const col=raw.split(";").map(c=>c.replace(/^"|"$/g,"").trim());
-      if(col.length<3||!col[0]||!col[1]||!col[2]) continue;
-      const resps=(col[4]||"").split("|").map(r=>r.trim()).filter(Boolean)||["A Atribuir"];
-      const empsRaw=(col[5]||"TODAS").trim().toUpperCase();
-      const emps=empsRaw==="TODAS"?[...EMPS_FM]:(col[5]||"").split("|").map(e=>e.trim()).filter(Boolean)||[...EMPS_FM];
-      // Garante que as empresas F&M existam no EMPS global
-      emps.forEach(emp=>{if(!EMPS.includes(emp)) EMPS.push(emp);});
-      const nova={
-        id:"atv_fm_"+Date.now()+"_"+i,
-        atividade:col[0], area:col[1],
-        diaUtil:String(col[2]),
-        previaReceita:(col[3]||"Não").trim()==="Sim"?"Sim":"Não",
-        responveisLista:resps,
-        empresasElegiveis:emps,
-        responsaveisPorEmpresa:{},
-        empresas:EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
-        colunaPIS:"",
-        grupo:"FM"   // campo separado de grupo
-      };
-      dbAtv.push(nova); cont++;
-    }
-    event.target.value="";
-    if(!cont){showToast("⚠️ Nenhuma atividade válida encontrada no CSV.");return;}
-    const bIdx=dbAtv.length-cont, ts2=Date.now(), updates={};
-    for(let i=bIdx;i<dbAtv.length;i++) updates[`atividadesMap/${dbAtv[i].id}`]=dbAtv[i];
-    updates["_ts"]=ts2; updates["_savedBy"]=userAtual||"sistema";
-    updates["empresas"]=EMPS; // salva empresas atualizadas
-    _fbRef.update(updates).then(()=>{
-      _tsSave=ts2; _tsCarregado=ts2;
-      logAcao(`Importou ${cont} atividades F&M`);
-      atualizarSave(); renderizarPainel(); popularFiltros();
-      // Vai automaticamente para a aba F&M
-      mudarGrupoTab("fm", document.querySelector(".grupo-tab.fm"));
-      showToast(`✓ ${cont} atividades F&M importadas!`);
-    }).catch(e=>{console.error(e);showToast("⚠️ Erro ao salvar.");});
+/);
+    const rows=lines
+      .map(l=>l.split(";").map(c=>c.replace(/^"|"$/g,"").trim()))
+      .filter(r=>r.length>=2);
+    _processarLinhasFM(rows);
   };
   reader.readAsText(file,"UTF-8");
 }
+
+// Mantém nome antigo como alias por compatibilidade
+function importarCSVFM(event){ importarFM(event); }
 
 function filtrarStatus(btn,status){document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");filtroStatus=status;renderizarPainel();}
 
