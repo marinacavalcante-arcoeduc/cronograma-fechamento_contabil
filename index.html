@@ -34,7 +34,7 @@ body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-
 .desc-edit:focus{border-color:var(--blue);}
 .desc-placeholder{color:var(--muted);font-style:italic;}
 /* GRUPO TABS (Pedagógico | F&M | Todas) */
-.grupo-tabs{display:flex;gap:4px;padding:0 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.grupo-tabs{display:flex;gap:4px;}
 .grupo-tab{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;}
 .grupo-tab:hover{border-color:var(--blue);color:var(--blue);}
 .grupo-tab.ped.active{background:var(--ped-bg);border-color:var(--ped);color:var(--ped);}
@@ -190,11 +190,12 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .area-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--blue));border-radius:4px;transition:width .5s ease;}
 
 /* KPIs */
-.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:16px;}
-.kpi{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px 22px;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.02);}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--kc,var(--blue));border-radius:var(--radius) var(--radius) 0 0;}
-.kpi-num{font-size:34px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text);line-height:1;}
-.kpi-label{font-size:10px;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px 18px;position:relative;display:flex;align-items:center;gap:14px;}
+.kpi-icon{width:38px;height:38px;border-radius:10px;background:var(--ki,#e0f2fe);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.kpi-body{display:flex;flex-direction:column;gap:2px;}
+.kpi-num{font-size:24px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text);line-height:1;}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
 
 /* SUBTOTAIS */
 .subtotal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
@@ -231,21 +232,25 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .search-wrap::before{content:"🔍";position:absolute;left:12px;top:9px;font-size:13px;opacity:.4;}
 
 /* CARDS ATIVIDADE */
-.activity-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.03);transition:box-shadow .2s;}
-.activity-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);}
-.activity-header{padding:16px 24px;display:grid;grid-template-columns:2.2fr 2.4fr 1fr 1.2fr 140px;align-items:center;gap:10px;cursor:pointer;}
-.act-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:flex-start;}
-.act-title::before{content:"➔";display:inline-block;transform:rotate(0deg);transition:transform .2s;font-size:11px;color:var(--muted);margin-right:10px;flex-shrink:0;}
-.activity-card.open .act-title::before{transform:rotate(90deg);color:var(--blue);}
-.act-days{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;color:var(--blue);background:#e0f2fe;padding:5px 11px;border-radius:20px;width:fit-content;}
+.activity-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;transition:box-shadow .15s,border-left-color .15s;}
+.activity-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.07);}
+.activity-card.status-ok{border-left-color:var(--green);}
+.activity-card.status-pendente{border-left-color:var(--yellow);}
+.activity-card.status-atrasado{border-left-color:var(--orange);}
+.activity-header{padding:14px 20px;display:grid;grid-template-columns:minmax(0,2.4fr) minmax(0,1.8fr) minmax(0,.9fr) minmax(0,1fr) 130px;align-items:center;gap:12px;cursor:pointer;}
+.act-title{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:flex-start;line-height:1.4;}
+.act-title-arrow{font-size:10px;color:var(--muted);margin-right:8px;flex-shrink:0;transition:transform .2s;margin-top:2px;}
+.activity-card.open .act-title-arrow{transform:rotate(90deg);color:var(--blue);}
+.act-days{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;color:var(--blue);background:#e0f2fe;padding:4px 10px;border-radius:20px;width:fit-content;white-space:nowrap;}
+.act-area{font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .owners-row{display:flex;flex-wrap:wrap;gap:4px;}
-.owner-chip{background:linear-gradient(135deg,#eff6ff,#e0f2fe);color:var(--blue);border:1px solid #c7dbf7;padding:4px 10px;border-radius:14px;font-size:10px;font-weight:700;white-space:nowrap;}
+.owner-chip{background:#eff6ff;color:var(--blue);border:1px solid #c7dbf7;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap;}
 .owner-chip.unassigned{background:#fff7ed;color:var(--orange);border-color:#fed7aa;}
-.status-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;justify-content:flex-end;}
 .status-pill.ok{background:var(--s-ok-bg);color:var(--s-ok);}
 .status-pill.pendente{background:var(--s-pend-bg);color:#92400e;}
 .status-pill.atrasado{background:var(--s-atras-bg);color:var(--s-atras);}
-.tag-previa{background:purple;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;margin-left:6px;flex-shrink:0;}
+.tag-previa{background:#e0f2fe;color:var(--blue);border:1px solid #bae6fd;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;margin-left:6px;flex-shrink:0;white-space:nowrap;}
 
 /* SUBS PANEL */
 .subs-panel{display:none;background:#fafafa;border-top:1px solid var(--border);padding:16px 24px;}
@@ -488,42 +493,56 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 
 <div class="container">
   <div id="alert-vencimentos"></div>
-  <div class="progress-wrap">
-    <span style="font-size:13px;font-weight:700;white-space:nowrap;">Progresso do Fechamento</span>
-    <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
-    <span class="prog-pct" id="prog-pct">0%</span>
-  </div>
-  <!-- Barra de progresso por grupo -->
-  <div class="grupo-prog-wrap" id="grupo-prog-wrap">
-    <div class="grupo-prog-row">
-      <div class="grupo-prog-label">🌐 Geral<span class="grupo-prog-sublabel" id="gp-geral-sub">0 atividades</span></div>
-      <div class="grupo-prog-bg"><div class="grupo-prog-fill" id="gp-geral-fill" style="background:var(--blue);width:0%;"></div></div>
-      <div class="grupo-prog-pct" id="gp-geral-pct" style="color:var(--blue);">0%</div>
+  <!-- Painel de progresso unificado -->
+  <div class="grupo-prog-wrap" id="grupo-prog-wrap" style="padding:18px 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Progresso do Fechamento</span>
+      <span class="prog-pct" id="prog-pct" style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--blue);">0%</span>
     </div>
-    <div class="grupo-prog-row">
-      <div class="grupo-prog-label" style="color:var(--ped);">🎓 Pedagógico<span class="grupo-prog-sublabel" id="gp-ped-sub">0 atividades</span></div>
-      <div class="grupo-prog-bg"><div class="grupo-prog-fill" id="gp-ped-fill" style="background:var(--ped);width:0%;"></div></div>
-      <div class="grupo-prog-pct" id="gp-ped-pct" style="color:var(--ped);">0%</div>
+    <!-- Barra geral grande -->
+    <div class="prog-bg" style="height:10px;margin-bottom:16px;border-radius:8px;"><div class="prog-fill" id="prog-fill" style="height:100%;border-radius:8px;"></div></div>
+    <!-- Pedagógico e F&M lado a lado -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span class="grupo-prog-label" style="color:var(--ped);">🎓 Pedagógico<span class="grupo-prog-sublabel" id="gp-ped-sub"> · 0 ativ.</span></span>
+          <span class="grupo-prog-pct" id="gp-ped-pct" style="color:var(--ped);">0%</span>
+        </div>
+        <div class="grupo-prog-bg"><div class="grupo-prog-fill" id="gp-ped-fill" style="background:var(--ped);width:0%;"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span class="grupo-prog-label" style="color:var(--fm);">💼 F&amp;M<span class="grupo-prog-sublabel" id="gp-fm-sub"> · 0 ativ.</span></span>
+          <span class="grupo-prog-pct" id="gp-fm-pct" style="color:var(--fm);">0%</span>
+        </div>
+        <div class="grupo-prog-bg"><div class="grupo-prog-fill" id="gp-fm-fill" style="background:var(--fm);width:0%;"></div></div>
+      </div>
     </div>
-    <div class="grupo-prog-row">
-      <div class="grupo-prog-label" style="color:var(--fm);">💼 F&amp;M<span class="grupo-prog-sublabel" id="gp-fm-sub">0 atividades</span></div>
-      <div class="grupo-prog-bg"><div class="grupo-prog-fill" id="gp-fm-fill" style="background:var(--fm);width:0%;"></div></div>
-      <div class="grupo-prog-pct" id="gp-fm-pct" style="color:var(--fm);">0%</div>
-    </div>
+    <!-- IDs fantasmas para não quebrar o JS que atualiza geral -->
+    <span id="gp-geral-sub" style="display:none;"></span>
+    <span id="gp-geral-pct" style="display:none;"></span>
+    <span id="gp-geral-fill" style="display:none;"></span>
   </div>
 
-  <div id="area-progress-wrap">
-    <div class="area-prog-title">📂 Progresso por Área</div>
-    <div class="area-prog-grid" id="area-prog-grid"></div>
-  </div>
+  <details id="area-progress-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 18px;margin-bottom:16px;">
+    <summary style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;">
+      <span>▶</span> Detalhe por Área
+    </summary>
+    <div class="area-prog-grid" id="area-prog-grid" style="margin-top:12px;"></div>
+  </details>
   <div class="kpi-row">
-    <div class="kpi" style="--kc:var(--blue);"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">Total Atividades</div></div>
-    <div class="kpi" style="--kc:var(--green);"><div class="kpi-num" id="k-conc">0</div><div class="kpi-label">Concluídas</div></div>
-    <div class="kpi" style="--kc:var(--yellow);"><div class="kpi-num" id="k-pend">0</div><div class="kpi-label">Em Andamento</div></div>
-    <div class="kpi" style="--kc:var(--orange);"><div class="kpi-num" id="k-atras">0</div><div class="kpi-label">Atrasadas</div></div>
-    <div class="kpi" style="--kc:var(--cyan);"><div class="kpi-num" id="k-chk">0</div><div class="kpi-label">Checklists</div></div>
+    <div class="kpi"><div class="kpi-icon" style="--ki:#dbeafe;font-size:18px;">📋</div><div class="kpi-body"><div class="kpi-num" id="k-total">0</div><div class="kpi-label">Total</div></div></div>
+    <div class="kpi"><div class="kpi-icon" style="--ki:#dcfce7;font-size:18px;">✅</div><div class="kpi-body"><div class="kpi-num" id="k-conc" style="color:var(--green);">0</div><div class="kpi-label">Concluídas</div></div></div>
+    <div class="kpi"><div class="kpi-icon" style="--ki:#fef9c3;font-size:18px;">⏳</div><div class="kpi-body"><div class="kpi-num" id="k-pend" style="color:#92400e;">0</div><div class="kpi-label">Pendentes</div></div></div>
+    <div class="kpi"><div class="kpi-icon" style="--ki:#fee2e2;font-size:18px;">⚠️</div><div class="kpi-body"><div class="kpi-num" id="k-atras" style="color:var(--orange);">0</div><div class="kpi-label">Atrasadas</div></div></div>
+    <div class="kpi"><div class="kpi-icon" style="--ki:#e0f2fe;font-size:18px;">🏢</div><div class="kpi-body"><div class="kpi-num" id="k-chk" style="color:var(--cyan);">0</div><div class="kpi-label">Checks</div></div></div>
   </div>
-  <div class="subtotal-grid" id="subtotal-grid"></div>
+  <details style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 18px;margin-bottom:16px;">
+    <summary style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;">
+      <span>▶</span> Subtotais por Responsável / Empresa / Área
+    </summary>
+    <div class="subtotal-grid" id="subtotal-grid" style="margin-top:12px;"></div>
+  </details>
   <div id="previa-root" style="margin-bottom:16px;"></div>
   <div id="painel-log"><h4>📋 Histórico Recente</h4><div id="painel-log-lista"></div></div>
   <div style="margin-bottom:16px;display:flex;justify-content:flex-end;gap:10px;" id="admin-bar">
@@ -597,13 +616,15 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     </div>
 
     <!-- Sub-tabs Pedagógico / F&M / Todas -->
-    <div class="grupo-tabs">
-      <button class="grupo-tab ped active" onclick="mudarGrupoTab('ped',this)">🎓 Pedagógico</button>
-      <button class="grupo-tab fm" onclick="mudarGrupoTab('fm',this)">💼 F&amp;M</button>
-      <button class="grupo-tab todos" onclick="mudarGrupoTab('todos',this)">📋 Todas</button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-        <button class="btn-arco" style="height:34px;padding:0 14px;font-size:11px;background:#7c3aed;" onclick="baixarModeloFM()">📥 Modelo CSV F&amp;M</button>
-        <button class="btn-arco" style="height:34px;padding:0 14px;font-size:11px;background:#7c3aed;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;">
+      <div class="grupo-tabs" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">
+        <button class="grupo-tab ped active" onclick="mudarGrupoTab('ped',this)">🎓 Pedagógico</button>
+        <button class="grupo-tab fm" onclick="mudarGrupoTab('fm',this)">💼 F&amp;M</button>
+        <button class="grupo-tab todos" onclick="mudarGrupoTab('todos',this)">📋 Todas</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-arco" style="height:32px;padding:0 12px;font-size:11px;background:var(--fm);gap:5px;" onclick="baixarModeloFM()">📥 Modelo F&amp;M</button>
+        <button class="btn-arco" style="height:32px;padding:0 12px;font-size:11px;background:var(--fm);gap:5px;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
         <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
       </div>
     </div>
@@ -961,16 +982,19 @@ function syncAoVivo(){
 
 // Atualiza só o card de uma atividade no DOM sem re-renderizar tudo
 function _atualizarCardDom(actId){
-  const card=document.getElementById(actId);
-  if(!card) return; // card não está visível (filtrado)
-  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
-  const sg=statusGeral(atv);
-  const pill=card.querySelector(".activity-header .status-pill");
-  if(pill){
+  [actId, actId+"_ped", actId+"_fm"].forEach(cid=>{
+    const card=document.getElementById(cid);
+    if(!card) return;
+    const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+    const sg=statusGeral(atv);
     const c=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
-    pill.className=`status-pill ${c}`;
-    pill.textContent=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
-  }
+    // Atualiza pill
+    const pill=card.querySelector(".activity-header .status-pill");
+    if(pill){pill.className=`status-pill ${c}`;pill.textContent=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";}
+    // Atualiza borda colorida
+    card.classList.remove("status-ok","status-pendente","status-atrasado");
+    card.classList.add(`status-${c}`);
+  });
 }
 
 function _atualizarKpisRapido(){
@@ -1312,35 +1336,41 @@ function renderizarPainel(){
     const pCls=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
     const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
 
-    const card=document.createElement("div"); card.className="activity-card"; card.id=act.id;
+    const card=document.createElement("div");
     const isFmCard=(act.grupo||"").toUpperCase()==="FM";
-    const temDesc=!!(act.descritivo||"").trim();
-    const descBtnHtml=temDesc
-      ?`<button class="desc-toggle ${isFmCard?'fm':''}" onclick="event.stopPropagation();toggleDesc('${act.id}')">ℹ️ Ver descritivo</button>`
+    const temDesc=isFmCard&&!!(act.descritivo||"").trim();
+    // Descritivo só aparece em atividades F&M
+    const descBtnHtml=isFmCard&&temDesc
+      ?`<button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${act.id}')">ℹ️ Ver descritivo</button>`
       :"";
-    const descPanelHtml=temDesc
-      ?`<div class="desc-panel ${isFmCard?'fm':''}" id="desc-${act.id}">
-          ${temEscrita
-            ?`<textarea class="desc-edit" onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
-            :`<span>${act.descritivo||""}</span>`
-          }
-        </div>`
-      :(temEscrita
-          ?`<div class="desc-panel ${isFmCard?'fm':''}" id="desc-${act.id}" style="display:none;">
-              <textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()"></textarea>
-            </div>
-            <button class="desc-toggle ${isFmCard?'fm':''}" onclick="event.stopPropagation();toggleDesc('${act.id}')">✏️ Adicionar descritivo</button>`
-          :"");
+    const descPanelHtml=isFmCard
+      ?(temDesc
+        ?`<div class="desc-panel fm" id="desc-${act.id}">
+            ${temEscrita
+              ?`<textarea class="desc-edit" onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
+              :`<span>${act.descritivo||""}</span>`
+            }
+          </div>`
+        :(temEscrita
+          ?`<div class="desc-panel fm" id="desc-${act.id}" style="display:none;">
+                <textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()"></textarea>
+              </div>
+              <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${act.id}')">✏️ Adicionar descritivo</button>`
+          :""))
+      :"";
 
+    // Aplica classe de status na borda do card
+    card.className=`activity-card status-${pCls}`;
+    card.id=act.id;
     card.innerHTML=`<div class="activity-header" onclick="toggleCard('${act.id}')">
-        <div class="act-title">${act.atividade}${tagPre}</div>
+        <div class="act-title"><span class="act-title-arrow">▶</span><span style="line-height:1.4;">${act.atividade}${tagPre}</span></div>
         <div class="owners-row">${chips}</div>
-        <div style="font-size:12px;font-weight:600;color:var(--muted);">📂 ${act.area}</div>
-        <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0?"+"+act.diaUtil:act.diaUtil} (${df})</div>
+        <div class="act-area">📂 ${act.area}</div>
+        <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0?"+"+act.diaUtil:act.diaUtil}<br><span style="font-size:10px;opacity:.75;">${df}</span></div>
         <div style="display:flex;justify-content:flex-end;"><span class="status-pill ${pCls}">${pTxt}</span></div>
       </div>
-      ${descBtnHtml}${descPanelHtml}
       <div class="subs-panel">
+        ${descBtnHtml?`<div style="padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">${descBtnHtml}${descPanelHtml}</div>`:""}
         <div class="sub-header-row">
           <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência</div></div>
           ${temEscrita?`<button class="ok-all-btn" onclick="okTodas('${act.id}')">✅ OK todas</button>`:""}
