@@ -252,20 +252,50 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .status-pill.atrasado{background:var(--s-atras-bg);color:var(--s-atras);}
 .tag-previa{background:#e0f2fe;color:var(--blue);border:1px solid #bae6fd;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;margin-left:6px;flex-shrink:0;white-space:nowrap;}
 
+/* MINI-BARRA DE PROGRESSO NO CABEÇALHO DO CARD */
+.card-prog{display:flex;align-items:center;gap:6px;margin-top:5px;}
+.card-prog-bar{flex:1;height:4px;background:#e2e8f0;border-radius:3px;overflow:hidden;max-width:120px;}
+.card-prog-fill{height:100%;border-radius:3px;transition:width .4s;}
+.card-prog-txt{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap;}
+
 /* SUBS PANEL */
-.subs-panel{display:none;background:#fafafa;border-top:1px solid var(--border);padding:16px 24px;}
+.subs-panel{display:none;background:#fafafa;border-top:1px solid var(--border);padding:14px 20px;}
 .activity-card.open .subs-panel{display:block;}
 .sub-header-row{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:6px;}
-.sub-header-cols{display:grid;grid-template-columns:2fr 1.6fr 4fr;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;flex:1;}
-.sub-row{display:grid;grid-template-columns:2.4fr 1.6fr 4fr;align-items:start;padding:10px 0;border-bottom:1px solid #f1f5f9;}
+.sub-header-cols{display:grid;grid-template-columns:2fr 1.4fr 4fr;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;flex:1;}
+.sub-row{display:grid;grid-template-columns:2fr 1.4fr 4fr;align-items:start;padding:9px 0;border-bottom:1px solid #f1f5f9;}
 .sub-row:last-child{border-bottom:none;}
-.sub-name{font-weight:700;color:var(--blue);font-size:13px;display:flex;flex-direction:column;gap:4px;}
+.sub-name{font-weight:700;color:var(--blue);font-size:12px;display:flex;flex-direction:column;gap:3px;}
 .sub-name-top{display:flex;align-items:center;gap:5px;}
-.sub-name-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.done-stamp{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--s-ok);background:var(--s-ok-bg);padding:2px 7px;border-radius:8px;font-weight:700;}
-.resp-chip{background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
-.status-select{appearance:none;border:1px solid var(--border);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:700;outline:none;background:var(--surface);width:138px;}
-.ok-all-btn{background:var(--green);color:#fff;border:none;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:12px;}
+.sub-name-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.done-stamp{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--s-ok);background:var(--s-ok-bg);padding:2px 6px;border-radius:6px;font-weight:700;}
+.resp-chip{background:#e0eaff;color:var(--blue);font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
+/* Select colorido por status */
+.status-select{appearance:none;border:1.5px solid var(--border);padding:5px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-weight:700;outline:none;background:var(--surface);width:130px;transition:background .15s,border-color .15s;}
+.status-select.sel-ok{background:#dcfce7;border-color:#86efac;color:#166534;}
+.status-select.sel-na{background:#f3f4f6;border-color:#d1d5db;color:#6b7280;}
+.status-select.sel-pendente{background:#fef9c3;border-color:#fde047;color:#854d0e;}
+.ok-all-btn{background:var(--green);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:10px;}
+
+/* MOBILE */
+@media(max-width:700px){
+  .activity-header{grid-template-columns:1fr auto;grid-template-rows:auto auto auto;gap:6px;padding:12px 14px;}
+  .act-title{grid-column:1/2;grid-row:1;}
+  .owners-row{grid-column:1/2;grid-row:2;}
+  .act-area{grid-column:1/2;grid-row:3;font-size:10px;}
+  .act-days{grid-column:2/3;grid-row:2;justify-self:end;}
+  .status-pill{grid-column:2/3;grid-row:1;justify-self:end;}
+  .card-prog{grid-column:1/-1;grid-row:4;}
+  .kpi-row{grid-template-columns:repeat(3,1fr);}
+  .grupo-prog-wrap>div:last-of-type{grid-template-columns:1fr;}
+  .filter-block{border-radius:14px;padding:10px 12px;}
+  .filter-left{gap:5px;}
+  .search-input{width:100%;}
+  .container{padding:0 14px;}
+  .subs-panel{padding:10px 14px;}
+  .sub-row{grid-template-columns:1fr;gap:6px;padding:10px 0;}
+  .sub-header-cols{display:none;}
+}
 
 /* FORM CADASTRO */
 .form-cadastro{display:none;background:var(--surface);border:1px solid var(--border);padding:24px;border-radius:var(--radius);margin-bottom:20px;overflow:visible;}
@@ -982,28 +1012,22 @@ function syncAoVivo(){
 
 // Atualiza só o card de uma atividade no DOM sem re-renderizar tudo
 function _atualizarCardDom(actId){
-  [actId, actId+"_ped", actId+"_fm"].forEach(cid=>{
-    const card=document.getElementById(cid);
-    if(!card) return;
-    const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
-    const sg=statusGeral(atv);
-    const c=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
-    // Atualiza pill
-    const pill=card.querySelector(".activity-header .status-pill");
-    if(pill){pill.className=`status-pill ${c}`;pill.textContent=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";}
-    // Atualiza borda colorida
-    card.classList.remove("status-ok","status-pendente","status-atrasado");
-    card.classList.add(`status-${c}`);
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  [[actId,actId],[actId+"_ped",actId],[actId+"_fm",actId]].forEach(([cid,base])=>{
+    const old=document.getElementById(cid); if(!old) return;
+    const novo=buildCard(atv, base, cid);
+    if(old.classList.contains("open")) novo.classList.add("open");
+    old.replaceWith(novo);
   });
 }
 
 function _atualizarKpisRapido(){
   let tot=0,ok=0,pend=0,atras=0,chk=0;
-  dbAtv.forEach(a=>{const s=statusGeral(a);tot++;if(s==="OK") ok++;else if(s==="PENDENTE") pend++;else atras++;chk+=a.empresas.filter(e=>(a.empresasElegiveis||[]).includes(e.nome)).length;});
-  ["k-total","k-conc","k-pend","k-atras","k-chk"].forEach((id,i)=>{const el=document.getElementById(id);if(el) el.textContent=[tot,ok,pend,atras,chk][i];});
+  dbAtv.forEach(a=>{const s=statusGeral(a);tot++;if(s==="OK")ok++;else if(s==="PENDENTE")pend++;else atras++;chk+=a.empresas.filter(e=>(a.empresasElegiveis||[]).includes(e.nome)).length;});
+  [["k-total",tot],["k-conc",ok],["k-pend",pend],["k-atras",atras],["k-chk",chk]].forEach(([id,v])=>{const e=$el(id);if(e)e.textContent=v;});
   const pct=tot>0?Math.round((ok/tot)*100):0;
-  const pf=document.getElementById("prog-fill");if(pf) pf.style.width=pct+"%";
-  const pp=document.getElementById("prog-pct");if(pp) pp.textContent=pct+"%";
+  const pf=$el("prog-fill");if(pf)pf.style.width=pct+"%";
+  const pp=$el("prog-pct");if(pp)pp.textContent=pct+"%";
 }
 
 function iniciarLog(){
@@ -1209,43 +1233,118 @@ function getRespEmp(act,empNome){const k=empNome.replace(/[\/\.#\[\]\$]/g,"_");i
 // ═══════════════════════════════════════════
 // RENDER PRINCIPAL
 // ═══════════════════════════════════════════
-function renderizarPainel(){
-  // Renderiza nos três containers de grupo
-  const root=document.getElementById("activities-root");
-  const rootPed=document.getElementById("activities-root-ped");
-  const rootFm=document.getElementById("activities-root-fm");
-  const tRoot=document.getElementById("table-config-root");
-  if(!root&&!rootPed&&!rootFm) return;
-  const busca=(document.getElementById("search-input")||{}).value?.toLowerCase()||"";
-  const respF=(document.getElementById("filter-resp")||{}).value||"todos";
-  const areaF=(document.getElementById("filter-area")||{}).value||"todos";
-  const empF=(document.getElementById("filter-empresa")||{}).value||"todos";
-  const dataF=(document.getElementById("filter-data")||{}).value||"";
-  const previaF=(document.getElementById("filter-previa")||{}).value||"todos";
-  const pisF=(document.getElementById("filter-pis")||{}).value||"todos";
-  const eNome=(document.getElementById("edit-filter-nome")||{}).value?.toLowerCase()||"";
-  const eResp=(document.getElementById("edit-filter-resp")||{}).value||"todos";
-  const eArea=(document.getElementById("edit-filter-area")||{}).value||"todos";
-  const ehM=MASTERS.includes(userAtual)||subArea==="__ADMIN__";
-  const CONT=["Contábil","Contabilidade"];
+// ── Helpers ──────────────────────────────────────────────────
+function $el(id){return document.getElementById(id);}
+function $val(id,def="todos"){return ($el(id)||{}).value||def;}
+function ehMaster(){return MASTERS.includes(userAtual)||subArea==="__ADMIN__";}
+const CONT_AREAS=["Contábil","Contabilidade"];
+function isFM(act){const g=(act.grupo||"").toUpperCase();return g==="FM"||g==="F&M";}
 
-  const ords=[...dbAtv].sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
-  let tot=0,ok=0,pend=0,atras=0,chk=0;
-  let totPed=0,okPed=0,totFm=0,okFm=0;
-  const frag=document.createDocumentFragment();
-  const fragPed=document.createDocumentFragment();
-  const fragFm=document.createDocumentFragment();
+// ── buildCard — cria um card DOM para uma atividade ──────────
+function buildCard(act, baseId, cloneId){
+  const sg=statusGeral(act), dc=calcData(act.diaUtil), df=dc?dc.toLocaleDateString("pt-BR"):"—";
+  const pCls=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
+  const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
+  const ehM=ehMaster(), temEscrita=ehM||userAtual!=="Outra Área"&&(CONT_AREAS.includes(subArea)||act.responveisLista.includes(userAtual));
+
+  // Mini-barra de progresso
+  const empsEl=act.empresas.filter(e=>(act.empresasElegiveis||[]).includes(e.nome));
+  const nOk=empsEl.filter(e=>e.status==="OK"||e.status==="N/A").length;
+  const pctCard=empsEl.length?Math.round((nOk/empsEl.length)*100):0;
+  const barColor=pCls==="ok"?"var(--green)":pCls==="atrasado"?"var(--orange)":"var(--yellow)";
+
+  // Chips de responsável/área
+  const respExibir=CONT_AREAS.includes(act.area)?act.responveisLista:[act.area];
+  const chips=respExibir.map(r=>`<span class="owner-chip ${r==="A Atribuir"?"unassigned":""}" title="${r}">${CONT_AREAS.includes(act.area)?abrev(r):r}</span>`).join("");
+  const tagPre=act.previaReceita==="Sim"?'<span class="tag-previa">PRÉVIA</span>':"";
+
+  // Sub-rows
+  const subRows=act.empresas.map((emp,idx)=>{
+    if(!(act.empresasElegiveis||[]).includes(emp.nome)) return "";
+    const stamp=(emp.status==="OK"&&emp.dataConclusao)?`<span class="done-stamp">✓ ${emp.dataConclusao}</span>`:"";
+    const respEmp=getRespEmp(act,emp.nome);
+    const selCls=emp.status==="OK"?"sel-ok":emp.status==="N/A"?"sel-na":"sel-pendente";
+    const nameHtml=`<div class="sub-name"><div class="sub-name-top">🔹 ${emp.nome}</div><div class="sub-name-meta">${stamp}<span class="resp-chip">👤 ${abreviarNome(respEmp)}</span></div></div>`;
+    if(temEscrita) return `<div class="sub-row">${nameHtml}
+      <div><select class="status-select ${selCls}" onchange="alterarStatus('${baseId}',${idx},this.value);this.className='status-select '+(this.value==='OK'?'sel-ok':this.value==='N/A'?'sel-na':'sel-pendente')">
+        <option value="PENDENTE" ${emp.status==="PENDENTE"?"selected":""}>🟡 Pendente</option>
+        <option value="OK" ${emp.status==="OK"?"selected":""}>🟢 OK</option>
+        <option value="N/A" ${emp.status==="N/A"?"selected":""}>⚪ N/A</option>
+      </select></div>
+      <div><input type="text" placeholder="Evidência..." class="form-input" value="${emp.obs||""}" onchange="salvarObs('${baseId}',${idx},this.value)" style="width:100%;height:30px;font-size:12px;"></div>
+    </div>`;
+    const cls=emp.status==="OK"?"ok":emp.status==="N/A"?"na":"pendente";
+    return `<div class="sub-row">${nameHtml}<div><span class="status-pill ${cls}">${emp.status}</span></div><div style="font-size:12px;color:var(--muted);">${emp.obs||"—"}</div></div>`;
+  }).join("");
+
+  // Descritivo (só F&M)
+  const fmCard=isFM(act), temDesc=fmCard&&!!(act.descritivo||"").trim();
+  const descSection=fmCard?(temDesc
+    ?`<div style="padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">
+        <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${baseId}')">ℹ️ Ver descritivo</button>
+        <div class="desc-panel fm" id="desc-${cloneId}">
+          ${temEscrita?`<textarea class="desc-edit" onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`:`<span>${act.descritivo||""}</span>`}
+        </div>
+      </div>`
+    :(temEscrita?`<div style="padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+        <div class="desc-panel fm" id="desc-${cloneId}" style="display:none;"><textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()"></textarea></div>
+        <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${baseId}')">✏️ Adicionar descritivo</button>
+      </div>`:"")):"";
+
+  const card=document.createElement("div");
+  card.className=`activity-card status-${pCls}`;
+  card.id=cloneId;
+  card.innerHTML=`
+    <div class="activity-header" onclick="toggleCard('${cloneId}')">
+      <div class="act-title"><span class="act-title-arrow">▶</span><span style="line-height:1.4;">${act.atividade}${tagPre}</span>
+        <div class="card-prog"><div class="card-prog-bar"><div class="card-prog-fill" style="width:${pctCard}%;background:${barColor};"></div></div><span class="card-prog-txt">${nOk}/${empsEl.length}</span></div>
+      </div>
+      <div class="owners-row">${chips}</div>
+      <div class="act-area">📂 ${act.area}</div>
+      <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0?"+"+act.diaUtil:act.diaUtil}<br><span style="font-size:10px;opacity:.75;">${df}</span></div>
+      <div style="display:flex;justify-content:flex-end;"><span class="status-pill ${pCls}">${pTxt}</span></div>
+    </div>
+    <div class="subs-panel">
+      ${descSection}
+      <div class="sub-header-row">
+        <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência</div></div>
+        ${temEscrita?`<button class="ok-all-btn" onclick="okTodas('${baseId}')">✅ OK todas</button>`:""}
+      </div>
+      ${subRows}
+    </div>`;
+  return card;
+}
+
+// ── renderizarPainel ─────────────────────────────────────────
+function renderizarPainel(){
+  const root=$el("activities-root"), rootPed=$el("activities-root-ped"), rootFm=$el("activities-root-fm");
+  const tRoot=$el("table-config-root");
+  if(!root&&!rootPed&&!rootFm) return;
+
+  // Lê filtros
+  const busca=$val("search-input","").toLowerCase();
+  const respF=$val("filter-resp"), areaF=$val("filter-area"), empF=$val("filter-empresa");
+  const dataF=$val("filter-data",""), previaF=$val("filter-previa"), pisF=$val("filter-pis");
+  const eNome=$val("edit-filter-nome","").toLowerCase(), eResp=$val("edit-filter-resp"), eArea=$val("edit-filter-area");
+  const ehM=ehMaster();
+
+  const ords=[...dbAtv].sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db2=parseInt(b.diaUtil)||0;return da!==db2?da-db2:a.atividade.localeCompare(b.atividade,"pt-BR");});
+
+  let tot=0,ok=0,pend=0,atras=0,chk=0,totPed=0,okPed=0,totFm=0,okFm=0;
+  const fragAll=document.createDocumentFragment(), fragPed=document.createDocumentFragment(), fragFm=document.createDocumentFragment();
   const fragT=tRoot?document.createDocumentFragment():null;
   const porArea={},porEmp={},porResp={};
 
   ords.forEach(act=>{
     const sg=statusGeral(act), dc=calcData(act.diaUtil), df=dc?dc.toLocaleDateString("pt-BR"):"—";
-    // Filtros
+
+    // Filtros de acesso
     if(!ehM&&userAtual==="Outra Área"&&act.area.toLowerCase()!==subArea.toLowerCase()) return;
+    // Filtros de tela
     if(respF!=="todos"&&!act.responveisLista.includes(respF)) return;
     if(areaF!=="todos"&&act.area!==areaF) return;
     if(dataF&&dc&&dc>new Date(dataF+"T00:00:00")) return;
-    if(busca&&!act.atividade.toLowerCase().includes(busca)) return;
+    if(busca&&!act.atividade.toLowerCase().includes(busca)&&!act.area.toLowerCase().includes(busca)) return;
     if(empF!=="todos"&&!(act.empresasElegiveis||[]).includes(empF)) return;
     if(previaF!=="todos"&&(act.previaReceita||"Não")!==previaF) return;
     if(pisF==="Sim"&&!act.colunaPIS) return;
@@ -1254,14 +1353,14 @@ function renderizarPainel(){
     // Subtotais
     const el=act.empresas.filter(e=>(act.empresasElegiveis||[]).includes(e.nome));
     el.forEach(e=>{
+      const r=getRespEmp(act,e.nome)||"A Atribuir";
       if(!porEmp[e.nome]) porEmp[e.nome]={total:0,ok:0};
       porEmp[e.nome].total++;if(e.status==="OK") porEmp[e.nome].ok++;
-      const r=getRespEmp(act,e.nome)||"A Atribuir";
       if(!porResp[r]) porResp[r]={total:0,ok:0};
       porResp[r].total++;if(e.status==="OK") porResp[r].ok++;
     });
     if(!porArea[act.area]) porArea[act.area]={total:0,ok:0};
-    porArea[act.area].total+=el.length;porArea[act.area].ok+=el.filter(e=>e.status==="OK").length;
+    porArea[act.area].total+=el.length; porArea[act.area].ok+=el.filter(e=>e.status==="OK").length;
     chk+=el.length;
 
     // Tabela config
@@ -1271,14 +1370,8 @@ function renderizarPainel(){
         const tr=document.createElement("tr");
         const tags=(act.empresasElegiveis||[]).map(s=>`<span class="comp-tag">${s.substring(0,4)}</span>`).join("");
         const avChips=(act.responveisLista||[]).map(p=>{const ini=p.split(" ").filter(w=>w).map(w=>w[0]).join("").substring(0,2).toUpperCase();return`<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;background:#e0eaff;color:#185FA5;font-size:10px;font-weight:700;">${ini}</span>`;}).join("");
-        const rmMap=act.responsaveisPorEmpresa||{};
-        const rmCount=Object.keys(rmMap).length;
-        const rmBtn=rmCount>0
-          ?`<button class="comp-badge-btn" style="color:var(--blue);border-color:var(--blue);" onclick="abrirModalRespMarca('${act.id}')">✓ ${rmCount} atribuído${rmCount>1?"s":""}</button>`
-          :`<button class="comp-badge-btn" style="color:var(--muted);" onclick="abrirModalRespMarca('${act.id}')">— Atribuir</button>`;
-        const gAtv=act.grupo||"Pedagogico";
-        const gAtvLabel=gAtv==="FM"||gAtv==="F&M"?"💼 F&M":"🎓 Ped.";
-        const gAtvCls=gAtv==="FM"||gAtv==="F&M"?"fm":"ped";
+        const rmMap=act.responsaveisPorEmpresa||{}, rmCount=Object.keys(rmMap).length;
+        const rmBtn=rmCount>0?`<button class="comp-badge-btn" style="color:var(--blue);border-color:var(--blue);" onclick="abrirModalRespMarca('${act.id}')">✓ ${rmCount} atribuído${rmCount>1?"s":""}</button>`:`<button class="comp-badge-btn" style="color:var(--muted);" onclick="abrirModalRespMarca('${act.id}')">— Atribuir</button>`;
         tr.innerHTML=`<td><input class="nome-edit" value="${act.atividade}" onchange="atualizarCampo('${act.id}','atividade',this.value)"></td>
           <td>${areaSelHtml(act.area,act.id)}</td>
           <td><select class="form-input" style="padding:4px 7px;height:30px;" onchange="atualizarCampo('${act.id}','grupo',this.value)"><option value="Pedagogico" ${(act.grupo||"Pedagogico")==="Pedagogico"?"selected":""}>🎓 Pedagógico</option><option value="FM" ${act.grupo==="FM"?"selected":""}>💼 F&M</option></select></td>
@@ -1295,129 +1388,44 @@ function renderizarPainel(){
     }
 
     if(filtroStatus==="NAO_OK"){if(sg==="OK") return;}else if(filtroStatus!=="todos"&&sg!==filtroStatus) return;
-    tot++;if(sg==="OK") ok++;else if(sg==="PENDENTE") pend++;else if(sg==="ATRASADO") atras++;
+    tot++;if(sg==="OK") ok++;else if(sg==="PENDENTE") pend++;else atras++;
 
-    // Permissão de escrita
-    let temEscrita=false;
-    if(ehM) temEscrita=true;
-    else if(userAtual!=="Outra Área"){if(CONT.includes(subArea)) temEscrita=true;else if(act.responveisLista.includes(userAtual)) temEscrita=true;}
+    // Grupo
+    const fm=isFM(act);
+    if(fm){totFm++;if(sg==="OK") okFm++;}else{totPed++;if(sg==="OK") okPed++;}
 
-    // Sub-rows com responsável por empresa
-    const subRows=act.empresas.map((emp,idx)=>{
-      if(!(act.empresasElegiveis||[]).includes(emp.nome)) return "";
-      const stamp=(emp.status==="OK"&&emp.dataConclusao)?`<span class="done-stamp">✓ ${emp.dataConclusao}</span>`:"";
-      const respEmp=getRespEmp(act,emp.nome);
-      const respChip=`<span class="resp-chip" title="${respEmp}">👤 ${abreviarNome(respEmp)}</span>`;
-      const subNameHtml=`<div class="sub-name">
-        <div class="sub-name-top">🔹 ${emp.nome}</div>
-        <div class="sub-name-meta">${stamp}${respChip}</div>
-      </div>`;
-      if(temEscrita) return `<div class="sub-row">
-          ${subNameHtml}
-          <div><select class="status-select" onchange="alterarStatus('${act.id}',${idx},this.value)">
-            <option value="PENDENTE" ${emp.status==="PENDENTE"?"selected":""}>🟡 PENDENTE</option>
-            <option value="OK" ${emp.status==="OK"?"selected":""}>🟢 OK</option>
-            <option value="N/A" ${emp.status==="N/A"?"selected":""}>🟣 N/A</option>
-          </select></div>
-          <div><input type="text" placeholder="Evidência..." class="form-input" value="${emp.obs||""}" onchange="salvarObs('${act.id}',${idx},this.value)" style="width:100%;height:32px;"></div>
-        </div>`;
-      const cls=emp.status==="OK"?"ok":emp.status==="N/A"?"na":"pendente";
-      return `<div class="sub-row">
-        ${subNameHtml}
-        <div><span class="status-pill ${cls}">${emp.status}</span></div>
-        <div><input class="form-input" disabled value="${emp.obs||"— Leitura"}" style="width:100%;height:32px;"></div>
-      </div>`;
-    }).join("");
-
-    const CONT2=["Contábil","Contabilidade"];
-    const respExibir=CONT2.includes(act.area)?act.responveisLista:[act.area];
-    const chips=respExibir.map(r=>`<span class="owner-chip ${r==="A Atribuir"?"unassigned":""}" title="${r}">${CONT2.includes(act.area)?abrev(r):r}</span>`).join("");
-    const tagPre=act.previaReceita==="Sim"?'<span class="tag-previa">PRÉVIA</span>':"";
-    const pCls=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
-    const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
-
-    const card=document.createElement("div");
-    const isFmCard=(act.grupo||"").toUpperCase()==="FM";
-    const temDesc=isFmCard&&!!(act.descritivo||"").trim();
-    // Descritivo só aparece em atividades F&M
-    const descBtnHtml=isFmCard&&temDesc
-      ?`<button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${act.id}')">ℹ️ Ver descritivo</button>`
-      :"";
-    const descPanelHtml=isFmCard
-      ?(temDesc
-        ?`<div class="desc-panel fm" id="desc-${act.id}">
-            ${temEscrita
-              ?`<textarea class="desc-edit" onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
-              :`<span>${act.descritivo||""}</span>`
-            }
-          </div>`
-        :(temEscrita
-          ?`<div class="desc-panel fm" id="desc-${act.id}" style="display:none;">
-                <textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${act.id}',this.value)" onclick="event.stopPropagation()"></textarea>
-              </div>
-              <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${act.id}')">✏️ Adicionar descritivo</button>`
-          :""))
-      :"";
-
-    // Aplica classe de status na borda do card
-    card.className=`activity-card status-${pCls}`;
-    card.id=act.id;
-    card.innerHTML=`<div class="activity-header" onclick="toggleCard('${act.id}')">
-        <div class="act-title"><span class="act-title-arrow">▶</span><span style="line-height:1.4;">${act.atividade}${tagPre}</span></div>
-        <div class="owners-row">${chips}</div>
-        <div class="act-area">📂 ${act.area}</div>
-        <div class="act-days">D.U. ${parseInt(act.diaUtil)>=0?"+"+act.diaUtil:act.diaUtil}<br><span style="font-size:10px;opacity:.75;">${df}</span></div>
-        <div style="display:flex;justify-content:flex-end;"><span class="status-pill ${pCls}">${pTxt}</span></div>
-      </div>
-      <div class="subs-panel">
-        ${descBtnHtml?`<div style="padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">${descBtnHtml}${descPanelHtml}</div>`:""}
-        <div class="sub-header-row">
-          <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência</div></div>
-          ${temEscrita?`<button class="ok-all-btn" onclick="okTodas('${act.id}')">✅ OK todas</button>`:""}
-        </div>
-        ${subRows}
-      </div>`;
-    // Contabiliza por grupo
-    const grupoAtv=(act.grupo||"Pedagogico").toUpperCase();
-    if(grupoAtv==="FM"||grupoAtv==="F&M"||grupoAtv==="F M"){totFm++;if(sg==="OK") okFm++;}
-    else{totPed++;if(sg==="OK") okPed++;}
-
-    // Clone para o container do grupo correto E para "Todas"
-    frag.appendChild(card);
-    if(grupoAtv==="FM"||grupoAtv==="F&M"||grupoAtv==="F M"){
-      const cardFm=card.cloneNode(true); cardFm.id=act.id+"_fm"; fragFm.appendChild(cardFm);
-    } else {
-      const cardPed=card.cloneNode(true); cardPed.id=act.id+"_ped"; fragPed.appendChild(cardPed);
-    }
+    // Constrói card base (para "Todas") e clone para grupo
+    const cardBase=buildCard(act, act.id, act.id);
+    fragAll.appendChild(cardBase);
+    const suffix=fm?"_fm":"_ped";
+    const cardClone=buildCard(act, act.id, act.id+suffix);
+    if(fm) fragFm.appendChild(cardClone); else fragPed.appendChild(cardClone);
   });
 
-  if(root){root.innerHTML=""; root.appendChild(frag);}
-  if(rootPed){rootPed.innerHTML=""; rootPed.appendChild(fragPed);}
-  if(rootFm){rootFm.innerHTML=""; rootFm.appendChild(fragFm);}
+  if(root){root.innerHTML="";root.appendChild(fragAll);}
+  if(rootPed){rootPed.innerHTML="";rootPed.appendChild(fragPed);}
+  if(rootFm){rootFm.innerHTML="";rootFm.appendChild(fragFm);}
   if(tRoot&&fragT){tRoot.innerHTML="";tRoot.appendChild(fragT);}
 
   // KPIs
-  ["k-total","k-conc","k-pend","k-atras","k-chk"].forEach((id,i)=>{const el=document.getElementById(id);if(el) el.textContent=[tot,ok,pend,atras,chk][i];});
+  [["k-total",tot],["k-conc",ok],["k-pend",pend],["k-atras",atras],["k-chk",chk]].forEach(([id,v])=>{const e=$el(id);if(e)e.textContent=v;});
   const pct=tot>0?Math.round((ok/tot)*100):0;
-  const pf=document.getElementById("prog-fill");if(pf) pf.style.width=pct+"%";
-  const pp=document.getElementById("prog-pct");if(pp) pp.textContent=pct+"%";
-  // Barras de progresso por grupo
+  const pf=$el("prog-fill");if(pf)pf.style.width=pct+"%";
+  const pp=$el("prog-pct");if(pp)pp.textContent=pct+"%";
+
+  // Progresso por grupo
   const pctPed=totPed>0?Math.round((okPed/totPed)*100):0;
   const pctFm=totFm>0?Math.round((okFm/totFm)*100):0;
-  const _gSet=(id,val)=>{const e=document.getElementById(id);if(e) e.textContent=val;};
-  const _gStyle=(id,prop,val)=>{const e=document.getElementById(id);if(e) e.style[prop]=val;};
-  _gStyle("gp-geral-fill","width",pct+"%"); _gSet("gp-geral-pct",pct+"%"); _gSet("gp-geral-sub",tot+" atividade"+(tot!==1?"s":""));
-  _gStyle("gp-ped-fill","width",pctPed+"%"); _gSet("gp-ped-pct",pctPed+"%"); _gSet("gp-ped-sub",totPed+" atividade"+(totPed!==1?"s":""));
-  _gStyle("gp-fm-fill","width",pctFm+"%"); _gSet("gp-fm-pct",pctFm+"%"); _gSet("gp-fm-sub",totFm+" atividade"+(totFm!==1?"s":""));
+  [["gp-ped-fill",pctPed+"%","width"],["gp-fm-fill",pctFm+"%","width"]].forEach(([id,v,p])=>{const e=$el(id);if(e)e.style[p]=v;});
+  [["gp-ped-pct",pctPed+"%"],["gp-fm-pct",pctFm+"%"],["gp-ped-sub",` · ${totPed} ativ.`],["gp-fm-sub",` · ${totFm} ativ.`]].forEach(([id,v])=>{const e=$el(id);if(e)e.textContent=v;});
 
   // Área progress
-  const apg=document.getElementById("area-prog-grid");
-  if(apg) apg.innerHTML=Object.entries(porArea).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([area,v])=>{
+  const apg=$el("area-prog-grid");
+  if(apg)apg.innerHTML=Object.entries(porArea).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([area,v])=>{
     const p=v.total>0?Math.round((v.ok/v.total)*100):0;
     return`<div class="area-prog-item"><div class="area-prog-label"><span class="area-prog-name">${area}</span><span class="area-prog-pct">${v.ok}/${v.total} · ${p}%</span></div><div class="area-prog-bar"><div class="area-prog-fill" style="width:${p}%"></div></div></div>`;
   }).join("");
 
-  // Subtotais
   renderSubtotais(porResp,porEmp,porArea);
   renderPrevia();
   renderAlertas();
@@ -1475,7 +1483,16 @@ function renderAlertas(){
 // ═══════════════════════════════════════════
 // AÇÕES NOS CARDS
 // ═══════════════════════════════════════════
-function toggleCard(id){document.getElementById(id)?.classList.toggle("open");}
+function toggleCard(id){
+  // id pode vir como "actId", "actId_ped" ou "actId_fm" — normaliza pro id base
+  const baseId=id.replace(/_ped$|_fm$/,"");
+  const isOpen=!document.getElementById(baseId)?.classList.contains("open");
+  // Sincroniza todos os clones (todos, ped, fm)
+  [baseId, baseId+"_ped", baseId+"_fm"].forEach(cid=>{
+    const el=document.getElementById(cid);
+    if(el) el.classList.toggle("open", isOpen);
+  });
+}
 
 function alterarStatus(actId,empIdx,status){
   const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
@@ -1483,16 +1500,10 @@ function alterarStatus(actId,empIdx,status){
   atv.empresas[empIdx].dataConclusao=(status==="OK"||status==="N/A")?ts():"";
   const empNome=atv.empresas[empIdx].nome||"";
   salvarAtividade(actId,`${status==="OK"?"Concluiu":status==="N/A"?"Marcou N/A em":"Atualizou"} "${atv.atividade}" · ${empNome}`);
-  // Atualização cirúrgica DOM
-  const card=document.getElementById(actId); if(!card) return;
-  const sg=statusGeral(atv);
-  const pill=card.querySelector(".activity-header .status-pill");
-  if(pill){const c=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";pill.className=`status-pill ${c}`;pill.textContent=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";}
-  const els=atv.empresas.filter(e=>(atv.empresasElegiveis||[]).includes(e.nome));
-  const eIdx=els.findIndex(e=>e.nome===empNome);
-  if(eIdx>=0){const ns=card.querySelectorAll(".sub-name");if(ns[eIdx]){const meta=ns[eIdx].querySelector(".sub-name-meta");if(meta){let st=meta.querySelector(".done-stamp");if((status==="OK"||status==="N/A")&&atv.empresas[empIdx].dataConclusao){if(!st){st=document.createElement("span");st.className="done-stamp";meta.insertBefore(st,meta.firstChild);}st.textContent="✓ "+atv.empresas[empIdx].dataConclusao;}else{if(st) st.remove();}}}}
-  kpisRapido();
-  if(document.getElementById("tab-pis").classList.contains("active")) renderPIS();
+  // Atualiza DOM em todos os clones
+  _atualizarCardDom(actId);
+  _atualizarKpisRapido();
+  if($el("tab-pis")?.classList.contains("active")) renderPIS();
   showToast("✓ Status salvo!");
 }
 
