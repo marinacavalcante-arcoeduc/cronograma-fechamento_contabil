@@ -1004,8 +1004,17 @@ async function init(){
   initFB();
   document.getElementById("skeleton-view").style.display="block";
   document.getElementById("app-view").style.display="none";
-  // Popula login imediatamente com dados default (sem esperar Firebase)
+  // Popula login imediatamente — antes do Firebase, já mostra Admin/Tributário
+  // O overlay pode ainda estar hidden, mas o select já fica pronto
   popularLogin();
+  // Também mostra o overlay agora caso o Firebase demore muito
+  // (o overlay fecha sozinho após login ou se sessionStorage já tiver sessão)
+  setTimeout(()=>{
+    if(document.getElementById("login-overlay")?.classList.contains("hidden")===false) return;
+    // Firebase ainda não voltou — exibe o login com o que temos
+    document.getElementById("login-overlay")?.classList.remove("hidden");
+    popularLogin();
+  }, 2000);
   try{
     const snap=await _fbRef.once("value"), d=snap.val();
     if(d){
@@ -1072,22 +1081,30 @@ async function init(){
 // ═══════════════════════════════════════════
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
-  const areas=new Set(AREAS); dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
-  if(!areas.size){
-    // Firebase ainda não respondeu
-    sel.innerHTML='<option value="">⏳ Aguardando dados...</option>';
-    sel.disabled=true;
-    // Tenta novamente em 800ms — cobre casos de conexão lenta
-    clearTimeout(window._loginRetry);
-    window._loginRetry=setTimeout(popularLogin, 800);
-    return;
-  }
-  clearTimeout(window._loginRetry);
+
+  // Coleta áreas: do Firebase se já carregou, senão extrai das atividades em memória
+  const areas=new Set(AREAS);
+  dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
+
+  // Se ainda sem dados do Firebase, mostra as opções fixas (Admin/Tributário + leitura geral)
+  // para nunca deixar o select vazio — áreas específicas aparecem assim que o Firebase chegar
   sel.disabled=false;
+  const areaOpts=areas.size>0
+    ? Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("")
+    : '<option value="__LEITURA__">👁 Acessar como visitante</option>';
+
   sel.innerHTML='<option value="">— Selecione a área —</option>'
     +'<option value="__ADMIN__">🛡 Administrador</option>'
     +'<option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'
-    +Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
+    +areaOpts;
+
+  // Se Firebase ainda não chegou, agenda re-população quando chegar
+  if(!areas.size){
+    clearTimeout(window._loginRetry);
+    window._loginRetry=setTimeout(popularLogin, 600);
+  } else {
+    clearTimeout(window._loginRetry);
+  }
   filtrarRespsLogin();
 }
 function filtrarRespsLogin(){
