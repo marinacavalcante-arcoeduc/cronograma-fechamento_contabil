@@ -690,8 +690,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
           <input type="file" id="file-import" style="display:none;" onchange="importarCSV(event)">
         </div>
       </div>
-      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;">
-        <table class="config-table"><thead><tr><th>Nome</th><th>Área</th><th>Grupo</th><th>Responsáveis</th><th>Marcas</th><th>Resp. por marca</th><th>Prévia?</th><th>D.U.</th><th>Data</th><th>PIS/COFINS</th><th style="text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0;">
+        <table class="config-table" style="table-layout:fixed;width:100%;"><thead><tr><th style="width:22%;">Nome</th><th style="width:10%;">Área</th><th style="width:10%;">Grupo</th><th style="width:11%;">Responsáveis</th><th style="width:13%;">Marcas</th><th style="width:10%;">Resp. por marca</th><th style="width:6%;">Prévia?</th><th style="width:5%;">D.U.</th><th style="width:7%;">Data</th><th style="width:9%;">PIS/COFINS</th><th style="width:4%;text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
       </div>
     </div>
     <div class="form-card">
@@ -2149,9 +2149,9 @@ const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
 function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
 
 function calGetAtvDoUsuario(){
-  // Filtra atividades conforme perfil do usuário logado
-  if(ehM) return dbAtv; // admin vê tudo
-  return dbAtv.filter(a=>a.area===subArea);
+  if(ehMaster()||subArea==="__TRIBUTARIO__") return dbAtv;
+  if(userAtual==="Outra Área") return dbAtv.filter(a=>a.area.toLowerCase()===subArea.toLowerCase());
+  return dbAtv.filter(a=>a.area===subArea||(a.responveisLista||[]).includes(userAtual));
 }
 
 function calCalcularData(a){
@@ -2201,7 +2201,7 @@ function renderCalendario(){
   const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
   document.getElementById("cal-titulo").textContent=`${nomeMes} ${ano}`;
 
-  const isAdmin=ehM;
+  const isAdmin=ehMaster();
   document.getElementById("cal-scope-label").textContent=isAdmin?"Visão: todas as áreas":`Visão: ${subArea}`;
 
   const atv=calGetAtvDoUsuario();
