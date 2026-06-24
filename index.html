@@ -24,16 +24,16 @@ body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-
 
 
 /* INSTRUÇÃO (descritivo integrado, visível por padrão) */
-.instrucao-box{background:#f0f7ff;border-left:3px solid var(--cyan);border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1e3a5f;line-height:1.6;position:relative;}
+.instrucao-box{background:#f0f7ff;border-left:3px solid var(--cyan);border-radius:0 8px 8px 0;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#1e3a5f;line-height:1.5;position:relative;}
 .instrucao-box.fm{background:var(--fm-bg);border-left-color:var(--fm);color:#3b1f7a;}
-.instrucao-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;}
-.instrucao-edit{width:100%;min-height:52px;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:inherit;resize:vertical;outline:none;background:#fff;color:var(--text);line-height:1.6;}
+.instrucao-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
+.instrucao-edit{width:100%;min-height:32px;height:32px;border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;resize:vertical;outline:none;background:#fff;color:var(--text);line-height:1.5;transition:height .2s;}.instrucao-edit:focus{height:80px;}
 .instrucao-edit:focus{border-color:var(--blue);}
 .instrucao-placeholder{color:var(--muted);font-style:italic;}
 
 /* OBS GERAL DA ATIVIDADE */
-.obs-geral-box{background:#fffbeb;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;padding:8px 14px;margin-bottom:10px;font-size:12px;}
-.obs-geral-edit{width:100%;border:1px dashed #fde047;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;background:#fffef5;outline:none;resize:none;}
+.obs-geral-box{background:#fffbeb;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;padding:5px 12px;margin-bottom:8px;font-size:12px;}
+.obs-geral-edit{width:100%;height:28px;border:1px dashed #fde047;border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;background:#fffef5;outline:none;resize:none;transition:height .2s;}.obs-geral-edit:focus{height:64px;}
 .obs-geral-edit:focus{border-color:#f59e0b;border-style:solid;}
 
 /* HISTÓRICO NO CARD */
@@ -1708,30 +1708,9 @@ function alterarStatus(actId,empIdx,status){
   const todasOk=atv.empresas.filter(e=>eligs.includes(e.nome)).every(e=>e.status==="OK"||e.status==="N/A");
   if(todasOk) dispararConfete();
 
-  // Salva campo específico da empresa — com fallback robusto
-  if(!_fbDb){showToast("⚠️ Sem conexão.");return;}
-  const empPath=`cronograma/atividadesMap/${actId}/empresas/${empIdx}`;
-  _fbDb.ref(empPath).transaction(atual=>{
-    // Se null (campo não existe ainda no Firebase), cria com os dados locais
-    const base=atual||atv.empresas[empIdx]||{};
-    return {...base, status, dataConclusao};
-  }).then(result=>{
-    if(!result.committed){
-      // Transaction não commitou — usa salvarAtividade como fallback
-      salvarAtividade(actId,acao);
-      return;
-    }
-    const tsNow=Date.now();
-    _fbRef.update({"_ts":tsNow,"_savedBy":userAtual||"sistema"});
-    _tsSave=tsNow; _tsCarregado=tsNow;
-    atualizarSave();
-    logAcao(acao);
-    showToast("✓ Status salvo!");
-  }).catch(e=>{
-    console.error("Transaction falhou, usando fallback:",e);
-    salvarAtividade(actId,acao);
-    showToast("✓ Status salvo!");
-  });
+  // Salva atividade inteira — simples e confiável
+  salvarAtividade(actId, acao);
+  showToast("✓ Status salvo!");
 }
 
 function okTodas(actId){
@@ -1744,28 +1723,12 @@ function okTodas(actId){
     if(elegiveis.includes(e.nome)){atv.empresas[i].status="OK";atv.empresas[i].dataConclusao=t;}
   });
 
-  // Transaction por empresa elegível
-  const promises=atv.empresas.map((e,i)=>{
-    if(!elegiveis.includes(e.nome)) return Promise.resolve();
-    return _fbDb.ref(`cronograma/atividadesMap/${actId}/empresas/${i}`)
-      .transaction(atual=>({...(atual||atv.empresas[i]||{}),status:"OK",dataConclusao:t}));
-  });
-
-  Promise.all(promises).then(()=>{
-    const tsNow=Date.now();
-    _fbRef.update({"_ts":tsNow,"_savedBy":userAtual||"sistema"});
-    _tsSave=tsNow; _tsCarregado=tsNow;
-    logAcao(`OK em todas de "${atv.atividade}"`);
-    atualizarSave();
-    const abertos=Array.from(document.querySelectorAll(".activity-card.open")).map(c=>c.id);
-    const sy=window.scrollY; renderizarPainel(); abertos.forEach(id=>document.getElementById(id)?.classList.add("open")); window.scrollTo(0,sy);
-    if($el("tab-pis")?.classList.contains("active")) renderPIS();
-    showToast("✅ Todas OK!");
-  }).catch(e=>{
-    console.error("okTodas transaction falhou:",e);
-    salvarAtividade(actId,`OK em todas de "${atv.atividade}"`);
-    showToast("✅ Todas OK!");
-  });
+  // Salva atividade inteira
+  salvarAtividade(actId, `OK em todas de "${atv.atividade}"`);
+  const abertos=Array.from(document.querySelectorAll(".activity-card.open")).map(c=>c.id);
+  const sy=window.scrollY; renderizarPainel(); abertos.forEach(id=>document.getElementById(id)?.classList.add("open")); window.scrollTo(0,sy);
+  if($el("tab-pis")?.classList.contains("active")) renderPIS();
+  showToast("✅ Todas OK!");
 }
 
 function salvarObs(actId,idx,txt){const atv=dbAtv.find(a=>a.id===actId);if(!atv) return;atv.empresas[idx].obs=txt;salvarAtividade(actId);}
