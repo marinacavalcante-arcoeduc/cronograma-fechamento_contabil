@@ -24,16 +24,20 @@ body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-
 
 
 /* INSTRUÇÃO (descritivo integrado, visível por padrão) */
-.instrucao-box{background:#f0f7ff;border-left:3px solid var(--cyan);border-radius:0 8px 8px 0;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#1e3a5f;line-height:1.5;position:relative;}
-.instrucao-box.fm{background:var(--fm-bg);border-left-color:var(--fm);color:#3b1f7a;}
-.instrucao-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
-.instrucao-edit{width:100%;min-height:32px;height:32px;border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;resize:vertical;outline:none;background:#fff;color:var(--text);line-height:1.5;transition:height .2s;}.instrucao-edit:focus{height:80px;}
+.instrucao-box{display:flex;align-items:baseline;gap:8px;padding:6px 0;margin-bottom:8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);}
+.instrucao-box.fm{color:#5b21b6;}
+.instrucao-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+/* evidencia-input — campo único nota/evidência por empresa */
+.evid-input{width:100%;height:28px;border:1px solid transparent;border-radius:6px;padding:3px 8px;font-size:12px;font-family:inherit;background:transparent;color:var(--text);outline:none;transition:all .15s;}
+.evid-input:hover{border-color:var(--border);background:#f8fafc;}
+.evid-input:focus{border-color:var(--blue);background:#fff;height:52px;}
+.instrucao-edit{width:100%;height:28px;border:none;border-radius:0;padding:2px 0;font-size:12px;font-family:inherit;resize:none;outline:none;background:transparent;color:var(--text);line-height:1.5;}.instrucao-edit:focus{height:64px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:5px 10px;}
 .instrucao-edit:focus{border-color:var(--blue);}
 .instrucao-placeholder{color:var(--muted);font-style:italic;}
 
 /* OBS GERAL DA ATIVIDADE */
-.obs-geral-box{background:#fffbeb;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;padding:5px 12px;margin-bottom:8px;font-size:12px;}
-.obs-geral-edit{width:100%;height:28px;border:1px dashed #fde047;border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;background:#fffef5;outline:none;resize:none;transition:height .2s;}.obs-geral-edit:focus{height:64px;}
+/* obs-geral-box removida */
+/* obs-geral removida — absorvida pela evidência por empresa */
 .obs-geral-edit:focus{border-color:#f59e0b;border-style:solid;}
 
 /* HISTÓRICO NO CARD */
@@ -1359,36 +1363,26 @@ function buildCard(act, baseId, cloneId){
   const chips=respExibir.map(r=>`<span class="owner-chip ${r==="A Atribuir"?"unassigned":""}" title="${r}">${CONT_AREAS.includes(act.area)?abrev(r):r}</span>`).join("");
   const tagPre=act.previaReceita==="Sim"?'<span class="tag-previa">PRÉVIA</span>':"";
 
-  // Instrução (descritivo) — visível por padrão, para todos
+  // Instrução — só aparece se tiver conteúdo ou for editável (uma linha compacta)
   const fmCard=isFM(act);
   const temInstr=!!(act.descritivo||"").trim();
   let instrSection="";
-  if(temInstr){
-    instrSection=`<div class="instrucao-box ${fmCard?"fm":""}">
-      <div class="instrucao-label">📋 O que fazer</div>
-      ${podeEditar
-        ?`<textarea class="instrucao-edit" onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
-        :`<div>${act.descritivo||""}</div>`}
-    </div>`;
-  } else if(podeEditar){
-    instrSection=`<div class="instrucao-box ${fmCard?"fm":""}" style="background:#f8fafc;border-left-color:#e2e8f0;">
-      <div class="instrucao-label">📋 O que fazer</div>
-      <textarea class="instrucao-edit" placeholder="Adicione uma instrução de execução..." onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()"></textarea>
-    </div>`;
+  if(temInstr||podeEditar){
+    const instrContent=temInstr
+      ?(podeEditar
+        ?`<textarea class="instrucao-edit" onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()" title="Clique para editar">${act.descritivo||""}</textarea>`
+        :`<span style="color:var(--text);font-style:normal;">${act.descritivo}</span>`)
+      :(podeEditar
+        ?`<textarea class="instrucao-edit" placeholder="Adicione uma instrução..." onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()"></textarea>`
+        :"");
+    if(instrContent){
+      instrSection=`<div class="instrucao-box ${fmCard?"fm":""}">
+        <span class="instrucao-label">📋 Instrução</span>
+        ${instrContent}
+      </div>`;
+    }
   }
-
-  // Obs geral da atividade
-  const temObsGeral=!!(act.obsGeral||"").trim();
-  let obsGeralSection="";
-  if(podeEditar||temObsGeral){
-    obsGeralSection=`<div class="obs-geral-box">
-      <div class="instrucao-label">💬 Observação geral</div>
-      ${podeEditar
-        ?`<textarea class="obs-geral-edit" rows="1" placeholder="Ex: aguardando retorno do fiscal..." onchange="salvarObsGeral('${baseId}',this.value)" onclick="event.stopPropagation()">${act.obsGeral||""}</textarea>`
-        :(temObsGeral?`<div style="font-size:12px;">${act.obsGeral}</div>`:"")
-      }
-    </div>`;
-  }
+  const obsGeralSection=""; // removido — absorvido por nota/evidência por empresa
 
   // Histórico da atividade (últimas 5 entradas do log)
   const histItems=(act._hist||[]).slice(-5).reverse();
@@ -1417,12 +1411,12 @@ function buildCard(act, baseId, cloneId){
         <option value="OK" ${emp.status==="OK"?"selected":""}>🟢 OK</option>
         <option value="N/A" ${emp.status==="N/A"?"selected":""}>⚪ N/A</option>
       </select></div>
-      <div><input type="text" placeholder="Evidência / link do Drive..." class="form-input" value="${emp.obs||""}" onchange="salvarObs('${baseId}',${idx},this.value)" style="width:100%;height:30px;font-size:12px;"></div>
+      <div><textarea class="evid-input" placeholder="Nota, evidência, link do Drive..." onchange="salvarObs('${baseId}',${idx},this.value)" onclick="event.stopPropagation()" rows="1">${emp.obs||""}</textarea></div>
     </div>`;
     const cls=emp.status==="OK"?"ok":emp.status==="N/A"?"na":"pendente";
     return `<div class="sub-row">${nameHtml}
       <div><span class="status-pill ${cls}">${emp.status}</span></div>
-      <div style="font-size:12px;color:var(--muted);">${emp.obs||"—"}</div>
+      <div style="font-size:12px;color:var(--muted);padding:3px 0;">${emp.obs||"—"}</div>
     </div>`;
   }).join("");
 
@@ -1447,7 +1441,7 @@ function buildCard(act, baseId, cloneId){
       ${instrSection}
       ${obsGeralSection}
       <div class="sub-header-row">
-        <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência / Link</div></div>
+        <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Nota / Evidência</div></div>
         ${podeEditar?`<button class="ok-all-btn" onclick="okTodas('${baseId}')">✅ OK todas</button>`:""}
       </div>
       ${subRows}
