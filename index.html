@@ -700,10 +700,12 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
           <button class="btn-arco slate" onclick="baixarModelo()" style="height:34px;">📥 Modelo CSV Ped.</button>
           <button class="btn-arco" style="background:#1e293b;height:34px;" onclick="document.getElementById('file-import').click()">📤 Importar Ped.</button>
           <input type="file" id="file-import" style="display:none;" onchange="importarCSV(event)">
-          <div style="width:1px;height:22px;background:var(--border);margin:0 4px;"></div>
-          <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="baixarModeloFM()">📥 Modelo F&amp;M</button>
-          <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
-          <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
+          <span id="fm-action-bar" style="display:none;align-items:center;gap:8px;">
+            <div style="width:1px;height:22px;background:var(--border);margin:0 4px;"></div>
+            <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="baixarModeloFM()">📥 Modelo F&amp;M</button>
+            <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
+            <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
+          </span>
         </div>
       </div>
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0;">
@@ -1207,6 +1209,8 @@ function aplicarLogin(){
   document.getElementById("tab-link-periodo").style.display=ehM?"":"none";
   document.getElementById("tab-link-calendario").style.display="";
   document.getElementById("admin-bar").style.display=ehM?"flex":"none";
+  const fmBar=document.getElementById("fm-action-bar");
+  if(fmBar) fmBar.style.display=ehM?"flex":"none";
   if(ehM) iniciarLog();
   const fR=document.getElementById("filter-resp"),fA=document.getElementById("filter-area");
   if(!ehM&&fR&&userAtual!=="Outra Área"&&Array.from(fR.options).some(o=>o.value===userAtual)) fR.value=userAtual;
