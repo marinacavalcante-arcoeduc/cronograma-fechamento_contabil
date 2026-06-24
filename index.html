@@ -842,7 +842,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 // ═══════════════════════════════════════════
 // DADOS & ESTADO
 // ═══════════════════════════════════════════
-let PROF = ["Alayde Peruna","Ana Beatriz Vieira Almeida","Danielle Mota Dias De Araujo","Eliomar Vieira Alves","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jessica Elen Silveira Raulino","Jhenyffer Maria Cavalcante Pessoa","Jose Francisco Domingos Da Silva Junior","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Lorca Cabral Tordin","Vitoria Mansur Kuntz"];
+let PROF = ["Alayde Peruna","Ana Beatriz Vieira Almeida","Danielle Mota Dias De Araujo","Eliomar Vieira Alves","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jessica Elen Silveira Raulino","Jhenyffer Maria Cavalcante Pessoa","Jose Francisco Domingos Da Silva Junior","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Tordin","Vitoria Mansur Kuntz"];
 const MASTERS = ["Natanael Ferreira De Sousa","Jose Francisco Domingos Da Silva Junior","Marina Maria Teixeira Cavalcante"];
 let EMPS = ["Arco Educação","CBE/SAS","SAE","IS","ATECH","PSD","NAVE","GEEKIE","P2D/COC","NCC"];
 let AREAS = [];
@@ -1111,20 +1111,35 @@ function iniciarLog(){
 // ═══════════════════════════════════════════
 async function init(){
   initFB();
-  document.getElementById("skeleton-view").style.display="block";
+  document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="none";
-  // Popula login imediatamente com áreas conhecidas — sem esperar Firebase
-  const _AREAS_PADRAO=["Contábil","Contabilidade","Controladoria","DP","Financeiro - AP",
-    "Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Ativo fixo","CR"];
+
+  // Mostra login IMEDIATAMENTE com áreas hardcoded — não espera Firebase
+  const _AREAS_PADRAO=["Ativo fixo","Contábil","Contabilidade","Controladoria","CR","DP",
+    "Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria"];
   _AREAS_PADRAO.forEach(a=>{if(!AREAS.includes(a)) AREAS.push(a);});
+  // Verifica sessão salva — se já logado, não mostra login
+  const _ss=sessionStorage.getItem("arco_sessao_login_v2");
+  if(_ss){
+    try{
+      const _s=JSON.parse(_ss);
+      if(_s&&_s.usuario){
+        userAtual=_s.usuario; subArea=_s.area||"__ADMIN__";
+        document.getElementById("app-view").style.display="block";
+        iniciarPresenca(userAtual);
+        // Carrega dados em background e depois renderiza
+        _carregarDadosEIniciar();
+        return;
+      }
+    }catch(e){}
+  }
+  // Sem sessão — mostra login agora, carrega dados em background
   popularLogin();
-  // Fallback: se Firebase demorar >2s, mostra login com o que tiver
-  setTimeout(()=>{
-    const ov=document.getElementById("login-overlay");
-    if(!ov||!ov.classList.contains("hidden")) return;
-    ov.classList.remove("hidden");
-    popularLogin();
-  }, 2000);
+  document.getElementById("login-overlay").classList.remove("hidden");
+  _carregarDadosEIniciar();
+}
+
+async function _carregarDadosEIniciar(){
   try{
     const snap=await _fbRef.once("value"), d=snap.val();
     if(d){
@@ -1182,14 +1197,13 @@ async function init(){
     const areasSet=new Set([...AREAS,...dbAtv.map(a=>a.area).filter(Boolean)]);
     AREAS=Array.from(areasSet).sort();
   }catch(e){console.error(e);showToast("⚠️ Erro ao conectar.");}
-  document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="block";
   popularFiltros(); atualizarLabels();
+  // Se ainda estiver na tela de login, fecha e entra
   const ss=sessionStorage.getItem("arco_sessao_login_v2");
   if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){}}
-  // Mostra login e popula áreas — delay garante que o DOM do overlay está visível
-  document.getElementById("login-overlay").classList.remove("hidden");
-  setTimeout(popularLogin, 0);
+  // Atualiza o select de login com as áreas vindas do Firebase
+  popularLogin();
 }
 
 // ═══════════════════════════════════════════
