@@ -1524,25 +1524,79 @@ function toggleCard(id){
 
 function alterarStatus(actId,empIdx,status){
   const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  const empNome=atv.empresas[empIdx]?.nome||"";
+  const dataConclusao=(status==="OK"||status==="N/A")?ts():"";
+  const acao=`${status==="OK"?"Concluiu":status==="N/A"?"Marcou N/A em":"Atualizou"} "${atv.atividade}" · ${empNome}`;
+
+  // Atualiza local imediatamente (UX responsiva)
   atv.empresas[empIdx].status=status;
-  atv.empresas[empIdx].dataConclusao=(status==="OK"||status==="N/A")?ts():"";
-  const empNome=atv.empresas[empIdx].nome||"";
-  salvarAtividade(actId,`${status==="OK"?"Concluiu":status==="N/A"?"Marcou N/A em":"Atualizou"} "${atv.atividade}" · ${empNome}`);
-  // Atualiza DOM em todos os clones
+  atv.empresas[empIdx].dataConclusao=dataConclusao;
   _atualizarCardDom(actId);
   _atualizarKpisRapido();
   if($el("tab-pis")?.classList.contains("active")) renderPIS();
-  showToast("✓ Status salvo!");
+
+  // Transaction — grava só o campo da empresa tocada, sem sobrescrever outras
+  if(!_fbDb){showToast("⚠️ Sem conexão.");return;}
+  const empPath=`cronograma/atividadesMap/${actId}/empresas/${empIdx}`;
+  _fbDb.ref(empPath).transaction(atual=>{
+    // Se o dado sumiu no Firebase (deletado por outro), cancela
+    if(atual===null) return null;
+    // Aplica só os campos que mudamos, preservando o resto (nome, obs etc)
+    return {...atual, status, dataConclusao};
+  }).then(result=>{
+    if(!result.committed){
+      // Outro usuário deletou o dado — resincroniza
+      showToast("⚠️ Conflito detectado. Recarregando...");
+      setTimeout(()=>location.reload(),1500);
+      return;
+    }
+    // Atualiza _ts e log sem sobrescrever atividade inteira
+    const tsNow=Date.now();
+    _fbRef.update({"_ts":tsNow,"_savedBy":userAtual||"sistema"});
+    _tsSave=tsNow; _tsCarregado=tsNow;
+    atualizarSave();
+    logAcao(acao);
+    showToast("✓ Status salvo!");
+  }).catch(e=>{
+    console.error("Transaction falhou:",e);
+    // Fallback: salva o objeto inteiro (comportamento anterior)
+    salvarAtividade(actId,acao);
+    showToast("✓ Status salvo!");
+  });
 }
 
 function okTodas(actId){
   const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
-  const t=ts(); atv.empresas.forEach((e,i)=>{if((atv.empresasElegiveis||[]).includes(e.nome)){atv.empresas[i].status="OK";atv.empresas[i].dataConclusao=t;}});
-  salvarAtividade(actId,`OK em todas de "${atv.atividade}"`);
-  const abertos=Array.from(document.querySelectorAll(".activity-card.open")).map(c=>c.id);
-  const sy=window.scrollY; renderizarPainel(); abertos.forEach(id=>document.getElementById(id)?.classList.add("open")); window.scrollTo(0,sy);
-  if(document.getElementById("tab-pis").classList.contains("active")) renderPIS();
-  showToast("✅ Todas OK!");
+  const t=ts();
+  const elegiveis=atv.empresasElegiveis||[];
+
+  // Atualiza local
+  atv.empresas.forEach((e,i)=>{
+    if(elegiveis.includes(e.nome)){atv.empresas[i].status="OK";atv.empresas[i].dataConclusao=t;}
+  });
+
+  // Transaction por empresa elegível
+  const promises=atv.empresas.map((e,i)=>{
+    if(!elegiveis.includes(e.nome)) return Promise.resolve();
+    return _fbDb.ref(`cronograma/atividadesMap/${actId}/empresas/${i}`)
+      .transaction(atual=>atual===null?null:{...atual,status:"OK",dataConclusao:t});
+  });
+
+  Promise.all(promises).then(()=>{
+    const tsNow=Date.now();
+    _fbRef.update({"_ts":tsNow,"_savedBy":userAtual||"sistema"});
+    _tsSave=tsNow; _tsCarregado=tsNow;
+    logAcao(`OK em todas de "${atv.atividade}"`);
+    atualizarSave();
+    const abertos=Array.from(document.querySelectorAll(".activity-card.open")).map(c=>c.id);
+    const sy=window.scrollY; renderizarPainel(); abertos.forEach(id=>document.getElementById(id)?.classList.add("open")); window.scrollTo(0,sy);
+    if($el("tab-pis")?.classList.contains("active")) renderPIS();
+    showToast("✅ Todas OK!");
+  }).catch(e=>{
+    console.error("okTodas transaction falhou:",e);
+    salvarAtividade(actId,`OK em todas de "${atv.atividade}"`);
+    showToast("✅ Todas OK!");
+  });
 }
 
 function salvarObs(actId,idx,txt){const atv=dbAtv.find(a=>a.id===actId);if(!atv) return;atv.empresas[idx].obs=txt;salvarAtividade(actId);}
