@@ -1327,7 +1327,15 @@ function buildCard(act, baseId, cloneId){
   const pCls=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
   const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
   const ehM=ehMaster();
-  const podeEditar=ehM||( userAtual!=="Outra Área"&&(CONT_AREAS.includes(subArea)||act.responveisLista.includes(userAtual)) );
+  // Pode editar: admin, ou usuário logado que é responsável da atividade,
+  // ou usuário cuja área bate com a área da atividade
+  const podeEditar=ehM||(
+    userAtual!=="Outra Área"&&(
+      act.responveisLista.includes(userAtual)||
+      act.area===subArea||
+      subArea==="__TRIBUTARIO__"
+    )
+  );
 
   // Busca com highlight
   const busca=($el("search-input")||{}).value?.toLowerCase()||"";
