@@ -2763,10 +2763,10 @@ function popularFiltros(){
   const fR=document.getElementById("filter-resp"),fA=document.getElementById("filter-area"),fE=document.getElementById("filter-empresa");
   const eR=document.getElementById("edit-filter-resp"),eA=document.getElementById("edit-filter-area");
   const areas=listarAreas();
-  if(fR){fR.innerHTML='<option value="todos">👤 Todos Responsáveis</option>'+PROF.map(p=>`<option value="${p}">${p}</option>`).join("");}
+  if(fR){fR.innerHTML='<option value="todos">👤 Todos Responsáveis</option><option value="A Atribuir">⚠️ A Atribuir</option>'+PROF.filter(p=>p!=="A Atribuir").map(p=>`<option value="${p}">${p}</option>`).join("");}
   if(fA){fA.innerHTML='<option value="todos">📂 Todas as Áreas</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join("");}
   if(fE){fE.innerHTML='<option value="todos">🏢 Todas as Empresas</option>'+EMPS.map(e=>`<option value="${e}">${e}</option>`).join("");}
-  if(eR){eR.innerHTML='<option value="todos">👤 Todos Responsáveis</option>'+PROF.map(p=>`<option value="${p}">${p}</option>`).join("");}
+  if(eR){eR.innerHTML='<option value="todos">👤 Todos Responsáveis</option><option value="A Atribuir">⚠️ A Atribuir</option>'+PROF.filter(p=>p!=="A Atribuir").map(p=>`<option value="${p}">${p}</option>`).join("");}
   if(eA){eA.innerHTML='<option value="todos">📂 Todas as Áreas</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join("");}
   const eE=$el("edit-filter-emp");
   if(eE){eE.innerHTML='<option value="todos">🏢 Todas as Empresas</option>'+[...EMPS,...EMPS_FM].filter((v,i,a)=>a.indexOf(v)===i).map(e=>`<option value="${e}">${e}</option>`).join("");}
