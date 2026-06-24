@@ -781,7 +781,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 // ═══════════════════════════════════════════
 // DADOS & ESTADO
 // ═══════════════════════════════════════════
-let PROF = ["Danielle Mota Dias De Araujo","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jessica Elen Silveira Raulino","Jhenyffer Maria Cavalcante Pessoa","Juliana Da Silva Ribeiro","Leonardo Candido Felix","Luis Marcelino Venancio","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Vitoria Mansur Kuntz","Jose Francisco Domingos Da Silva Junior","Eliomar Vieira Alves"];
+let PROF = ["Alayde Peruna","Ana Beatriz Vieira Almeida","Danielle Mota Dias De Araujo","Eliomar Vieira Alves","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jessica Elen Silveira Raulino","Jhenyffer Maria Cavalcante Pessoa","Jose Francisco Domingos Da Silva Junior","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Lorca Cabral Tordin","Vitoria Mansur Kuntz"];
 const MASTERS = ["Natanael Ferreira De Sousa","Jose Francisco Domingos Da Silva Junior","Marina Maria Teixeira Cavalcante"];
 let EMPS = ["Arco Educação","CBE/SAS","SAE","IS","ATECH","PSD","NAVE","GEEKIE","P2D/COC","NCC"];
 let AREAS = [];
@@ -2333,7 +2333,7 @@ function mudarGrupoTab(grupo, btn){
 // IMPORTAÇÃO F&M
 // ═══════════════════════════════════════════
 // Empresas padrão de F&M
-const EMPS_FM=["ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
+const EMPS_FM=["ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac","FIDC","Ways","Arco Labs"];
 
 function baixarModeloFM(){
   const header="Atividade;Area;Dia Util;Previa Receita (Sim/Nao);Responsaveis (separar por |);Marcas F&M (separar por | ou TODAS)";
@@ -2359,27 +2359,39 @@ function importarFM(event){
 }
 
 function _processarLinhasFM(rows){
-  // rows = array de arrays [ [col0, col1, ...], ... ]
-  // Pula linha de cabeçalho (linha 0) e linha de dica (se col0 começa com ▶ ou vazio)
   let cont=0;
   for(let i=1;i<rows.length;i++){
     const col=rows[i].map(v=>String(v||"").trim());
-    // ignora linhas de instrução, vazias ou sem atividade/area/diaUtil
-    if(!col[0]||!col[1]||!col[2]) continue;
+    if(!col[0]||!col[1]) continue;
     if(col[0].startsWith("#")||col[0].startsWith("▶")) continue;
+
+    // Dia útil — aceita negativos e "Pontual"
+    const duRaw=(col[2]||"1").trim();
+    const duNum=parseInt(duRaw);
+    const diaUtil=isNaN(duNum)?duRaw:String(duNum); // preserva negativo ou "Pontual"
+
+    // Responsáveis — adiciona ao PROF se novo
     const resps=(col[4]||"").split("|").map(r=>r.trim()).filter(Boolean);
     if(!resps.length) resps.push("A Atribuir");
-    const empsRaw=(col[5]||"TODAS").trim().toUpperCase();
-    const emps=(empsRaw==="TODAS"||!col[5].trim())
+    resps.forEach(r=>{ if(r!=="A Atribuir"&&!PROF.includes(r)) PROF.push(r); });
+
+    // Marcas — aceita novas marcas além das padrão
+    const empsRaw=(col[5]||"TODAS").trim();
+    const empsUpper=empsRaw.toUpperCase();
+    const emps=(empsUpper==="TODAS"||!empsRaw)
       ?[...EMPS_FM]
-      :(col[5]||"").split("|").map(e=>e.trim()).filter(Boolean);
-    // garante empresas F&M no EMPS global
-    emps.forEach(emp=>{if(!EMPS.includes(emp)) EMPS.push(emp);});
+      :empsRaw.split("|").map(e=>e.trim()).filter(Boolean);
+    // Adiciona marcas novas ao EMPS_FM e EMPS
+    emps.forEach(emp=>{
+      if(!EMPS_FM.includes(emp)) EMPS_FM.push(emp);
+      if(!EMPS.includes(emp)) EMPS.push(emp);
+    });
+
     const nova={
       id:"atv_fm_"+Date.now()+"_"+i,
       atividade:col[0], area:col[1],
-      diaUtil:String(parseInt(col[2])||1),
-      previaReceita:col[3].toLowerCase()==="sim"?"Sim":"Não",
+      diaUtil,
+      previaReceita:(col[3]||"").toLowerCase()==="sim"?"Sim":"Não",
       responveisLista:resps,
       empresasElegiveis:emps,
       responsaveisPorEmpresa:{},
