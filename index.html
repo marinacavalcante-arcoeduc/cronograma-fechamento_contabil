@@ -989,19 +989,14 @@ function salvarAtividade(actId,desc){
     updates["_ts"]=ts;
     updates["_savedBy"]=userAtual||"sistema";
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
-    if(!window._salvando) window._salvando={};
-    window._salvando[actId]=true;
     _fbRef.update(updates)
       .then(()=>{
         _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
         atualizarSave();
         if(desc) logAcao(desc);
-        // Libera o bloqueio após 2s — tempo suficiente pro echo passar
-        setTimeout(()=>{ if(window._salvando) delete window._salvando[actId]; }, 2000);
       })
       .catch(e=>{
         _savePend=false;
-        if(window._salvando) delete window._salvando[actId];
         console.error("Erro ao salvar atividade:",e);
         showToast("⚠️ Erro ao salvar. Tente novamente.");
       });
@@ -1037,12 +1032,13 @@ function syncAoVivo(){
     if(!id||!novo) return;
     const idx=dbAtv.findIndex(a=>a.id===id);
     if(idx===-1) return;
-    // Ignora echo do próprio save ou save em andamento
-    if((window._salvando&&window._salvando[id])||_debAtv[id]) return;
+    // Ignora se este cliente está salvando esta atividade agora
+    // (evita que o echo do Firebase reverta o dado local)
+    if(_debAtv[id]) return; // debounce ativo = save em andamento
     dbAtv[idx]={...dbAtv[idx],...novo};
     _atualizarCardDom(id);
     _atualizarKpisRapido();
-    if(document.getElementById("tab-pis").classList.contains("active")) renderPIS();
+    if(document.getElementById("tab-pis")?.classList.contains("active")) renderPIS();
   });
 
   // Ouve novas atividades adicionadas por outra sessão
