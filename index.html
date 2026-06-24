@@ -1114,10 +1114,8 @@ async function init(){
   document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="none";
 
-  // Mostra login IMEDIATAMENTE com áreas hardcoded — não espera Firebase
-  const _AREAS_PADRAO=["Ativo fixo","Contábil","Contabilidade","Controladoria","CR","DP",
-    "Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria"];
-  _AREAS_PADRAO.forEach(a=>{if(!AREAS.includes(a)) AREAS.push(a);});
+  // Mostra login IMEDIATAMENTE — áreas vêm do Firebase, não hardcoded
+  // Só Admin e Tributário aparecem antes do Firebase (são opções fixas)
   // Verifica sessão salva — se já logado, não mostra login
   const _ss=sessionStorage.getItem("arco_sessao_login_v2");
   if(_ss){
