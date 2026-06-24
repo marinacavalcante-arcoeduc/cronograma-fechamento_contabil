@@ -652,11 +652,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         <button class="grupo-tab fm" onclick="mudarGrupoTab('fm',this)">💼 F&amp;M</button>
         <button class="grupo-tab todos" onclick="mudarGrupoTab('todos',this)">📋 Todas</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn-arco" style="height:32px;padding:0 12px;font-size:11px;background:var(--fm);gap:5px;" onclick="baixarModeloFM()">📥 Modelo F&amp;M</button>
-        <button class="btn-arco" style="height:32px;padding:0 12px;font-size:11px;background:var(--fm);gap:5px;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
-        <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
-      </div>
+<!-- FM buttons movidos para Configurações -->
+      <input type="file" id="file-import-fm" style="display:none;" accept=".xlsx,.csv" onchange="importarFM(event)">
     </div>
 
     <!-- Painel Pedagógico -->
@@ -701,10 +698,13 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
           <option value="ATRASADO">⚠ Atrasadas</option>
         </select>
         <button class="filter-btn" onclick="limparFiltrosConfig()" style="height:34px;padding:0 12px;font-size:11px;">✕ Limpar</button>
-        <div style="margin-left:auto;display:flex;gap:8px;">
-          <button class="btn-arco slate" onclick="baixarModelo()" style="height:34px;">📥 Modelo CSV</button>
-          <button class="btn-arco" style="background:#1e293b;height:34px;" onclick="document.getElementById('file-import').click()">📤 Importar</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <button class="btn-arco slate" onclick="baixarModelo()" style="height:34px;">📥 Modelo CSV Ped.</button>
+          <button class="btn-arco" style="background:#1e293b;height:34px;" onclick="document.getElementById('file-import').click()">📤 Importar Ped.</button>
           <input type="file" id="file-import" style="display:none;" onchange="importarCSV(event)">
+          <div style="width:1px;height:22px;background:var(--border);margin:0 4px;"></div>
+          <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="baixarModeloFM()">📥 Modelo F&amp;M</button>
+          <button class="btn-arco" style="background:var(--fm);height:34px;" onclick="document.getElementById('file-import-fm').click()">📤 Importar F&amp;M</button>
         </div>
       </div>
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0;">
@@ -1069,8 +1069,10 @@ async function init(){
   initFB();
   document.getElementById("skeleton-view").style.display="block";
   document.getElementById("app-view").style.display="none";
-  // Popula login imediatamente — antes do Firebase, já mostra Admin/Tributário
-  // O overlay pode ainda estar hidden, mas o select já fica pronto
+  // Popula login imediatamente com áreas conhecidas — sem esperar Firebase
+  const _AREAS_PADRAO=["Contábil","Contabilidade","Controladoria","DP","Financeiro - AP",
+    "Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Ativo fixo","CR"];
+  _AREAS_PADRAO.forEach(a=>{if(!AREAS.includes(a)) AREAS.push(a);});
   popularLogin();
   // Fallback: se Firebase demorar >2s, mostra login com o que tiver
   setTimeout(()=>{
