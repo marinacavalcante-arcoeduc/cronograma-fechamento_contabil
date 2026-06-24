@@ -22,6 +22,47 @@
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Sora',sans-serif;}
 body{background:var(--bg);color:var(--text);font-size:14px;padding-bottom:80px;-webkit-font-smoothing:antialiased;}
 
+
+/* INSTRUÇÃO (descritivo integrado, visível por padrão) */
+.instrucao-box{background:#f0f7ff;border-left:3px solid var(--cyan);border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1e3a5f;line-height:1.6;position:relative;}
+.instrucao-box.fm{background:var(--fm-bg);border-left-color:var(--fm);color:#3b1f7a;}
+.instrucao-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;}
+.instrucao-edit{width:100%;min-height:52px;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:inherit;resize:vertical;outline:none;background:#fff;color:var(--text);line-height:1.6;}
+.instrucao-edit:focus{border-color:var(--blue);}
+.instrucao-placeholder{color:var(--muted);font-style:italic;}
+
+/* OBS GERAL DA ATIVIDADE */
+.obs-geral-box{background:#fffbeb;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;padding:8px 14px;margin-bottom:10px;font-size:12px;}
+.obs-geral-edit{width:100%;border:1px dashed #fde047;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;background:#fffef5;outline:none;resize:none;}
+.obs-geral-edit:focus{border-color:#f59e0b;border-style:solid;}
+
+/* HISTÓRICO NO CARD */
+.card-hist{margin-top:10px;border-top:1px solid var(--border);padding-top:8px;}
+.card-hist-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.card-hist-item{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--muted);padding:2px 0;border-bottom:1px solid #f8fafc;}
+.card-hist-item:last-child{border-bottom:none;}
+.card-hist-who{font-weight:700;color:var(--blue);white-space:nowrap;}
+.card-hist-time{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#94a3b8;white-space:nowrap;}
+
+/* ALERTA TOP — painel fixo mais visível */
+.alert-venc-wrap{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.alert-card{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;border-left:4px solid var(--yellow);}
+.alert-card.hoje{border-left-color:var(--orange);background:#fff8f5;}
+.alert-text{flex:1;font-size:12px;line-height:1.4;}
+.alert-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;background:#fef9c3;color:#854d0e;white-space:nowrap;}
+.alert-badge.hoje{background:#fee2e2;color:#991b1b;}
+
+/* BUSCA COM HIGHLIGHT */
+.hl{background:#fef08a;border-radius:2px;padding:0 1px;}
+
+/* CONFETE — canvas overlay */
+#confete-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none;}
+
+/* DRAG HANDLE */
+.drag-handle{cursor:grab;color:#cbd5e1;font-size:14px;padding:0 4px;flex-shrink:0;user-select:none;}
+.drag-handle:active{cursor:grabbing;}
+.activity-card.dragging{opacity:.5;border:2px dashed var(--blue);}
+.activity-card.drag-over{border-top:3px solid var(--blue);}
 /* DESCRITIVO DA ATIVIDADE */
 .desc-toggle{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;padding:3px 8px;border-radius:8px;transition:all .15s;}
 .desc-toggle:hover{background:#f1f5f9;color:var(--blue);}
@@ -575,9 +616,11 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
   </details>
   <div id="previa-root" style="margin-bottom:16px;"></div>
   <div id="painel-log"><h4>📋 Histórico Recente</h4><div id="painel-log-lista"></div></div>
-  <div style="margin-bottom:16px;display:flex;justify-content:flex-end;gap:10px;" id="admin-bar">
+  <div style="margin-bottom:16px;display:flex;justify-content:flex-end;gap:10px;align-items:center;">
     <button class="btn-arco green" onclick="exportarExcel()">📥 Baixar Excel</button>
-    <button class="btn-arco" onclick="toggleForm()">➕ Criar Atividade</button>
+    <div id="admin-bar" style="display:none;">
+      <button class="btn-arco" onclick="toggleForm()">➕ Criar Atividade</button>
+    </div>
   </div>
   <div id="form-bloco" class="form-cadastro">
     <h3 style="color:var(--blue);margin-bottom:16px;font-weight:700;">Nova Atividade</h3>
@@ -709,7 +752,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         </div>
       </div>
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0;">
-        <table class="config-table" style="table-layout:fixed;width:100%;"><thead><tr><th style="width:22%;">Nome</th><th style="width:10%;">Área</th><th style="width:10%;">Grupo</th><th style="width:11%;">Responsáveis</th><th style="width:13%;">Marcas</th><th style="width:10%;">Resp. por marca</th><th style="width:6%;">Prévia?</th><th style="width:5%;">D.U.</th><th style="width:7%;">Data</th><th style="width:9%;">PIS/COFINS</th><th style="width:4%;text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
+        <table class="config-table" style="table-layout:fixed;width:100%;"><thead><tr><th style="width:18%;">Nome</th><th style="width:8%;">Área</th><th style="width:8%;">Grupo</th><th style="width:9%;">Responsáveis</th><th style="width:10%;">Marcas</th><th style="width:8%;">Resp. por marca</th><th style="width:12%;">Instrução</th><th style="width:5%;">Prévia?</th><th style="width:5%;">D.U.</th><th style="width:6%;">Data</th><th style="width:7%;">PIS/COFINS</th><th style="width:4%;text-align:right;">Ações</th></tr></thead><tbody id="table-config-root"></tbody></table>
       </div>
     </div>
     <div class="form-card">
@@ -1103,7 +1146,10 @@ async function init(){
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
-          descritivo:item.descritivo||""
+          descritivo:item.descritivo||"",
+          obsGeral:item.obsGeral||"",
+          _hist:item._hist||[],
+          _ordem:item._ordem!==undefined?item._ordem:undefined
         }));
         // Ordena por diaUtil pra manter consistência visual
         dbAtv.sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
@@ -1118,7 +1164,10 @@ async function init(){
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
-          descritivo:item.descritivo||""
+          descritivo:item.descritivo||"",
+          obsGeral:item.obsGeral||"",
+          _hist:item._hist||[],
+          _ordem:item._ordem!==undefined?item._ordem:undefined
         }));
         // Migra automaticamente para atividadesMap
         console.log("Migrando atividades para atividadesMap...");
@@ -1208,7 +1257,7 @@ function aplicarLogin(){
   document.getElementById("tab-link-config").style.display=ehM?"":"none";
   document.getElementById("tab-link-periodo").style.display=ehM?"":"none";
   document.getElementById("tab-link-calendario").style.display="";
-  document.getElementById("admin-bar").style.display=ehM?"flex":"none";
+  document.getElementById("admin-bar").style.display=ehM?"inline-flex":"none";
   const fmBar=document.getElementById("fm-action-bar");
   if(fmBar) fmBar.style.display=ehM?"flex":"none";
   if(ehM) iniciarLog();
@@ -1267,58 +1316,105 @@ function buildCard(act, baseId, cloneId){
   const sg=statusGeral(act), dc=calcData(act.diaUtil), df=dc?dc.toLocaleDateString("pt-BR"):"—";
   const pCls=sg==="OK"?"ok":sg==="PENDENTE"?"pendente":"atrasado";
   const pTxt=sg==="OK"?"✓ OK":sg==="PENDENTE"?"⏳ PENDENTE":"⚠ ATRASADA";
-  const ehM=ehMaster(), temEscrita=ehM||userAtual!=="Outra Área"&&(CONT_AREAS.includes(subArea)||act.responveisLista.includes(userAtual));
+  const ehM=ehMaster();
+  const podeEditar=ehM||( userAtual!=="Outra Área"&&(CONT_AREAS.includes(subArea)||act.responveisLista.includes(userAtual)) );
 
-  // Mini-barra de progresso
+  // Busca com highlight
+  const busca=($el("search-input")||{}).value?.toLowerCase()||"";
+  function hl(txt){
+    if(!busca) return txt;
+    const re=new RegExp("("+busca.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")+")","gi");
+    return txt.replace(re,'<mark class="hl">$1</mark>');
+  }
+
+  // Mini-barra
   const empsEl=act.empresas.filter(e=>(act.empresasElegiveis||[]).includes(e.nome));
   const nOk=empsEl.filter(e=>e.status==="OK"||e.status==="N/A").length;
   const pctCard=empsEl.length?Math.round((nOk/empsEl.length)*100):0;
   const barColor=pCls==="ok"?"var(--green)":pCls==="atrasado"?"var(--orange)":"var(--yellow)";
 
-  // Chips de responsável/área
+  // Chips responsável
   const respExibir=CONT_AREAS.includes(act.area)?act.responveisLista:[act.area];
   const chips=respExibir.map(r=>`<span class="owner-chip ${r==="A Atribuir"?"unassigned":""}" title="${r}">${CONT_AREAS.includes(act.area)?abrev(r):r}</span>`).join("");
   const tagPre=act.previaReceita==="Sim"?'<span class="tag-previa">PRÉVIA</span>':"";
 
-  // Sub-rows
+  // Instrução (descritivo) — visível por padrão, para todos
+  const fmCard=isFM(act);
+  const temInstr=!!(act.descritivo||"").trim();
+  let instrSection="";
+  if(temInstr){
+    instrSection=`<div class="instrucao-box ${fmCard?"fm":""}">
+      <div class="instrucao-label">📋 O que fazer</div>
+      ${podeEditar
+        ?`<textarea class="instrucao-edit" onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`
+        :`<div>${act.descritivo||""}</div>`}
+    </div>`;
+  } else if(podeEditar){
+    instrSection=`<div class="instrucao-box ${fmCard?"fm":""}" style="background:#f8fafc;border-left-color:#e2e8f0;">
+      <div class="instrucao-label">📋 O que fazer</div>
+      <textarea class="instrucao-edit" placeholder="Adicione uma instrução de execução..." onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()"></textarea>
+    </div>`;
+  }
+
+  // Obs geral da atividade
+  const temObsGeral=!!(act.obsGeral||"").trim();
+  let obsGeralSection="";
+  if(podeEditar||temObsGeral){
+    obsGeralSection=`<div class="obs-geral-box">
+      <div class="instrucao-label">💬 Observação geral</div>
+      ${podeEditar
+        ?`<textarea class="obs-geral-edit" rows="1" placeholder="Ex: aguardando retorno do fiscal..." onchange="salvarObsGeral('${baseId}',this.value)" onclick="event.stopPropagation()">${act.obsGeral||""}</textarea>`
+        :(temObsGeral?`<div style="font-size:12px;">${act.obsGeral}</div>`:"")
+      }
+    </div>`;
+  }
+
+  // Histórico da atividade (últimas 5 entradas do log)
+  const histItems=(act._hist||[]).slice(-5).reverse();
+  const histSection=histItems.length?`<div class="card-hist">
+    <div class="card-hist-title">🕐 Histórico</div>
+    ${histItems.map(h=>`<div class="card-hist-item">
+      <span class="card-hist-who">${abrev(h.quem||"?")}</span>
+      <span style="flex:1;font-size:11px;">${h.acao||""}</span>
+      <span class="card-hist-time">${h.ts?new Date(h.ts).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"}</span>
+    </div>`).join("")}
+  </div>`:"";
+
+  // Sub-rows com evidência integrada
   const subRows=act.empresas.map((emp,idx)=>{
     if(!(act.empresasElegiveis||[]).includes(emp.nome)) return "";
     const stamp=(emp.status==="OK"&&emp.dataConclusao)?`<span class="done-stamp">✓ ${emp.dataConclusao}</span>`:"";
     const respEmp=getRespEmp(act,emp.nome);
     const selCls=emp.status==="OK"?"sel-ok":emp.status==="N/A"?"sel-na":"sel-pendente";
-    const nameHtml=`<div class="sub-name"><div class="sub-name-top">🔹 ${emp.nome}</div><div class="sub-name-meta">${stamp}<span class="resp-chip">👤 ${abreviarNome(respEmp)}</span></div></div>`;
-    if(temEscrita) return `<div class="sub-row">${nameHtml}
+    const nameHtml=`<div class="sub-name">
+      <div class="sub-name-top">🔹 ${emp.nome}</div>
+      <div class="sub-name-meta">${stamp}<span class="resp-chip">👤 ${abreviarNome(respEmp)}</span></div>
+    </div>`;
+    if(podeEditar) return `<div class="sub-row">${nameHtml}
       <div><select class="status-select ${selCls}" onchange="alterarStatus('${baseId}',${idx},this.value);this.className='status-select '+(this.value==='OK'?'sel-ok':this.value==='N/A'?'sel-na':'sel-pendente')">
         <option value="PENDENTE" ${emp.status==="PENDENTE"?"selected":""}>🟡 Pendente</option>
         <option value="OK" ${emp.status==="OK"?"selected":""}>🟢 OK</option>
         <option value="N/A" ${emp.status==="N/A"?"selected":""}>⚪ N/A</option>
       </select></div>
-      <div><input type="text" placeholder="Evidência..." class="form-input" value="${emp.obs||""}" onchange="salvarObs('${baseId}',${idx},this.value)" style="width:100%;height:30px;font-size:12px;"></div>
+      <div><input type="text" placeholder="Evidência / link do Drive..." class="form-input" value="${emp.obs||""}" onchange="salvarObs('${baseId}',${idx},this.value)" style="width:100%;height:30px;font-size:12px;"></div>
     </div>`;
     const cls=emp.status==="OK"?"ok":emp.status==="N/A"?"na":"pendente";
-    return `<div class="sub-row">${nameHtml}<div><span class="status-pill ${cls}">${emp.status}</span></div><div style="font-size:12px;color:var(--muted);">${emp.obs||"—"}</div></div>`;
+    return `<div class="sub-row">${nameHtml}
+      <div><span class="status-pill ${cls}">${emp.status}</span></div>
+      <div style="font-size:12px;color:var(--muted);">${emp.obs||"—"}</div>
+    </div>`;
   }).join("");
-
-  // Descritivo (só F&M)
-  const fmCard=isFM(act), temDesc=fmCard&&!!(act.descritivo||"").trim();
-  const descSection=fmCard?(temDesc
-    ?`<div style="padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;">
-        <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${baseId}')">ℹ️ Ver descritivo</button>
-        <div class="desc-panel fm" id="desc-${cloneId}">
-          ${temEscrita?`<textarea class="desc-edit" onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()">${act.descritivo||""}</textarea>`:`<span>${act.descritivo||""}</span>`}
-        </div>
-      </div>`
-    :(temEscrita?`<div style="padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px;">
-        <div class="desc-panel fm" id="desc-${cloneId}" style="display:none;"><textarea class="desc-edit" placeholder="Adicione um descritivo..." onchange="salvarDescritivo('${baseId}',this.value)" onclick="event.stopPropagation()"></textarea></div>
-        <button class="desc-toggle fm" onclick="event.stopPropagation();toggleDesc('${baseId}')">✏️ Adicionar descritivo</button>
-      </div>`:"")):"";
 
   const card=document.createElement("div");
   card.className=`activity-card status-${pCls}`;
   card.id=cloneId;
+  card.draggable=true;
   card.innerHTML=`
     <div class="activity-header" onclick="toggleCard('${cloneId}')">
-      <div class="act-title"><span class="act-title-arrow">▶</span><span style="line-height:1.4;">${act.atividade}${tagPre}</span>
+      <div class="act-title">
+        <span class="drag-handle" onclick="event.stopPropagation()" title="Arrastar">⠿</span>
+        <span class="act-title-arrow">▶</span>
+        <span style="line-height:1.4;">${hl(act.atividade)}${tagPre}</span>
         <div class="card-prog"><div class="card-prog-bar"><div class="card-prog-fill" style="width:${pctCard}%;background:${barColor};"></div></div><span class="card-prog-txt">${nOk}/${empsEl.length}</span></div>
       </div>
       <div class="owners-row">${chips}</div>
@@ -1327,15 +1423,31 @@ function buildCard(act, baseId, cloneId){
       <div style="display:flex;justify-content:flex-end;"><span class="status-pill ${pCls}">${pTxt}</span></div>
     </div>
     <div class="subs-panel">
-      ${descSection}
+      ${instrSection}
+      ${obsGeralSection}
       <div class="sub-header-row">
-        <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência</div></div>
-        ${temEscrita?`<button class="ok-all-btn" onclick="okTodas('${baseId}')">✅ OK todas</button>`:""}
+        <div class="sub-header-cols"><div>Marca / Responsável</div><div>Status</div><div>Evidência / Link</div></div>
+        ${podeEditar?`<button class="ok-all-btn" onclick="okTodas('${baseId}')">✅ OK todas</button>`:""}
       </div>
       ${subRows}
+      ${histSection}
     </div>`;
+
+  // Drag & drop
+  card.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",baseId);card.classList.add("dragging");});
+  card.addEventListener("dragend",()=>card.classList.remove("dragging"));
+  card.addEventListener("dragover",e=>{e.preventDefault();card.classList.add("drag-over");});
+  card.addEventListener("dragleave",()=>card.classList.remove("drag-over"));
+  card.addEventListener("drop",e=>{
+    e.preventDefault();card.classList.remove("drag-over");
+    const fromId=e.dataTransfer.getData("text/plain");
+    if(fromId===baseId) return;
+    reordenarAtv(fromId,baseId);
+  });
+
   return card;
 }
+
 
 // ── renderizarPainel ─────────────────────────────────────────
 function renderizarPainel(){
@@ -1350,7 +1462,15 @@ function renderizarPainel(){
   const eNome=$val("edit-filter-nome","").toLowerCase(), eResp=$val("edit-filter-resp"), eArea=$val("edit-filter-area");
   const ehM=ehMaster();
 
-  const ords=[...dbAtv].sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db2=parseInt(b.diaUtil)||0;return da!==db2?da-db2:a.atividade.localeCompare(b.atividade,"pt-BR");});
+  const ords=[...dbAtv].sort((a,b)=>{
+    // Se tem _ordem definido, usa ele (drag & drop manual)
+    if(a._ordem!==undefined&&b._ordem!==undefined) return a._ordem-b._ordem;
+    if(a._ordem!==undefined) return -1;
+    if(b._ordem!==undefined) return 1;
+    // Fallback: dia útil, depois nome
+    const da=parseInt(a.diaUtil)||0,db2=parseInt(b.diaUtil)||0;
+    return da!==db2?da-db2:a.atividade.localeCompare(b.atividade,"pt-BR");
+  });
 
   let tot=0,ok=0,pend=0,atras=0,chk=0,totPed=0,okPed=0,totFm=0,okFm=0;
   const fragAll=document.createDocumentFragment(), fragPed=document.createDocumentFragment(), fragFm=document.createDocumentFragment();
@@ -1414,6 +1534,14 @@ function renderizarPainel(){
           <td style="font-family:'IBM Plex Mono';font-size:11px;font-weight:700;color:var(--blue);">${df}</td>
           <td>${pisSelHtml(act)}</td>
           <td style="text-align:right;"><button class="btn-arco" style="background:var(--orange);height:28px;padding:0 10px;font-size:11px;" onclick="excluirAtv('${act.id}',event)">🗑</button></td>`;
+        // Injeta célula de instrução na posição certa (após Resp. por marca)
+        const instrCell=document.createElement("td");
+        const instrVal=act.descritivo||"";
+        instrCell.innerHTML=`<div title="${instrVal.replace(/"/g,"'")}" style="max-width:160px;"><input type="text" class="nome-edit" style="font-size:11px;" placeholder="Adicione instrução..." value="${instrVal.replace(/"/g,"&quot;").substring(0,80)}" onchange="atualizarCampo('${act.id}','descritivo',this.value)"></div>`;
+        // Insere antes da coluna Prévia (7ª th = índice 6)
+        const cells=tr.querySelectorAll("td");
+        if(cells[6]) tr.insertBefore(instrCell,cells[6]);
+        else tr.appendChild(instrCell);
         fragT.appendChild(tr);
       }
     }
@@ -1500,15 +1628,37 @@ function renderAlertas(){
   const amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
   const al=[];
   dbAtv.forEach(act=>{
-    if(statusGeral(act)==="OK") return;
+    const sg=statusGeral(act); if(sg==="OK") return;
     const lim=calcData(act.diaUtil); if(!lim) return;
     const ld=new Date(lim);ld.setHours(0,0,0,0);
-    if(ld.getTime()===hoje.getTime()||ld.getTime()===amanha.getTime()){
-      const p=act.empresas.filter(e=>(act.empresasElegiveis||[]).includes(e.nome)&&e.status==="PENDENTE").length;
-      if(p>0) al.push({act,lim:ld,isHoje:ld.getTime()===hoje.getTime(),p});
+    const eligs=act.empresasElegiveis||[];
+    const pend=act.empresas.filter(e=>eligs.includes(e.nome)&&e.status==="PENDENTE").length;
+    if(!pend) return;
+    const isAtras=ld<hoje;
+    const isHoje=ld.getTime()===hoje.getTime();
+    const isAmanha=ld.getTime()===amanha.getTime();
+    if(isAtras||isHoje||isAmanha){
+      al.push({act,lim:ld,isHoje,isAtras,isAmanha,pend});
     }
   });
-  root.innerHTML=al.slice(0,4).map(({act,lim,isHoje,p})=>`<div class="alert-card"><span style="font-size:16px;flex-shrink:0;">${isHoje?"🔴":"🟡"}</span><span class="alert-text"><strong>${act.atividade}</strong> — vence ${isHoje?"hoje":"amanhã"} (${lim.toLocaleDateString("pt-BR")}) · ${p} empresa(s) pendente(s)</span><span class="alert-badge">${isHoje?"Hoje":"Amanhã"}</span></div>`).join("");
+  // Ordena: atrasadas primeiro, depois hoje, depois amanhã
+  al.sort((a,b)=>{
+    const pa=a.isAtras?0:a.isHoje?1:2;
+    const pb=b.isAtras?0:b.isHoje?1:2;
+    return pa!==pb?pa-pb:a.lim-b.lim;
+  });
+  if(!al.length){root.innerHTML="";return;}
+  root.innerHTML=al.slice(0,6).map(({act,lim,isHoje,isAtras,pend})=>{
+    const label=isAtras?"⚠️ Atrasada":isHoje?"🔴 Hoje":"🟡 Amanhã";
+    const cls=isAtras||isHoje?"hoje":"";
+    const badgeCls=isAtras||isHoje?"hoje":"";
+    return`<div class="alert-card ${cls}">
+      <span style="font-size:15px;flex-shrink:0;">${isAtras?"⚠️":isHoje?"🔴":"🟡"}</span>
+      <span class="alert-text"><strong>${act.atividade}</strong> · ${act.area} · ${pend} empresa${pend>1?"s":""} pendente${pend>1?"s":""}</span>
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${lim.toLocaleDateString("pt-BR")}</span>
+      <span class="alert-badge ${badgeCls}">${label}</span>
+    </div>`;
+  }).join("");
 }
 
 // ═══════════════════════════════════════════
@@ -1534,9 +1684,15 @@ function alterarStatus(actId,empIdx,status){
   // Atualiza local imediatamente (UX responsiva)
   atv.empresas[empIdx].status=status;
   atv.empresas[empIdx].dataConclusao=dataConclusao;
+  // Log no card
+  logNoCard(actId,`${status==="OK"?"✓":"↩"} ${empNome} → ${status}`);
   _atualizarCardDom(actId);
   _atualizarKpisRapido();
   if($el("tab-pis")?.classList.contains("active")) renderPIS();
+  // Confete se todas as empresas elegíveis ficaram OK/N/A
+  const eligs=(atv.empresasElegiveis||[]);
+  const todasOk=atv.empresas.filter(e=>eligs.includes(e.nome)).every(e=>e.status==="OK"||e.status==="N/A");
+  if(todasOk) dispararConfete();
 
   // Transaction — grava só o campo da empresa tocada, sem sobrescrever outras
   if(!_fbDb){showToast("⚠️ Sem conexão.");return;}
@@ -2226,6 +2382,86 @@ function salvarDescritivo(actId, texto){
   showToast("✓ Descritivo salvo!");
 }
 
+
+// ═══════════════════════════════════════════
+// OBS GERAL DA ATIVIDADE
+// ═══════════════════════════════════════════
+function salvarObsGeral(actId, texto){
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  atv.obsGeral=texto.trim();
+  salvarAtividade(actId,"Atualizou observação geral");
+  showToast("✓ Observação salva!");
+}
+
+// ═══════════════════════════════════════════
+// HISTÓRICO NO CARD — salva log por atividade
+// ═══════════════════════════════════════════
+function logNoCard(actId, acao){
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  if(!atv._hist) atv._hist=[];
+  atv._hist.push({quem:userAtual||"?", acao, ts:Date.now()});
+  // Mantém só os últimos 20
+  if(atv._hist.length>20) atv._hist=atv._hist.slice(-20);
+}
+
+// ═══════════════════════════════════════════
+// REORDENAÇÃO POR DRAG & DROP
+// ═══════════════════════════════════════════
+function reordenarAtv(fromId, toId){
+  const fi=dbAtv.findIndex(a=>a.id===fromId);
+  const ti=dbAtv.findIndex(a=>a.id===toId);
+  if(fi<0||ti<0) return;
+  const [moved]=dbAtv.splice(fi,1);
+  dbAtv.splice(ti,0,moved);
+  // Persiste ordem como campo _ordem
+  const updates={};
+  dbAtv.forEach((a,i)=>{ a._ordem=i; updates[`atividadesMap/${a.id}/_ordem`]=i; });
+  _fbRef.update(updates);
+  const abertos=Array.from(document.querySelectorAll(".activity-card.open")).map(c=>c.id);
+  const sy=window.scrollY;
+  renderizarPainel();
+  abertos.forEach(id=>document.getElementById(id)?.classList.add("open"));
+  window.scrollTo(0,sy);
+}
+
+// ═══════════════════════════════════════════
+// CONFETE — dispara quando todas as empresas ficam OK
+// ═══════════════════════════════════════════
+function dispararConfete(){
+  const canvas=document.getElementById("confete-canvas");
+  if(!canvas) return;
+  canvas.style.display="block";
+  const ctx=canvas.getContext("2d");
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const cores=["#1a2456","#009ecc","#f05323","#52b747","#f8af18","#7c3aed"];
+  const particulas=Array.from({length:120},()=>({
+    x:Math.random()*canvas.width, y:Math.random()*canvas.height-canvas.height,
+    r:Math.random()*6+3, cor:cores[Math.floor(Math.random()*cores.length)],
+    vx:(Math.random()-.5)*3, vy:Math.random()*4+2,
+    op:1, rot:Math.random()*360, vrot:(Math.random()-.5)*8
+  }));
+  let frame=0;
+  function animar(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particulas.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.vrot; p.op-=.012;
+      ctx.save(); ctx.globalAlpha=Math.max(0,p.op);
+      ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.cor;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r);
+      ctx.restore();
+    });
+    frame++;
+    if(frame<120) requestAnimationFrame(animar);
+    else{ctx.clearRect(0,0,canvas.width,canvas.height);canvas.style.display="none";}
+  }
+  animar();
+  showToast("🎉 Atividade concluída!");
+}
+
+// ═══════════════════════════════════════════
+// ALERTAS — melhorado com atrasadas tbm
+// ═══════════════════════════════════════════
 // ═══════════════════════════════════════════
 // CALENDÁRIO
 // ═══════════════════════════════════════════
