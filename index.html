@@ -208,7 +208,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .sub-tot-bar{width:60px;height:5px;background:#f1f5f9;border-radius:4px;overflow:hidden;}
 .sub-tot-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--blue));border-radius:4px;}
 .sub-tot-pct{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:10px;color:var(--blue);min-width:30px;text-align:right;}
-.scroll-list{max-height:240px;overflow-y:auto;padding-right:2px;}
+.scroll-list{max-height:420px;overflow-y:auto;padding-right:2px;}
 
 /* TABS */
 .tabs-navigation{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:20px;}
@@ -678,15 +678,32 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
   <div id="tab-config" class="tab-content">
     <div class="form-card">
       <h2 class="competence-title">⚙️ Edição de Atividades</h2>
-      <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <input type="text" id="edit-filter-nome" class="search-input" placeholder="Filtrar..." oninput="renderizarPainel()" style="width:190px;height:36px;">
-          <select id="edit-filter-resp" class="filter-select" onchange="renderizarPainel()"><option value="todos">👤 Todos</option></select>
-          <select id="edit-filter-area" class="filter-select" onchange="renderizarPainel()"><option value="todos">📂 Todas Áreas</option></select>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn-arco slate" onclick="baixarModelo()">📥 Modelo CSV</button>
-          <button class="btn-arco" style="background:#1e293b;" onclick="document.getElementById('file-import').click()">📤 Importar</button>
+      <!-- Filtros config — linha 1 -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+        <input type="text" id="edit-filter-nome" class="search-input" placeholder="🔍 Buscar atividade..." oninput="renderizarPainel()" style="width:180px;height:34px;">
+        <select id="edit-filter-resp" class="filter-select" onchange="renderizarPainel()"><option value="todos">👤 Todos Responsáveis</option></select>
+        <select id="edit-filter-area" class="filter-select" onchange="renderizarPainel()"><option value="todos">📂 Todas as Áreas</option></select>
+        <select id="edit-filter-emp" class="filter-select" onchange="renderizarPainel()"><option value="todos">🏢 Todas as Empresas</option></select>
+        <select id="edit-filter-grupo" class="filter-select" onchange="renderizarPainel()">
+          <option value="todos">📁 Todos os Grupos</option>
+          <option value="Pedagogico">🎓 Pedagógico</option>
+          <option value="FM">💼 F&M</option>
+        </select>
+        <select id="edit-filter-previa" class="filter-select" onchange="renderizarPainel()">
+          <option value="todos">💰 Prévia — Todas</option>
+          <option value="Sim">💰 Impacta Prévia</option>
+          <option value="Não">💰 Não impacta</option>
+        </select>
+        <select id="edit-filter-status" class="filter-select" onchange="renderizarPainel()">
+          <option value="todos">📊 Todos os Status</option>
+          <option value="OK">✓ OK</option>
+          <option value="PENDENTE">⏳ Pendentes</option>
+          <option value="ATRASADO">⚠ Atrasadas</option>
+        </select>
+        <button class="filter-btn" onclick="limparFiltrosConfig()" style="height:34px;padding:0 12px;font-size:11px;">✕ Limpar</button>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn-arco slate" onclick="baixarModelo()" style="height:34px;">📥 Modelo CSV</button>
+          <button class="btn-arco" style="background:#1e293b;height:34px;" onclick="document.getElementById('file-import').click()">📤 Importar</button>
           <input type="file" id="file-import" style="display:none;" onchange="importarCSV(event)">
         </div>
       </div>
@@ -1365,7 +1382,16 @@ function renderizarPainel(){
 
     // Tabela config
     if(ehM&&fragT){
-      const pe=(!eNome||act.atividade.toLowerCase().includes(eNome))&&(eResp==="todos"||act.responveisLista.includes(eResp))&&(eArea==="todos"||act.area===eArea);
+      const eEmp=$val("edit-filter-emp"), eGrupo=$val("edit-filter-grupo");
+        const ePrevia=$val("edit-filter-previa"), eStatus=$val("edit-filter-status");
+        const sgAtv=statusGeral(act);
+        const pe=(!eNome||act.atividade.toLowerCase().includes(eNome))
+          &&(eResp==="todos"||act.responveisLista.includes(eResp))
+          &&(eArea==="todos"||act.area===eArea)
+          &&(eEmp==="todos"||(act.empresasElegiveis||[]).includes(eEmp))
+          &&(eGrupo==="todos"||(act.grupo||"Pedagogico")===eGrupo)
+          &&(ePrevia==="todos"||(act.previaReceita||"Não")===ePrevia)
+          &&(eStatus==="todos"||sgAtv===eStatus);
       if(pe){
         const tr=document.createElement("tr");
         const tags=(act.empresasElegiveis||[]).map(s=>`<span class="comp-tag">${s.substring(0,4)}</span>`).join("");
@@ -2448,6 +2474,14 @@ function _importarFMCsv(file){
 // Mantém nome antigo como alias por compatibilidade
 function importarCSVFM(event){ importarFM(event); }
 
+function limparFiltrosConfig(){
+  ["edit-filter-nome","edit-filter-resp","edit-filter-area","edit-filter-emp",
+   "edit-filter-grupo","edit-filter-previa","edit-filter-status"].forEach(id=>{
+    const el=$el(id); if(!el) return;
+    el.tagName==="INPUT"?el.value="":el.selectedIndex=0;
+  });
+  renderizarPainel();
+}
 function filtrarStatus(btn,status){document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");filtroStatus=status;renderizarPainel();}
 
 function popularFiltros(){
@@ -2457,8 +2491,10 @@ function popularFiltros(){
   if(fR){fR.innerHTML='<option value="todos">👤 Todos Responsáveis</option>'+PROF.map(p=>`<option value="${p}">${p}</option>`).join("");}
   if(fA){fA.innerHTML='<option value="todos">📂 Todas as Áreas</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join("");}
   if(fE){fE.innerHTML='<option value="todos">🏢 Todas as Empresas</option>'+EMPS.map(e=>`<option value="${e}">${e}</option>`).join("");}
-  if(eR){eR.innerHTML='<option value="todos">👤 Todos</option>'+PROF.map(p=>`<option value="${p}">${p}</option>`).join("");}
-  if(eA){eA.innerHTML='<option value="todos">📂 Todas</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join("");}
+  if(eR){eR.innerHTML='<option value="todos">👤 Todos Responsáveis</option>'+PROF.map(p=>`<option value="${p}">${p}</option>`).join("");}
+  if(eA){eA.innerHTML='<option value="todos">📂 Todas as Áreas</option>'+areas.map(a=>`<option value="${a}">${a}</option>`).join("");}
+  const eE=$el("edit-filter-emp");
+  if(eE){eE.innerHTML='<option value="todos">🏢 Todas as Empresas</option>'+[...EMPS,...EMPS_FM].filter((v,i,a)=>a.indexOf(v)===i).map(e=>`<option value="${e}">${e}</option>`).join("");}
 }
 
 // ═══════════════════════════════════════════
