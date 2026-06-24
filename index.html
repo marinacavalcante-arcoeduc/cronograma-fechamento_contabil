@@ -929,7 +929,10 @@ function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});r
 function assumirSessao(){document.getElementById("modal-sessao-ativa").classList.remove("show");if(window._onAssumir){window._onAssumir();window._onAssumir=null;}}
 
 function logAcao(acao){if(!_fbDb||!userAtual||userAtual==="Outra Área") return;const ts=Date.now();_fbDb.ref("cronograma/logs").child("log_"+ts).set({quem:userAtual,acao,ts});const lim=ts-7*24*60*60*1000;_fbDb.ref("cronograma/logs").orderByChild("ts").endAt(lim).once("value",s=>s.forEach(c=>c.ref.remove()));}
-function backup(payload){if(!_fbDb) return;const ts=Date.now(),dt=new Date(ts),k=`bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}`;_fbDb.ref("cronograma/backups/"+k).set({ts,por:userAtual||"sistema",atividades:payload});_fbDb.ref("cronograma/backups").orderByChild("ts").once("value",s=>{const ks=[];s.forEach(c=>ks.push(c.key));if(ks.length>20) ks.slice(0,ks.length-20).forEach(k=>_fbDb.ref("cronograma/backups/"+k).remove());});}
+function _limparUndefined(obj){
+  return JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
+}
+function backup(payload){if(!_fbDb) return;const ts=Date.now(),dt=new Date(ts),k=`bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}`;_fbDb.ref("cronograma/backups/"+k).set(_limparUndefined({ts,por:userAtual||"sistema",atividades:payload}));_fbDb.ref("cronograma/backups").orderByChild("ts").once("value",s=>{const ks=[];s.forEach(c=>ks.push(c.key));if(ks.length>30) ks.slice(0,ks.length-30).forEach(k=>_fbDb.ref("cronograma/backups/"+k).remove());});}
 
 function atualizarSave(){
   const el=document.getElementById("ultimo-save"); if(!el||!_tsSave) return;
@@ -985,7 +988,7 @@ function salvarAtividade(actId,desc){
     const ts=Date.now();
     backup(dbAtv);
     const updates={};
-    updates[`atividadesMap/${actId}`]=atv;
+    updates[`atividadesMap/${actId}`]=_limparUndefined(atv);
     updates["_ts"]=ts;
     updates["_savedBy"]=userAtual||"sistema";
     if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
@@ -1160,7 +1163,7 @@ async function _carregarDadosEIniciar(){
           descritivo:item.descritivo||"",
           obsGeral:item.obsGeral||"",
           _hist:item._hist||[],
-          _ordem:item._ordem!==undefined?item._ordem:undefined
+          _ordem:item._ordem!==undefined?item._ordem:null
         }));
         // Ordena por diaUtil pra manter consistência visual
         dbAtv.sort((a,b)=>{const da=parseInt(a.diaUtil)||0,db=parseInt(b.diaUtil)||0;return da!==db?da-db:a.atividade.localeCompare(b.atividade,"pt-BR");});
@@ -1178,7 +1181,7 @@ async function _carregarDadosEIniciar(){
           descritivo:item.descritivo||"",
           obsGeral:item.obsGeral||"",
           _hist:item._hist||[],
-          _ordem:item._ordem!==undefined?item._ordem:undefined
+          _ordem:item._ordem!==undefined?item._ordem:null
         }));
         // Migra automaticamente para atividadesMap
         console.log("Migrando atividades para atividadesMap...");
