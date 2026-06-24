@@ -1708,22 +1708,19 @@ function alterarStatus(actId,empIdx,status){
   const todasOk=atv.empresas.filter(e=>eligs.includes(e.nome)).every(e=>e.status==="OK"||e.status==="N/A");
   if(todasOk) dispararConfete();
 
-  // Transaction — grava só o campo da empresa tocada, sem sobrescrever outras
+  // Salva campo específico da empresa — com fallback robusto
   if(!_fbDb){showToast("⚠️ Sem conexão.");return;}
   const empPath=`cronograma/atividadesMap/${actId}/empresas/${empIdx}`;
   _fbDb.ref(empPath).transaction(atual=>{
-    // Se o dado sumiu no Firebase (deletado por outro), cancela
-    if(atual===null) return null;
-    // Aplica só os campos que mudamos, preservando o resto (nome, obs etc)
-    return {...atual, status, dataConclusao};
+    // Se null (campo não existe ainda no Firebase), cria com os dados locais
+    const base=atual||atv.empresas[empIdx]||{};
+    return {...base, status, dataConclusao};
   }).then(result=>{
     if(!result.committed){
-      // Outro usuário deletou o dado — resincroniza
-      showToast("⚠️ Conflito detectado. Recarregando...");
-      setTimeout(()=>location.reload(),1500);
+      // Transaction não commitou — usa salvarAtividade como fallback
+      salvarAtividade(actId,acao);
       return;
     }
-    // Atualiza _ts e log sem sobrescrever atividade inteira
     const tsNow=Date.now();
     _fbRef.update({"_ts":tsNow,"_savedBy":userAtual||"sistema"});
     _tsSave=tsNow; _tsCarregado=tsNow;
@@ -1731,8 +1728,7 @@ function alterarStatus(actId,empIdx,status){
     logAcao(acao);
     showToast("✓ Status salvo!");
   }).catch(e=>{
-    console.error("Transaction falhou:",e);
-    // Fallback: salva o objeto inteiro (comportamento anterior)
+    console.error("Transaction falhou, usando fallback:",e);
     salvarAtividade(actId,acao);
     showToast("✓ Status salvo!");
   });
@@ -1752,7 +1748,7 @@ function okTodas(actId){
   const promises=atv.empresas.map((e,i)=>{
     if(!elegiveis.includes(e.nome)) return Promise.resolve();
     return _fbDb.ref(`cronograma/atividadesMap/${actId}/empresas/${i}`)
-      .transaction(atual=>atual===null?null:{...atual,status:"OK",dataConclusao:t});
+      .transaction(atual=>({...(atual||atv.empresas[i]||{}),status:"OK",dataConclusao:t}));
   });
 
   Promise.all(promises).then(()=>{
