@@ -842,7 +842,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 // ═══════════════════════════════════════════
 // DADOS & ESTADO
 // ═══════════════════════════════════════════
-let PROF = ["Alayde Peruna","Ana Beatriz Vieira Almeida","Danielle Mota Dias De Araujo","Eliomar Vieira Alves","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jessica Elen Silveira Raulino","Jhenyffer Maria Cavalcante Pessoa","Jose Francisco Domingos Da Silva Junior","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Tordin","Vitoria Mansur Kuntz"];
+let PROF = ["A Atribuir","Alayde Peruna","Ana Beatriz Vieira Almeida","Diego Cabral Moreira","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jefferson Alves De Souza","Jhenyffer Maria Cavalcante Pessoa","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Tordin","Vitoria Mansur Kuntz"];
 const MASTERS = ["Natanael Ferreira De Sousa","Jose Francisco Domingos Da Silva Junior","Marina Maria Teixeira Cavalcante"];
 let EMPS = ["Arco Educação","CBE/SAS","SAE","IS","ATECH","PSD","NAVE","GEEKIE","P2D/COC","NCC"];
 let AREAS = [];
@@ -1114,8 +1114,10 @@ async function init(){
   document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="none";
 
-  // Mostra login IMEDIATAMENTE — áreas vêm do Firebase, não hardcoded
-  // Só Admin e Tributário aparecem antes do Firebase (são opções fixas)
+  // Pré-popula com áreas reais do banco (hardcoded correto, sem divergência)
+  const _AREAS_PADRAO=["Ativo fixo","Contábil","Controladoria","CR","DP",
+    "Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Tributário"];
+  _AREAS_PADRAO.forEach(a=>{if(!AREAS.includes(a)) AREAS.push(a);});
   // Verifica sessão salva — se já logado, não mostra login
   const _ss=sessionStorage.getItem("arco_sessao_login_v2");
   if(_ss){
