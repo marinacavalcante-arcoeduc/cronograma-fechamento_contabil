@@ -863,7 +863,7 @@ const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","C
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC","ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
-const EMAIL_PARA_PADRAO = "emersonnunes@arcoeducacao.com.br, marinacavalcante@arcoeducacao.com.br";
+const EMAIL_PARA_PADRAO = "emersonnunes@arcoeducacao.com.br, marinacavalcante@arcoeducacao.com.br, natanaelsousa@arcoeducacao.com.br";
 const EMAIL_CC_PADRAO = "leonardofelix@arcoeducacao.com.br";
 const APPS_SCRIPT_URL = "https://script.google.com/a/macros/arcoeducacao.com.br/s/AKfycbyN0L8gYx2WYZqNEmEw5HvlL3EUWQn13DgtNJv8U8qZJy-ZDvT2orROtlFNYvcMWq6YcA/exec"; // ← substitua após publicar o script
 const TRIBUTARIO_TEAM = ["Leonardo Candido Felix","Emerson Lacerda Nunes","Eliomar Vieira Alves"];
@@ -895,29 +895,47 @@ function initFB(){
 function iniciarPresenca(nome){
   if(!_fbDb||!nome||nome==="Outra Área") return;
   _presId="p_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
+  const modoLabel=_modoLoginAdmin?"admin":"usuario";
   const ref=_fbDb.ref("cronograma/presenca/"+_presId);
-  const esc=()=>ref.set({nome,desde:Date.now(),lastSeen:Date.now()});
+  const esc=()=>ref.set({nome,modo:modoLabel,desde:Date.now(),lastSeen:Date.now()});
   esc(); ref.onDisconnect().remove();
   if(window._hb) clearInterval(window._hb);
   window._hb=setInterval(()=>{if(_presId) ref.update({lastSeen:Date.now()});},20000);
   window.addEventListener("beforeunload",e=>{try{ref.remove();}catch(x){}if(_savePend){e.preventDefault();e.returnValue="⚠️ Salvando...";return e.returnValue;}});
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&_presId) esc();});
   _fbDb.ref("cronograma/presenca").on("value",snap=>{
-    const todos=snap.val()||{}, agora=Date.now(), LIMITE=60000, ativos=[];
-    Object.entries(todos).forEach(([id,v])=>{if(agora-(v.lastSeen||v.desde||0)>LIMITE){_fbDb.ref("cronograma/presenca/"+id).remove();return;}ativos.push({id,nome:v.nome});});
-    const mapa=new Map(); ativos.filter(p=>p.id!==_presId).forEach(p=>{if(p.nome&&p.nome!==nome) mapa.set(p.nome,p);});
-    renderPresenca(Array.from(mapa.keys()),nome);
+    const todos=snap.val()||{}, agora=Date.now(), LIMITE=60000, LIMITE_LIMPEZA=90000, ativos=[];
+    Object.entries(todos).forEach(([id,v])=>{
+      const inativo=agora-(v.lastSeen||v.desde||0);
+      // Limpa ativamente só nodes muito antigos (90s = 4+ heartbeats perdidos) — seguro
+      if(inativo>LIMITE_LIMPEZA){_fbDb.ref("cronograma/presenca/"+id).remove();return;}
+      // Filtra da exibição nodes com mais de 60s
+      if(inativo>LIMITE) return;
+      ativos.push({id,nome:v.nome,modo:v.modo||"admin"});
+    });
+    const mapa=new Map();
+    ativos.filter(p=>p.id!==_presId).forEach(p=>{if(p.nome&&p.nome!==nome) mapa.set(p.nome,{...p});});
+    renderPresenca(Array.from(mapa.values()),nome,modoLabel);
   });
 }
 
-function renderPresenca(lista,voce){
+function renderPresenca(lista,voce,modoVoce){
   const w=document.getElementById("presenca-wrap"); if(!w) return;
   const MAX=4,vis=lista.slice(0,MAX),ex=lista.length-MAX;
   let h="";
-  if(voce){const i=voce.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();h+=`<span class="pav" title="Você" style="background:var(--green);">${i}</span>`;}
-  h+=vis.map(n=>{const i=n.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();return`<span class="pav" title="${n}">${i}</span>`;}).join("");
-  if(ex>0) h+=`<span class="pav" title="${lista.slice(MAX).join(', ')}">+${ex}</span>`;
-  const txt=lista.length===0?"Só você":lista.length===1?`Você + ${lista[0].split(" ")[0]}`:`Você + ${lista.length} pessoas`;
+  if(voce){
+    const i=voce.split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
+    const mLabel=modoVoce==="usuario"?" (usuária)":"";
+    h+=`<span class="pav" title="Você${mLabel}" style="background:var(--green);">${i}</span>`;
+  }
+  h+=vis.map(p=>{
+    const n=p.nome||p;
+    const i=n.split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();
+    const mLabel=(p.modo==="usuario")?" (usuária)":"";
+    return`<span class="pav" title="${n}${mLabel}">${i}</span>`;
+  }).join("");
+  if(ex>0) h+=`<span class="pav" title="${lista.slice(MAX).map(p=>p.nome||p).join(', ')}">+${ex}</span>`;
+  const txt=lista.length===0?"Só você":lista.length===1?`Você + ${(lista[0].nome||lista[0]).split(" ")[0]}`:`Você + ${lista.length} pessoas`;
   h+=`<span id="presenca-count">${txt}</span>`;
   w.innerHTML=h;
 }
@@ -936,7 +954,7 @@ function verificarSessao(nome,cb){
     }else{gravarSessao(ref,nome);cb();}
   });
 }
-function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});ref.onDisconnect().remove();setInterval(()=>{if(_sessToken) ref.update({ts:Date.now()});},30000);}
+function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});ref.onDisconnect().remove();if(window._hbSessao) clearInterval(window._hbSessao);window._hbSessao=setInterval(()=>{if(_sessToken) ref.update({ts:Date.now()});},30000);}
 function assumirSessao(){document.getElementById("modal-sessao-ativa").classList.remove("show");if(window._onAssumir){window._onAssumir();window._onAssumir=null;}}
 
 function logAcao(acao){if(!_fbDb||!userAtual||userAtual==="Outra Área") return;const ts=Date.now();_fbDb.ref("cronograma/logs").child("log_"+ts).set({quem:userAtual,acao,ts});const lim=ts-7*24*60*60*1000;_fbDb.ref("cronograma/logs").orderByChild("ts").endAt(lim).once("value",s=>s.forEach(c=>c.ref.remove()));}
@@ -1144,9 +1162,9 @@ async function init(){
       }
     }catch(e){}
   }
-  // Sem sessão — mostra login agora, carrega dados em background
-  popularLogin();
+  // Sem sessão — mostra login IMEDIATAMENTE com as áreas fixas, Firebase carrega em paralelo
   document.getElementById("login-overlay").classList.remove("hidden");
+  popularLogin();
   _carregarDadosEIniciar();
 }
 
@@ -1161,6 +1179,8 @@ async function _carregarDadosEIniciar(){
       if(d.profissionais&&d.profissionais.length) PROF=d.profissionais;
       if(d.empresas&&d.empresas.length) EMPS=d.empresas;
       if(d.areas&&d.areas.length) AREAS=d.areas;
+      // Carrega dados fiscais do PIS/COFINS/IRPJ
+      if(d.fiscalResumo) window._fiscalResumoData=d.fiscalResumo;
       // Carrega atividades — preferência pelo atividadesMap (por ID, sem risco de posição)
       if(d.atividadesMap&&Object.keys(d.atividadesMap).length){
         dbAtv=Object.values(d.atividadesMap).map((item,i)=>({
@@ -1223,26 +1243,25 @@ async function _carregarDadosEIniciar(){
 function popularLogin(){
   const sel=document.getElementById("login-area-sel"); if(!sel) return;
 
-  // Coleta áreas: do Firebase se já carregou, senão extrai das atividades em memória
+  // Coleta áreas: do Firebase se já carregou, senão usa as fixas pré-definidas
   const areas=new Set(AREAS);
   dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
+  // Sempre mostra as áreas fixas como base mínima — nunca deixa vazio
+  const _AREAS_FIXAS=["Ativo fixo","Contábil","Controladoria","CR","DP","Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Tributário"];
+  _AREAS_FIXAS.forEach(a=>areas.add(a));
 
-  // Se ainda sem dados do Firebase, mostra as opções fixas (Admin/Tributário + leitura geral)
-  // para nunca deixar o select vazio — áreas específicas aparecem assim que o Firebase chegar
   sel.disabled=false;
-  const areaOpts=areas.size>0
-    ? Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("")
-    : '<option value="__LEITURA__">👁 Acessar como visitante</option>';
+  const areaOpts=Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
 
   sel.innerHTML='<option value="">— Selecione a área —</option>'
     +'<option value="__ADMIN__">🛡 Administrador</option>'
     +'<option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'
     +areaOpts;
 
-  // Se Firebase ainda não chegou, agenda re-população quando chegar
+  // Se Firebase ainda não chegou, agenda re-população quando chegar (verifica rápido)
   if(!areas.size){
     clearTimeout(window._loginRetry);
-    window._loginRetry=setTimeout(popularLogin, 600);
+    window._loginRetry=setTimeout(popularLogin, 200);
   } else {
     clearTimeout(window._loginRetry);
   }
@@ -1274,14 +1293,30 @@ function efetuarLogin(){
   if(area==="__TRIBUTARIO__"){userAtual=resp;subArea="__TRIBUTARIO__";}
   else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
   sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea,modoAdmin:_modoLoginAdmin}));
-  iniciarPresenca(userAtual);
   if(_modoLoginAdmin){
+    iniciarPresenca(userAtual);
     verificarSessao(userAtual,()=>{aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");});
   }else{
+    iniciarPresenca(userAtual);
     aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");
   }
 }
-function efetuarLogout(){sessionStorage.removeItem("arco_sessao_login_v2");location.reload();}
+function efetuarLogout(){
+  // Limpa presença no Firebase antes de recarregar
+  if(_fbDb&&_presId){
+    try{_fbDb.ref("cronograma/presenca/"+_presId).remove();}catch(x){}
+    _presId=null;
+  }
+  // Limpa sessão ativa se for master admin
+  if(_fbDb&&_sessToken){
+    try{_fbDb.ref("cronograma/_sessaoAtiva").remove();}catch(x){}
+    _sessToken=null;
+  }
+  // Reseta flag de sync para que o próximo login reinicie os listeners
+  window._syncAtivo=false;
+  sessionStorage.removeItem("arco_sessao_login_v2");
+  location.reload();
+}
 function aplicarLogin(){
   document.getElementById("login-overlay").classList.add("hidden");
   const ehM=(MASTERS.includes(userAtual)||subArea==="__ADMIN__")&&_modoLoginAdmin;
@@ -1344,7 +1379,7 @@ function getRespEmp(act,empNome){const k=empNome.replace(/[\/\.#\[\]\$]/g,"_");i
 // ── Helpers ──────────────────────────────────────────────────
 function $el(id){return document.getElementById(id);}
 function $val(id,def="todos"){return ($el(id)||{}).value||def;}
-function ehMaster(){return MASTERS.includes(userAtual)||subArea==="__ADMIN__";}
+function ehMaster(){return (MASTERS.includes(userAtual)||subArea==="__ADMIN__")&&_modoLoginAdmin;}
 const CONT_AREAS=["Contábil","Contabilidade"];
 function isFM(act){const g=(act.grupo||"").toUpperCase();return g==="FM"||g==="F&M";}
 
@@ -1976,11 +2011,8 @@ function saveFiscalResumo(emp,campo,val){
   window._fiscalResumoData[emp][campo]=val;
   // Persist to Firebase
   if(_fbDb){
-    const {ref,set}=window._fbSDK||{};
-    if(ref&&set){
-      const path=`cronograma/fiscalResumo/${encodeURIComponent(emp)}`;
-      set(ref(_fbDb,path),window._fiscalResumoData[emp]).catch(e=>console.error(e));
-    }
+    const path=`cronograma/fiscalResumo/${emp.replace(/[.#$/[\]]/g,"_")}`;
+    _fbDb.ref(path).set(window._fiscalResumoData[emp]).catch(e=>console.error("Erro ao salvar fiscalResumo:",e));
   }
   // ── Disparo automático a partir do 4° DU ──
   const liberado=(val==="Liberado"||val==="Finalizado");
@@ -2791,6 +2823,7 @@ function popularFiltros(){
 // ═══════════════════════════════════════════
 function toggleForm(){const fb=document.getElementById("form-bloco");fb.classList.toggle("open");if(fb.classList.contains("open")) renderizarFormBase();}
 function salvarNovaAtividade(){
+  if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}
   const nome=document.getElementById("add-nome").value.trim(), area=document.getElementById("add-area").value.trim(), du=document.getElementById("add-diautil").value.trim(), prev=document.getElementById("add-previa").value;
   if(!nome||!area||area==="__novo__"||!du){alert("Preencha nome, área e dia útil.");return;}
   let resps=[...cddResps]; if(!resps.length) resps=["A Atribuir"];
@@ -2815,17 +2848,17 @@ function renderConfigListas(){
   if(rE) rE.innerHTML=EMPS.map((e,i)=>item("🏢 "+e,`delEmp(${i})`)).join("");
   if(rA) rA.innerHTML=listarAreas().map(a=>item("📂 "+a,`delArea('${a.replace(/'/g,"\\'")}')`)).join("")||'<small style="color:var(--muted);">Nenhuma</small>';
 }
-function addResp(){const inp=document.getElementById("cfg-new-resp"),n=inp.value.trim();if(!n||PROF.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}PROF.push(n);PROF.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionado!");}
-function delResp(i){if(!confirm(`Remover "${PROF[i]}"?`)) return;PROF.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removido!");}
-function addEmp(){const inp=document.getElementById("cfg-new-emp"),n=inp.value.trim();if(!n||EMPS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}EMPS.push(n);dbAtv.forEach(a=>{if(!a.empresas.find(e=>e.nome===n)) a.empresas.push({nome:n,status:"PENDENTE",dataConclusao:"",obs:""}); });inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
-function delEmp(i){if(!confirm(`Remover "${EMPS[i]}"?`)) return;EMPS.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
-function addArea(){const inp=document.getElementById("cfg-new-area"),n=inp.value.trim();if(!n||AREAS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}AREAS.push(n);AREAS.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
-function delArea(n){if(!confirm(`Remover "${n}"?`)) return;AREAS=AREAS.filter(a=>a!==n);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
+function addResp(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-resp"),n=inp.value.trim();if(!n||PROF.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}PROF.push(n);PROF.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionado!");}
+function delResp(i){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${PROF[i]}"?`)) return;PROF.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removido!");}
+function addEmp(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-emp"),n=inp.value.trim();if(!n||EMPS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}EMPS.push(n);dbAtv.forEach(a=>{if(!a.empresas.find(e=>e.nome===n)) a.empresas.push({nome:n,status:"PENDENTE",dataConclusao:"",obs:""}); });inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
+function delEmp(i){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${EMPS[i]}"?`)) return;EMPS.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
+function addArea(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-area"),n=inp.value.trim();if(!n||AREAS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}AREAS.push(n);AREAS.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
+function delArea(n){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${n}"?`)) return;AREAS=AREAS.filter(a=>a!==n);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
 
 // ═══════════════════════════════════════════
 // COMPETÊNCIA / HISTÓRICO
 // ═══════════════════════════════════════════
-function salvarPeriodo(){comp.mes=document.getElementById("cfg-mes").value;comp.ano=document.getElementById("cfg-ano").value;salvarDados("Alterou mês ativo");atualizarLabels();renderizarPainel();showToast("✓ Competência aplicada!");}
+function salvarPeriodo(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}comp.mes=document.getElementById("cfg-mes").value;comp.ano=document.getElementById("cfg-ano").value;salvarDados("Alterou mês ativo");atualizarLabels();renderizarPainel();showToast("✓ Competência aplicada!");}
 function arquivarMes(){
   const k=comp.mes+"_"+comp.ano; if(!confirm(`Arquivar ${comp.mes}/${comp.ano} e baixar Excel?\n\nOs status NÃO serão apagados. Use "Resetar Status" para isso.`)) return;
   backup(dbAtv);
