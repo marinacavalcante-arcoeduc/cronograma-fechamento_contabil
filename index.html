@@ -531,6 +531,13 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     <div class="fg"><label>Área</label><select id="login-area-sel" onchange="filtrarRespsLogin()"></select></div>
     <div class="fg"><label>Responsável</label><select id="login-resp-sel"></select></div>
     <div class="fg" id="login-senha-group" style="display:none;"><label>Senha</label><input type="password" id="login-senha-inp" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')efetuarLogin()"></div>
+    <div id="login-modo-wrap" style="display:none;margin-bottom:12px;">
+      <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Modo de acesso</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="btn-modo-admin" onclick="setModoLogin('admin')" style="flex:1;padding:8px;border-radius:10px;border:2px solid #1a2456;background:#1a2456;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">👑 Admin</button>
+        <button type="button" id="btn-modo-user" onclick="setModoLogin('user')" style="flex:1;padding:8px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">👤 Usuária</button>
+      </div>
+    </div>
     <button class="btn-arco full" onclick="efetuarLogin()">Entrar →</button>
   </div>
 </div>
@@ -1128,6 +1135,7 @@ async function init(){
       const _s=JSON.parse(_ss);
       if(_s&&_s.usuario){
         userAtual=_s.usuario; subArea=_s.area||"__ADMIN__";
+        _modoLoginAdmin=(_s.modoAdmin!==false);
         document.getElementById("app-view").style.display="block";
         iniciarPresenca(userAtual);
         // Carrega dados em background e depois renderiza
@@ -1204,7 +1212,7 @@ async function _carregarDadosEIniciar(){
   popularFiltros(); atualizarLabels();
   // Se ainda estiver na tela de login, fecha e entra
   const ss=sessionStorage.getItem("arco_sessao_login_v2");
-  if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){}}
+  if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";_modoLoginAdmin=(s.modoAdmin!==false);iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){}}
   // Atualiza o select de login com as áreas vindas do Firebase
   popularLogin();
 }
@@ -1244,12 +1252,20 @@ function filtrarRespsLogin(){
   const area=document.getElementById("login-area-sel").value;
   const rSel=document.getElementById("login-resp-sel"), sGrp=document.getElementById("login-senha-group");
   if(!area){rSel.innerHTML='<option value="">— Selecione a área —</option>';if(sGrp) sGrp.style.display="none";return;}
-  if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";return;}
-  if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";return;}
+  if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw){mw.style.display="block";_modoLoginAdmin=true;setModoLogin('admin');}return;}
+  if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw) mw.style.display="none";return;}
   if(sGrp) sGrp.style.display="none";
+  const mw2=document.getElementById("login-modo-wrap");if(mw2) mw2.style.display="none";
   if(!["Contábil","Contabilidade"].includes(area)){rSel.innerHTML='<option value="__LEITURA__">👁 Acessar como leitura</option>';return;}
   const rs=new Set(); dbAtv.forEach(a=>{if(a.area===area)(a.responveisLista||[]).forEach(r=>{if(r!=="A Atribuir") rs.add(r);});});
   rSel.innerHTML=Array.from(rs).sort().map(r=>`<option value="${r}">👤 ${r}</option>`).join("")+`<option value="__LEITURA__">🔒 Somente leitura</option>`;
+}
+let _modoLoginAdmin=true;
+function setModoLogin(modo){
+  _modoLoginAdmin=(modo==='admin');
+  const bA=document.getElementById('btn-modo-admin'),bU=document.getElementById('btn-modo-user');
+  if(bA){bA.style.background=_modoLoginAdmin?'#1a2456':'#fff';bA.style.color=_modoLoginAdmin?'#fff':'#64748b';bA.style.borderColor=_modoLoginAdmin?'#1a2456':'#e2e8f0';}
+  if(bU){bU.style.background=!_modoLoginAdmin?'#1a2456':'#fff';bU.style.color=!_modoLoginAdmin?'#fff':'#64748b';bU.style.borderColor=!_modoLoginAdmin?'#1a2456':'#e2e8f0';}
 }
 function efetuarLogin(){
   const area=document.getElementById("login-area-sel").value, resp=document.getElementById("login-resp-sel").value;
@@ -1257,14 +1273,18 @@ function efetuarLogin(){
   if(area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab")){const s=prompt("🔒 Senha da Contabilidade:");if(s!=="123"){alert("Senha incorreta.");return;}}
   if(area==="__TRIBUTARIO__"){userAtual=resp;subArea="__TRIBUTARIO__";}
   else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
-  sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea}));
+  sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea,modoAdmin:_modoLoginAdmin}));
   iniciarPresenca(userAtual);
-  verificarSessao(userAtual,()=>{aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");});
+  if(_modoLoginAdmin){
+    verificarSessao(userAtual,()=>{aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");});
+  }else{
+    aplicarLogin();showToast("Bem-vindo, "+abrev(userAtual)+"!");
+  }
 }
 function efetuarLogout(){sessionStorage.removeItem("arco_sessao_login_v2");location.reload();}
 function aplicarLogin(){
   document.getElementById("login-overlay").classList.add("hidden");
-  const ehM=MASTERS.includes(userAtual)||subArea==="__ADMIN__";
+  const ehM=(MASTERS.includes(userAtual)||subArea==="__ADMIN__")&&_modoLoginAdmin;
   const ini=(userAtual||"?").split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
   const avEl=document.getElementById("user-avatar-ini"); if(avEl) avEl.textContent=ini;
   const badge=document.getElementById("user-badge-text");
