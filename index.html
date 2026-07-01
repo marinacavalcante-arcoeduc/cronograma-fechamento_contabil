@@ -364,11 +364,9 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .config-table th:nth-child(5),.config-table td:nth-child(5){width:11%;}
 .config-table th:nth-child(6),.config-table td:nth-child(6){width:6%;}
 .config-table th:nth-child(7),.config-table td:nth-child(7){width:5%;}
-.config-table th:nth-child(8),.config-table td:nth-child(8){width:8%;}
-.config-table th:nth-child(9),.config-table td:nth-child(9){width:13%;}
-.config-table th:nth-child(10),.config-table td:nth-child(10){width:7%;text-align:right;}
 .config-table th:nth-child(8),.config-table td:nth-child(8){width:16%;}
 .config-table th:nth-child(9),.config-table td:nth-child(9){width:10%;text-align:right;}
+.config-table th:nth-child(10),.config-table td:nth-child(10){width:7%;text-align:right;}
 .nome-edit{width:100%;padding:7px 11px;font-weight:700;font-size:12px;color:var(--blue);background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;outline:none;}
 .nome-edit:focus{background:#fff;border-color:var(--blue);}
 .area-edit{width:100%;padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;outline:none;}
@@ -961,8 +959,6 @@ function logAcao(acao){if(!_fbDb||!userAtual||userAtual==="Outra Área") return;
 function _limparUndefined(obj){
   return JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
 }
-function backup(payload){if(!_fbDb) return;const ts=Date.now(),dt=new Date(ts),k=`bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}`;_fbDb.ref("cronograma/backups/"+k).set(_limparUndefined({ts,por:userAtual||"sistema",atividades:payload}));_fbDb.ref("cronograma/backups").orderByChild("ts").once("value",s=>{const ks=[];s.forEach(c=>ks.push(c.key));if(ks.length>30) ks.slice(0,ks.length-30).forEach(k=>_fbDb.ref("cronograma/backups/"+k).remove());});}
-
 function atualizarSave(){
   const el=document.getElementById("ultimo-save"); if(!el||!_tsSave) return;
   const s=Math.floor((Date.now()-_tsSave)/1000);
@@ -1134,6 +1130,18 @@ function iniciarLog(){
   });
 }
 
+function _mostrarRetryCarregamento(){
+  if(document.getElementById("retry-carregamento")) return;
+  const div=document.createElement("div");
+  div.id="retry-carregamento";
+  div.style.cssText="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:10001;text-align:center;padding:16px 24px;color:#fff;font-size:13px;background:rgba(15,23,42,.92);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.25);";
+  div.innerHTML='⚠️ Isso está demorando mais que o normal.<br>Pode ser a rede/proxy bloqueando a conexão com o Firebase.<br><button onclick="location.reload()" style="margin-top:10px;padding:8px 18px;border-radius:20px;border:none;background:var(--blue);color:#fff;font-weight:600;cursor:pointer;">🔄 Tentar de novo</button>';
+  document.body.appendChild(div);
+}
+function _esconderRetryCarregamento(){
+  const el=document.getElementById("retry-carregamento"); if(el) el.remove();
+}
+
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
@@ -1169,6 +1177,8 @@ async function init(){
 }
 
 async function _carregarDadosEIniciar(){
+  const _timeoutAviso=setTimeout(()=>{showToast("⏳ Conexão lenta, aguarde...");},6000);
+  const _timeoutRetry=setTimeout(()=>{_mostrarRetryCarregamento();},20000);
   try{
     const snap=await _fbRef.once("value"), d=snap.val();
     if(d){
@@ -1228,6 +1238,7 @@ async function _carregarDadosEIniciar(){
     const areasSet=new Set([...AREAS,...dbAtv.map(a=>a.area).filter(Boolean)]);
     AREAS=Array.from(areasSet).sort();
   }catch(e){console.error(e);showToast("⚠️ Erro ao conectar.");}
+  clearTimeout(_timeoutAviso); clearTimeout(_timeoutRetry); _esconderRetryCarregamento();
   document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="block";
   popularFiltros(); atualizarLabels();
@@ -1404,7 +1415,7 @@ function buildCard(act, baseId, cloneId){
   const busca=($el("search-input")||{}).value?.toLowerCase()||"";
   function hl(txt){
     if(!busca) return txt;
-    const re=new RegExp("("+busca.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")+")","gi");
+    const re=new RegExp("("+busca.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi");
     return txt.replace(re,'<mark class="hl">$1</mark>');
   }
 
@@ -2094,9 +2105,9 @@ function abrirModalEmail(emp,allOk){
         <button onclick="document.getElementById('modal-email-fiscal').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;">✕</button>
       </div>
       <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Para *</label>
-      <input id="email-dest" type="text" value="\${EMAIL_PARA_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:10px;">
+      <input id="email-dest" type="text" value="${EMAIL_PARA_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:10px;">
       <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">CC</label>
-      <input id="email-cc" type="text" value="\${EMAIL_CC_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:14px;">
+      <input id="email-cc" type="text" value="${EMAIL_CC_PADRAO}" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;box-sizing:border-box;margin-bottom:14px;">
       <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Preview do email que será enviado</label>
       <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:16px;">
         <div style="background:#1e3a5f;padding:10px 14px;">
@@ -2389,14 +2400,6 @@ function mudarAba(id){
 // ═══════════════════════════════════════════
 // DESCRITIVO DA ATIVIDADE
 // ═══════════════════════════════════════════
-function toggleDesc(actId){
-  // Abre/fecha em TODOS os clones do card (ped, fm, todos)
-  [`desc-${actId}`,`desc-${actId}_ped`,`desc-${actId}_fm`].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.classList.toggle("open");
-  });
-}
-
 function salvarDescritivo(actId, texto){
   const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
   atv.descritivo=texto.trim();
@@ -2627,14 +2630,14 @@ function calAbrirDia(d){
 
   // Lista de atividades
   document.getElementById("cal-lista").innerHTML=atvDia.map(a=>{
-    const statusGeral=(()=>{
+    const statusDia=(()=>{
       const emps=a.empresas||[];
       if(emps.every(e=>e.status==="OK")) return "OK";
       if(emps.some(e=>e.status==="ATRASADO")) return "ATRASADO";
       if(emps.some(e=>e.status==="NAO_OK")) return "NAO_OK";
       return "PENDENTE";
     })();
-    const c=calStatusColor(statusGeral);
+    const c=calStatusColor(statusDia);
     const okCount=(a.empresas||[]).filter(e=>e.status==="OK").length;
     const total=(a.empresas||[]).length;
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid ${c}44;background:${c}0d;">
@@ -2643,7 +2646,7 @@ function calAbrirDia(d){
         <div style="font-size:0.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${a.area} · D.U. ${a.diaUtil} · ${okCount}/${total} empresas OK</div>
       </div>
-      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${statusGeral==="OK"?"✓ OK":statusGeral==="ATRASADO"?"⚠ Atrasado":statusGeral==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
+      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${statusDia==="OK"?"✓ OK":statusDia==="ATRASADO"?"⚠ Atrasado":statusDia==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
     </div>`;
   }).join("");
 
@@ -2903,7 +2906,7 @@ function exportarExcel(){
   let csv="Atividade;Area;Grupo;Dia Util;Data Prevista;Previa Receita;Responsaveis;Empresa;Status;Data Conclusao;Evidencia\n";
   dbAtv.forEach(a=>{
     const dp=calcData(a.diaUtil),df=dp?dp.toLocaleDateString("pt-BR"):"";
-    a.empresas.forEach(e=>{if((a.empresasElegiveis||[]).includes(e.nome)) csv+=`"${a.atividade}";"${a.area}";"${a.diaUtil}";"${df}";"${a.previaReceita}";"${(a.responveisLista||[]).join(", ")}";"${e.nome}";"${e.status}";"${e.dataConclusao||""}";"${e.obs||""}"\n`;});
+    a.empresas.forEach(e=>{if((a.empresasElegiveis||[]).includes(e.nome)) csv+=`"${a.atividade}";"${a.area}";"${a.grupo||""}";"${a.diaUtil}";"${df}";"${a.previaReceita}";"${(a.responveisLista||[]).join(", ")}";"${e.nome}";"${e.status}";"${e.dataConclusao||""}";"${e.obs||""}"\n`;});
   });
   const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
   const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.setAttribute("download",`Fechamento_${comp.mes}_${comp.ano}.csv`);document.body.appendChild(link);link.click();document.body.removeChild(link);
