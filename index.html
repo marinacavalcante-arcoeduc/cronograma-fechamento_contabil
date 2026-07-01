@@ -1168,7 +1168,10 @@ async function init(){
         _carregarDadosEIniciar();
         return;
       }
-    }catch(e){}
+    }catch(e){
+      console.error("Erro ao restaurar sessão:", e);
+      sessionStorage.removeItem("arco_sessao_login_v2");
+    }
   }
   // Sem sessão — mostra login IMEDIATAMENTE com as áreas fixas, Firebase carrega em paralelo
   document.getElementById("login-overlay").classList.remove("hidden");
@@ -1244,7 +1247,7 @@ async function _carregarDadosEIniciar(){
   popularFiltros(); atualizarLabels();
   // Se ainda estiver na tela de login, fecha e entra
   const ss=sessionStorage.getItem("arco_sessao_login_v2");
-  if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";_modoLoginAdmin=(s.modoAdmin!==false);iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){}}
+  if(ss){try{const s=JSON.parse(ss);if(s&&s.usuario){userAtual=s.usuario;subArea=s.area||"__ADMIN__";_modoLoginAdmin=(s.modoAdmin!==false);iniciarPresenca(userAtual);aplicarLogin();return;}}catch(e){console.error("Erro ao restaurar sessão após carregamento:", e);sessionStorage.removeItem("arco_sessao_login_v2");document.getElementById("login-overlay").classList.remove("hidden");popularLogin();return;}}
   // Atualiza o select de login com as áreas vindas do Firebase
   popularLogin();
 }
