@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cronograma Fechamento Contábil — Arco</title>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 :root{
   --blue:#1a2456;--cyan:#009ecc;--orange:#f05323;--yellow:#f8af18;--green:#52b747;
@@ -1154,7 +1154,7 @@ async function init(){
       if(_s&&_s.usuario){
         userAtual=_s.usuario; subArea=_s.area||"__ADMIN__";
         _modoLoginAdmin=(_s.modoAdmin!==false);
-        document.getElementById("app-view").style.display="block";
+        document.getElementById("skeleton-view").style.display="block";
         iniciarPresenca(userAtual);
         // Carrega dados em background e depois renderiza
         _carregarDadosEIniciar();
@@ -1228,6 +1228,7 @@ async function _carregarDadosEIniciar(){
     const areasSet=new Set([...AREAS,...dbAtv.map(a=>a.area).filter(Boolean)]);
     AREAS=Array.from(areasSet).sort();
   }catch(e){console.error(e);showToast("⚠️ Erro ao conectar.");}
+  document.getElementById("skeleton-view").style.display="none";
   document.getElementById("app-view").style.display="block";
   popularFiltros(); atualizarLabels();
   // Se ainda estiver na tela de login, fecha e entra
