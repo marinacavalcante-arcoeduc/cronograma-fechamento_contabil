@@ -984,20 +984,25 @@ function saveForcar(payload){
 
 // ── SAVE GRANULAR por atividade ──
 // ── BACKUP ──
+// Usa slots fixos (rotativos) em vez de chaves crescentes + query de limpeza.
+// Isso evita a race condition que fazia os backups se acumularem sem limite
+// (chegou a 346 backups / 72MB no nó "backups" do Firebase).
+// Mantém sempre no máximo NUM_BACKUP_SLOTS versões, tamanho ~constante.
+const NUM_BACKUP_SLOTS=10;
+let _backupSlotIdx=0;
+let _ultimoBackupTs=0;
+const BACKUP_INTERVALO_MIN=15000; // não grava novo backup mais que 1x a cada 15s
 function backup(atvs){
   if(!_fbDb||!atvs||!atvs.length) return;
-  const ts=Date.now(), dt=new Date(ts);
-  const k=`bkp_${dt.getFullYear()}${String(dt.getMonth()+1).padStart(2,'0')}${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}_${String(dt.getSeconds()).padStart(2,'0')}`;
-  // Salva backup com mapa por ID (não array) pra ser atômico
+  const ts=Date.now();
+  if(ts-_ultimoBackupTs<BACKUP_INTERVALO_MIN) return; // evita backup em toda tecla digitada
+  _ultimoBackupTs=ts;
   const mapa={};
   atvs.forEach(a=>{ mapa[a.id]=a; });
+  _backupSlotIdx=(_backupSlotIdx+1)%NUM_BACKUP_SLOTS;
+  const k="bkp_slot_"+_backupSlotIdx;
   _fbDb.ref("cronograma/backups/"+k).set({ts, por:userAtual||"sistema", atividades:mapa})
     .catch(e=>console.warn("Backup falhou:",e));
-  // Mantém só os últimos 30 backups
-  _fbDb.ref("cronograma/backups").orderByChild("ts").once("value",s=>{
-    const ks=[]; s.forEach(c=>ks.push(c.key));
-    if(ks.length>30) ks.slice(0,ks.length-30).forEach(k=>_fbDb.ref("cronograma/backups/"+k).remove());
-  });
 }
 
 // ── SAVE ATIVIDADE — por ID, nunca por índice ──
@@ -1183,7 +1188,13 @@ async function _carregarDadosEIniciar(){
   const _timeoutAviso=setTimeout(()=>{showToast("⏳ Conexão lenta, aguarde...");},6000);
   const _timeoutRetry=setTimeout(()=>{_mostrarRetryCarregamento();},20000);
   try{
-    const snap=await _fbRef.once("value"), d=snap.val();
+    // Busca só os campos necessários (NÃO a árvore inteira) — o nó "cronograma"
+    // completo inclui backups/logs/presenca e ficou pesado demais para carregar
+    // a cada login. Buscas em paralelo, cada uma leve.
+    const _campos=["config","historicos","profissionais","empresas","areas","fiscalResumo","atividadesMap","atividades","_ts","_savedBy"];
+    const _snaps=await Promise.all(_campos.map(c=>_fbDb.ref("cronograma/"+c).once("value")));
+    const d={};
+    _campos.forEach((c,i)=>{ d[c]=_snaps[i].val(); });
     if(d){
       if(d._ts) _tsCarregado=d._ts;
       if(d._savedBy){_quemSave=d._savedBy;_tsSave=d._ts||0;}
