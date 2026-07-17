@@ -524,8 +524,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         <div class="login-fin-txt"><div class="f1">finlegal</div><div class="f2">por Arco Educação</div></div>
       </div>
     </div>
-    <div class="login-title">Cronograma de Fechamento</div>
-    <div class="login-sub">Selecione sua área e responsável</div>
+    <div class="login-title" id="login-title-text">Cronograma de Fechamento</div>
+    <div class="login-sub" id="login-sub-text">Selecione sua área e responsável</div>
     <div class="fg"><label>Área</label><select id="login-area-sel" onchange="filtrarRespsLogin()"></select></div>
     <div class="fg"><label>Responsável</label><select id="login-resp-sel"></select></div>
     <div class="fg" id="login-senha-group" style="display:none;"><label>Senha</label><input type="password" id="login-senha-inp" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')efetuarLogin()"></div>
@@ -794,11 +794,10 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
         </div>
       </div>
       <div id="cal-legendas" style="display:flex;gap:16px;padding:10px 24px;border-bottom:1px solid var(--border);font-size:0.78rem;align-items:center;flex-wrap:wrap;background:var(--bg2);">
-        <span>Intensidade de atividades:</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f4fd;border:1px solid #b8d4ed;vertical-align:middle;"></span> 1</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#90c2e7;border:1px solid #5a9fd4;vertical-align:middle;"></span> 2–3</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de8c4e;border:1px solid #c06830;vertical-align:middle;"></span> 4–6</span>
-        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#de4e2b;border:1px solid #b83a1f;vertical-align:middle;"></span> 7+</span>
+        <span>Legenda:</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:2px solid #22c55e;vertical-align:middle;"></span> Tudo OK</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef9c3;border:2px solid #f59e0b;vertical-align:middle;"></span> ⏳ Pendente</span>
+        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:2px solid #ef4444;vertical-align:middle;"></span> ⚠ Atrasado</span>
         <span style="margin-left:auto;color:var(--text-muted);font-size:0.74rem;" id="cal-scope-label"></span>
       </div>
       <div id="cal-grid-wrap" style="padding:16px 24px 24px;min-height:400px;">
@@ -853,6 +852,9 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 // ═══════════════════════════════════════════
 let PROF = ["A Atribuir","Alayde Peruna","Ana Beatriz Vieira Almeida","Diego Cabral Moreira","Emerson Lacerda Nunes","Jacyclea Livia De Araujo Bertoldo","Jefferson Alves De Souza","Jhenyffer Maria Cavalcante Pessoa","Juliana Da Silva Ribeiro","Larissa Passig De Souza","Leonardo Candido Felix","Luis Marcelino Venancio","Maciel Silva","Marina Maria Teixeira Cavalcante","Mary Nelma Guimaraes","Mauricio Ferreira Da Silva Junior","Natanael Ferreira De Sousa","Pedro Lucas De Medeiros Eufrasio","Pietra Tordin","Vitoria Mansur Kuntz"];
 const MASTERS = ["Natanael Ferreira De Sousa","Jose Francisco Domingos Da Silva Junior","Marina Maria Teixeira Cavalcante"];
+// Áreas consolidadas: CR = Financeiro AR · Tributário = Fiscal (mesma coisa, nomes diferentes)
+const AREA_ALIASES = {"CR":"Financeiro - AR","Tributário":"Fiscal","Tributario":"Fiscal"};
+function normalizarArea(a){ return AREA_ALIASES[a]||a; }
 let EMPS = ["Arco Educação","CBE/SAS","SAE","IS","ATECH","PSD","NAVE","GEEKIE","P2D/COC","NCC"];
 let AREAS = [];
 const FERIADOS = ["2026-01-01","2026-02-16","2026-02-17","2026-04-03","2026-04-21","2026-05-01","2026-06-04","2026-09-07","2026-10-12","2026-11-02","2026-11-15","2026-11-20","2026-12-25"];
@@ -1156,8 +1158,9 @@ async function init(){
   document.getElementById("app-view").style.display="none";
 
   // Pré-popula com áreas reais do banco (hardcoded correto, sem divergência)
-  const _AREAS_PADRAO=["Ativo fixo","Contábil","Controladoria","CR","DP",
-    "Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Tributário"];
+  // OBS: "CR" foi consolidada em "Financeiro - AR" e "Tributário" em "Fiscal" (são a mesma coisa)
+  const _AREAS_PADRAO=["Ativo fixo","Contábil","Controladoria","DP",
+    "Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria"];
   _AREAS_PADRAO.forEach(a=>{if(!AREAS.includes(a)) AREAS.push(a);});
   // Verifica sessão salva — se já logado, não mostra login
   const _ss=sessionStorage.getItem("arco_sessao_login_v2");
@@ -1208,7 +1211,7 @@ async function _carregarDadosEIniciar(){
       // Carrega atividades — preferência pelo atividadesMap (por ID, sem risco de posição)
       if(d.atividadesMap&&Object.keys(d.atividadesMap).length){
         dbAtv=Object.values(d.atividadesMap).map((item,i)=>({
-          id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:item.area||"",
+          id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:normalizarArea(item.area||""),
           diaUtil:item.diaUtil||item.du||"0", previaReceita:item.previaReceita||item.previa||"Não",
           responveisLista:item.responveisLista||item.resps||["A Atribuir"],
           empresasElegiveis:item.empresasElegiveis||item.emps||[...EMPS],
@@ -1226,7 +1229,7 @@ async function _carregarDadosEIniciar(){
       } else if(d.atividades&&d.atividades.length){
         // Fallback: array legado — carrega e migra pra atividadesMap no próximo save
         dbAtv=d.atividades.map((item,i)=>({
-          id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:item.area||"",
+          id:item.id||"atv_"+i, atividade:item.atividade||item.nome||"", area:normalizarArea(item.area||""),
           diaUtil:item.diaUtil||item.du||"0", previaReceita:item.previaReceita||item.previa||"Não",
           responveisLista:item.responveisLista||item.resps||["A Atribuir"],
           empresasElegiveis:item.empresasElegiveis||item.emps||[...EMPS],
@@ -1249,8 +1252,22 @@ async function _carregarDadosEIniciar(){
     }
     if(!dbAtv.length) dbAtv=[];
     dbAtv.forEach(a=>{if(!a.colunaPIS&&MAP_PIS_PADRAO[a.id]) a.colunaPIS=MAP_PIS_PADRAO[a.id]; if(!a.responsaveisPorEmpresa) a.responsaveisPorEmpresa={};});
-    const areasSet=new Set([...AREAS,...dbAtv.map(a=>a.area).filter(Boolean)]);
-    AREAS=Array.from(areasSet).sort();
+    // Consolida áreas duplicadas (CR→Financeiro-AR, Tributário→Fiscal) e persiste no Firebase silenciosamente
+    const _areasOriginais=[...AREAS];
+    const areasSet=new Set([...AREAS.map(normalizarArea),...dbAtv.map(a=>a.area).filter(Boolean)]);
+    AREAS=Array.from(areasSet).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    const _mudouListaAreas=JSON.stringify(_areasOriginais)!==JSON.stringify(AREAS);
+    const _migAreaUpdates={};
+    dbAtv.forEach(a=>{if(a.area!==normalizarArea(a.area)) a.area=normalizarArea(a.area);});
+    (d.atividadesMap?Object.values(d.atividadesMap):(d.atividades||[])).forEach(item=>{
+      const novo=normalizarArea(item.area||"");
+      if(novo&&item.area!==novo){ const idKey=item.id||("atv_"+novo); _migAreaUpdates[`atividadesMap/${idKey}/area`]=novo; }
+    });
+    if(_mudouListaAreas) _migAreaUpdates["areas"]=AREAS;
+    if(Object.keys(_migAreaUpdates).length){
+      _migAreaUpdates["_ts"]=Date.now(); _migAreaUpdates["_savedBy"]="migracao_areas";
+      _fbRef.update(_migAreaUpdates).then(()=>console.log("✓ Áreas consolidadas (CR/Tributário mesclados).")).catch(e=>console.warn("Falha ao consolidar áreas:",e));
+    }
   }catch(e){console.error(e);showToast("⚠️ Erro ao conectar.");}
   clearTimeout(_timeoutAviso); clearTimeout(_timeoutRetry); _esconderRetryCarregamento();
   document.getElementById("skeleton-view").style.display="none";
@@ -1273,7 +1290,7 @@ function popularLogin(){
   const areas=new Set(AREAS);
   dbAtv.forEach(a=>{if(a.area) areas.add(a.area);});
   // Sempre mostra as áreas fixas como base mínima — nunca deixa vazio
-  const _AREAS_FIXAS=["Ativo fixo","Contábil","Controladoria","CR","DP","Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria","Tributário"];
+  const _AREAS_FIXAS=["Ativo fixo","Contábil","Controladoria","DP","Financeiro - AP","Financeiro - AR","FP&A","Fiscal","Jurídico","Tesouraria"];
   _AREAS_FIXAS.forEach(a=>areas.add(a));
 
   sel.disabled=false;
@@ -1291,6 +1308,17 @@ function popularLogin(){
   } else {
     clearTimeout(window._loginRetry);
   }
+  // Link direto por área: ?area=DP já abre o login com a área pré-selecionada
+  const areaURL=_lerAreaDaURL();
+  if(areaURL){
+    const opt=Array.from(sel.options).find(o=>o.value.toLowerCase()===areaURL.toLowerCase());
+    if(opt){
+      sel.value=opt.value;
+      const lt=document.getElementById("login-title-text"),ls=document.getElementById("login-sub-text");
+      if(lt) lt.textContent=`Cronograma de Fechamento — ${opt.value==="__ADMIN__"?"Admin":opt.value==="__TRIBUTARIO__"?"PIS/COFINS":opt.value}`;
+      if(ls) ls.textContent="Selecione seu responsável para entrar";
+    }
+  }
   filtrarRespsLogin();
 }
 function filtrarRespsLogin(){
@@ -1299,11 +1327,16 @@ function filtrarRespsLogin(){
   if(!area){rSel.innerHTML='<option value="">— Selecione a área —</option>';if(sGrp) sGrp.style.display="none";return;}
   if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw){mw.style.display="block";_modoLoginAdmin=true;setModoLogin('admin');}return;}
   if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw) mw.style.display="none";return;}
-  if(sGrp) sGrp.style.display="none";
   const mw2=document.getElementById("login-modo-wrap");if(mw2) mw2.style.display="none";
-  if(!["Contábil","Contabilidade"].includes(area)){rSel.innerHTML='<option value="__LEITURA__">👁 Acessar como leitura</option>';return;}
+  // Qualquer área agora loga com permissão de edição (não só Contábil).
+  // Mostra nomes já usados como responsáveis nessa área (se houver) + opção genérica "entrar como a área".
   const rs=new Set(); dbAtv.forEach(a=>{if(a.area===area)(a.responveisLista||[]).forEach(r=>{if(r!=="A Atribuir") rs.add(r);});});
-  rSel.innerHTML=Array.from(rs).sort().map(r=>`<option value="${r}">👤 ${r}</option>`).join("")+`<option value="__LEITURA__">🔒 Somente leitura</option>`;
+  const nomeados=Array.from(rs).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(r=>`<option value="${r}">👤 ${r}</option>`).join("");
+  rSel.innerHTML=nomeados
+    +`<option value="__AREA__">👥 Entrar como ${area}</option>`
+    +`<option value="__LEITURA__">🔒 Somente leitura</option>`;
+  const precisaSenha=area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab");
+  if(sGrp) sGrp.style.display=precisaSenha?"block":"none";
 }
 let _modoLoginAdmin=true;
 function setModoLogin(modo){
@@ -1317,7 +1350,10 @@ function efetuarLogin(){
   if(!area){alert("Selecione uma área.");return;} if(!resp){alert("Selecione um responsável.");return;}
   if(area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab")){const s=prompt("🔒 Senha da Contabilidade:");if(s!=="123"){alert("Senha incorreta.");return;}}
   if(area==="__TRIBUTARIO__"){userAtual=resp;subArea="__TRIBUTARIO__";}
-  else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}else{userAtual=resp;subArea=area;}
+  else if(area==="__ADMIN__"){userAtual=resp;subArea="__ADMIN__";}
+  else if(resp==="__LEITURA__"){userAtual="Outra Área";subArea=area;}
+  else if(resp==="__AREA__"){userAtual=area;subArea=area;}
+  else{userAtual=resp;subArea=area;}
   sessionStorage.setItem("arco_sessao_login_v2",JSON.stringify({usuario:userAtual,area:subArea,modoAdmin:_modoLoginAdmin}));
   if(_modoLoginAdmin){
     iniciarPresenca(userAtual);
@@ -1345,6 +1381,7 @@ function efetuarLogout(){
 }
 function aplicarLogin(){
   document.getElementById("login-overlay").classList.add("hidden");
+  atualizarTituloArea();
   const ehM=(MASTERS.includes(userAtual)||subArea==="__ADMIN__")&&_modoLoginAdmin;
   const ini=(userAtual||"?").split(" ").map(p=>p[0]).join("").slice(0,2).toUpperCase();
   const avEl=document.getElementById("user-avatar-ini"); if(avEl) avEl.textContent=ini;
@@ -1369,6 +1406,24 @@ function aplicarLogin(){
 // HELPERS
 // ═══════════════════════════════════════════
 function abrev(n){if(!n||n==="A Atribuir"||n==="Outra Área") return n||"";const p=n.split(" ");if(p.length<=2) return n;return`${p[0]} ${p.slice(1,-1).map(x=>x.length>2?x[0]+".":"").join(" ")} ${p[p.length-1]}`.replace(/\s+/g," ");}
+// ── Link/título por área — permite compartilhar um link que já abre direto na área ──
+function _lerAreaDaURL(){try{return new URLSearchParams(window.location.search).get("area");}catch(e){return null;}}
+function atualizarTituloArea(){
+  let label="Arco";
+  if(userAtual==="Outra Área") label=`${subArea} · Leitura`;
+  else if(subArea==="__ADMIN__") label="Administrador";
+  else if(subArea==="__TRIBUTARIO__") label="Liberações PIS/COFINS";
+  else label=subArea;
+  document.title=`Cronograma · ${label} — Arco`;
+  // Atualiza a URL (sem recarregar) pra virar um link direto e compartilhável daquela área
+  try{
+    if(subArea&&subArea!=="__ADMIN__"&&subArea!=="__TRIBUTARIO__"){
+      const url=new URL(window.location.href);
+      url.searchParams.set("area",subArea);
+      history.replaceState(null,"",url.toString());
+    }
+  }catch(e){}
+}
 function ehDiaUtil(d){if(d.getDay()===0||d.getDay()===6) return false;return!FERIADOS.includes(d.toISOString().split("T")[0]);}
 function calcData(duStr){
   const du=parseInt(duStr); if(isNaN(du)) return null;
@@ -1576,8 +1631,13 @@ function renderizarPainel(){
   ords.forEach(act=>{
     const sg=statusGeral(act), dc=calcData(act.diaUtil), df=dc?dc.toLocaleDateString("pt-BR"):"—";
 
-    // Filtros de acesso
-    if(!ehM&&userAtual==="Outra Área"&&act.area.toLowerCase()!==subArea.toLowerCase()) return;
+    // Filtros de acesso — cada área só vê/edita as próprias atividades na aba Atividades
+    // (visão de outras áreas fica na aba Calendário). Admin e Liberações PIS/COFINS veem tudo.
+    if(!ehM&&subArea!=="__TRIBUTARIO__"){
+      const mesmaArea=act.area.toLowerCase()===String(subArea).toLowerCase();
+      const souResponsavel=userAtual!=="Outra Área"&&(act.responveisLista||[]).includes(userAtual);
+      if(!mesmaArea&&!souResponsavel) return;
+    }
     // Filtros de tela
     if(respF!=="todos"&&!act.responveisLista.includes(respF)) return;
     if(areaF!=="todos"&&act.area!==areaF) return;
@@ -2514,9 +2574,9 @@ const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
 function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
 
 function calGetAtvDoUsuario(){
-  if(ehMaster()||subArea==="__TRIBUTARIO__") return dbAtv;
-  if(userAtual==="Outra Área") return dbAtv.filter(a=>a.area.toLowerCase()===subArea.toLowerCase());
-  return dbAtv.filter(a=>a.area===subArea||(a.responveisLista||[]).includes(userAtual));
+  // Calendário é uma aba só de VISUALIZAÇÃO cross-área — todo mundo vê todas as áreas aqui,
+  // mesmo quem só pode editar a própria área na aba Atividades.
+  return dbAtv;
 }
 
 function calCalcularData(a){
@@ -2532,24 +2592,13 @@ function calStatusColor(status){
   return "#94a3b8";
 }
 
-function calIntensidadeBg(n){
-  if(!n) return "transparent";
-  if(n===1) return "#e8f4fd";
-  if(n<=3) return "#90c2e7";
-  if(n<=6) return "#de8c4e";
-  return "#de4e2b";
-}
-function calIntensidadeBorder(n){
-  if(!n) return "transparent";
-  if(n===1) return "#b8d4ed";
-  if(n<=3) return "#5a9fd4";
-  if(n<=6) return "#c06830";
-  return "#b83a1f";
-}
-function calIntensidadeText(n){
-  if(!n) return "var(--text-muted)";
-  if(n<=3) return "#1e3a5f";
-  return "#fff";
+// Cor da célula do dia é definida pelo pior status presente naquele dia:
+// tem atrasado → vermelho · tem pendente → amarelo · só OK → verde
+function calCorDia(info){
+  if(!info||!info.total) return {bg:"transparent",border:"transparent",text:"var(--text-muted)"};
+  if(info.atrasado>0) return {bg:"#fee2e2",border:"#ef4444",text:"#991b1b"};
+  if(info.pend>0) return {bg:"#fef9c3",border:"#f59e0b",text:"#854d0e"};
+  return {bg:"#dcfce7",border:"#22c55e",text:"#166534"};
 }
 
 function renderCalendario(){
@@ -2566,19 +2615,23 @@ function renderCalendario(){
   const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
   document.getElementById("cal-titulo").textContent=`${nomeMes} ${ano}`;
 
-  const isAdmin=ehMaster();
-  document.getElementById("cal-scope-label").textContent=isAdmin?"Visão: todas as áreas":`Visão: ${subArea}`;
+  document.getElementById("cal-scope-label").textContent="👁 Visão: todas as áreas (somente leitura)";
 
   const atv=calGetAtvDoUsuario();
 
-  // Mapeia dia (1-31) → lista de atividades
+  // Mapeia dia (1-31) → atividades + contagem por status (status = pior status da atividade, statusGeral())
   const porDia={};
   atv.forEach(a=>{
     const dt=calCalcularData(a); if(!dt) return;
     if(dt.getFullYear()===ano&&dt.getMonth()===mes){
       const d=dt.getDate();
-      if(!porDia[d]) porDia[d]={atividades:[]};
+      if(!porDia[d]) porDia[d]={atividades:[],ok:0,pend:0,atrasado:0,total:0};
+      const st=statusGeral(a);
       porDia[d].atividades.push(a);
+      porDia[d].total++;
+      if(st==="OK") porDia[d].ok++;
+      else if(st==="ATRASADO") porDia[d].atrasado++;
+      else porDia[d].pend++;
     }
   });
 
@@ -2595,27 +2648,30 @@ function renderCalendario(){
 
   for(let d=1;d<=totalDias;d++){
     const info=porDia[d];
-    const n=info?info.atividades.length:0;
-    const bg=calIntensidadeBg(n);
-    const border=calIntensidadeBorder(n);
-    const color=calIntensidadeText(n);
+    const n=info?info.total:0;
+    const {bg,border,text:color}=calCorDia(info);
     const isHoje=hoje.getFullYear()===ano&&hoje.getMonth()===mes&&hoje.getDate()===d;
     const dt=new Date(ano,mes,d);
     const fimSem=dt.getDay()===0||dt.getDay()===6;
+    const temPendencia=info&&(info.pend>0||info.atrasado>0);
+    const badges=info?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:3px;">
+        ${info.atrasado?`<span style="font-size:0.64rem;font-weight:800;color:#991b1b;">⚠${info.atrasado}</span>`:""}
+        ${info.pend?`<span style="font-size:0.64rem;font-weight:800;color:#92400e;">⏳${info.pend}</span>`:""}
+        ${info.ok?`<span style="font-size:0.64rem;font-weight:700;color:#166534;">✓${info.ok}</span>`:""}
+      </div>`:"";
     html+=`<div onclick="${n?`calAbrirDia(${d})`:'void 0'}" style="
       border-radius:8px;padding:8px 6px;min-height:64px;text-align:center;cursor:${n?'pointer':'default'};
-      background:${bg};border:2px solid ${isHoje?'var(--arco-laranja)':border};
+      background:${bg};border:${temPendencia?'2.5px':'2px'} solid ${isHoje?'var(--arco-laranja)':border};
       opacity:${fimSem&&!n?'0.45':'1'};
       transition:transform .1s,box-shadow .1s;
       ${n?'box-shadow:0 1px 4px rgba(0,0,0,.08);':''}"
       onmouseover="${n?`this.style.transform='scale(1.04)';this.style.boxShadow='0 4px 12px rgba(0,0,0,.13)'`:''}"
       onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'`:''}">
-      <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:4px;">${d}</div>
-      ${n?`<div style="font-size:0.72rem;font-weight:700;color:${color};">${n} atv${n>1?'s':''}</div>`:''}
+      <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:2px;">${d}</div>
+      ${badges}
     </div>`;
   }
   grid.innerHTML=html;
-  console.log("[CAL] renderizado:", ano, mes, "total atividades mapeadas:", Object.keys(porDia).length, "porDia:", porDia);
   fecharDetalhe();
 }
 
@@ -2624,43 +2680,41 @@ function calAbrirDia(d){
   const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
   const atv=calGetAtvDoUsuario();
 
-  const atvDia=atv.filter(a=>{
+  let atvDia=atv.filter(a=>{
     const dt=calCalcularData(a);
     return dt&&dt.getFullYear()===ano&&dt.getMonth()===mes&&dt.getDate()===d;
-  });
+  }).map(a=>({...a,_stCal:statusGeral(a)}));
+
+  // Atrasado e pendente sobem para o topo — é o que precisa de atenção
+  const ordem={ATRASADO:0,PENDENTE:1,OK:2};
+  atvDia.sort((a,b)=>(ordem[a._stCal]??1)-(ordem[b._stCal]??1)||a.atividade.localeCompare(b.atividade,"pt-BR"));
 
   document.getElementById("cal-detalhe-titulo").textContent=`📅 ${d} de ${nomeMes} de ${ano} — ${atvDia.length} atividade${atvDia.length!==1?'s':''}`;
 
-  // Contadores por status
-  const cnt={OK:0,PENDENTE:0,ATRASADO:0,NAO_OK:0};
-  atvDia.forEach(a=>(a.empresas||[]).forEach(e=>{if(cnt[e.status]!==undefined) cnt[e.status]++;}));
-  const total=Object.values(cnt).reduce((s,v)=>s+v,0)||1;
+  // Contadores por status (nível atividade — mesmo critério da bolinha do card)
+  const cnt={ATRASADO:0,PENDENTE:0,OK:0};
+  atvDia.forEach(a=>{if(cnt[a._stCal]!==undefined) cnt[a._stCal]++;});
   document.getElementById("cal-contadores").innerHTML=[
-    {k:"OK",label:"✓ OK",c:"#22c55e"},
-    {k:"PENDENTE",label:"⏳ Pendente",c:"#f59e0b"},
     {k:"ATRASADO",label:"⚠ Atrasado",c:"#ef4444"},
-    {k:"NAO_OK",label:"✕ Não OK",c:"#ef4444"},
+    {k:"PENDENTE",label:"⏳ Pendente",c:"#f59e0b"},
+    {k:"OK",label:"✓ OK",c:"#22c55e"},
   ].map(({k,label,c})=>cnt[k]?`<div style="background:${c}18;border:1px solid ${c}44;border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:${c};">${label}: ${cnt[k]}</div>`:'').join("");
 
-  // Lista de atividades
+  // Lista de atividades — pendente/atrasado em destaque (borda mais grossa, mais peso visual)
   document.getElementById("cal-lista").innerHTML=atvDia.map(a=>{
-    const statusDia=(()=>{
-      const emps=a.empresas||[];
-      if(emps.every(e=>e.status==="OK")) return "OK";
-      if(emps.some(e=>e.status==="ATRASADO")) return "ATRASADO";
-      if(emps.some(e=>e.status==="NAO_OK")) return "NAO_OK";
-      return "PENDENTE";
-    })();
-    const c=calStatusColor(statusDia);
+    const st=a._stCal, c=calStatusColor(st), destaque=st!=="OK";
     const okCount=(a.empresas||[]).filter(e=>e.status==="OK").length;
-    const total=(a.empresas||[]).length;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;border:1px solid ${c}44;background:${c}0d;">
-      <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+    const totalEmp=(a.empresas||[]).filter(e=>(a.empresasElegiveis||[]).includes(e.nome)).length;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:${destaque?'12px 14px':'8px 14px'};border-radius:8px;border:${destaque?'2px':'1px'} solid ${destaque?c:c+'44'};background:${destaque?c+'14':c+'0a'};">
+      <div style="width:${destaque?'12px':'8px'};height:${destaque?'12px':'8px'};border-radius:50%;background:${c};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:0.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${a.area} · D.U. ${a.diaUtil} · ${okCount}/${total} empresas OK</div>
+        <div style="font-size:${destaque?'0.9rem':'0.85rem'};font-weight:${destaque?'700':'500'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
+        <div style="margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:0.68rem;font-weight:700;background:#eef2ff;color:var(--blue);padding:1px 8px;border-radius:8px;white-space:nowrap;">📂 ${a.area}</span>
+          <span style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">D.U. ${a.diaUtil} · ${okCount}/${totalEmp} marcas OK</span>
+        </div>
       </div>
-      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${statusDia==="OK"?"✓ OK":statusDia==="ATRASADO"?"⚠ Atrasado":statusDia==="NAO_OK"?"✕ Não OK":"⏳ Pendente"}</div>
+      <div style="font-size:0.75rem;font-weight:700;color:${c};white-space:nowrap;">${st==="OK"?"✓ OK":st==="ATRASADO"?"⚠ Atrasado":"⏳ Pendente"}</div>
     </div>`;
   }).join("");
 
@@ -2870,7 +2924,7 @@ function addResp(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}c
 function delResp(i){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${PROF[i]}"?`)) return;PROF.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removido!");}
 function addEmp(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-emp"),n=inp.value.trim();if(!n||EMPS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}EMPS.push(n);dbAtv.forEach(a=>{if(!a.empresas.find(e=>e.nome===n)) a.empresas.push({nome:n,status:"PENDENTE",dataConclusao:"",obs:""}); });inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
 function delEmp(i){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${EMPS[i]}"?`)) return;EMPS.splice(i,1);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
-function addArea(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-area"),n=inp.value.trim();if(!n||AREAS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}AREAS.push(n);AREAS.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
+function addArea(){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}const inp=document.getElementById("cfg-new-area");const n=normalizarArea(inp.value.trim());if(!n||AREAS.includes(n)){showToast("⚠️ Vazio ou duplicado.");return;}AREAS.push(n);AREAS.sort((a,b)=>a.localeCompare(b,"pt-BR"));inp.value="";salvarDados();renderConfigListas();popularFiltros();showToast("✓ Adicionada!");}
 function delArea(n){if(!ehMaster()){showToast("⚠️ Sem permissão.");return;}if(!confirm(`Remover "${n}"?`)) return;AREAS=AREAS.filter(a=>a!==n);salvarDados();renderConfigListas();popularFiltros();showToast("✓ Removida!");}
 
 // ═══════════════════════════════════════════
