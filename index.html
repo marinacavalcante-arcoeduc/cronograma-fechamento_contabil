@@ -793,6 +793,10 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
           <button class="filter-btn" onclick="calNavegar(1)">Próximo ›</button>
         </div>
       </div>
+      <div id="cal-escopo-wrap" style="display:flex;gap:8px;padding:14px 24px 0;">
+        <button class="filter-btn active" id="btn-cal-geral" onclick="calSetEscopo('geral')">🌐 Geral (todas as áreas)</button>
+        <button class="filter-btn" id="btn-cal-area" onclick="calSetEscopo('area')">📂 Só a minha área</button>
+      </div>
       <div id="cal-legendas" style="display:flex;gap:16px;padding:10px 24px;border-bottom:1px solid var(--border);font-size:0.78rem;align-items:center;flex-wrap:wrap;background:var(--bg2);">
         <span>Legenda:</span>
         <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:2px solid #22c55e;vertical-align:middle;"></span> Tudo OK</span>
@@ -1328,12 +1332,8 @@ function filtrarRespsLogin(){
   if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw){mw.style.display="block";_modoLoginAdmin=true;setModoLogin('admin');}return;}
   if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw) mw.style.display="none";return;}
   const mw2=document.getElementById("login-modo-wrap");if(mw2) mw2.style.display="none";
-  // Qualquer área agora loga com permissão de edição (não só Contábil).
-  // Mostra nomes já usados como responsáveis nessa área (se houver) + opção genérica "entrar como a área".
-  const rs=new Set(); dbAtv.forEach(a=>{if(a.area===area)(a.responveisLista||[]).forEach(r=>{if(r!=="A Atribuir") rs.add(r);});});
-  const nomeados=Array.from(rs).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(r=>`<option value="${r}">👤 ${r}</option>`).join("");
-  rSel.innerHTML=nomeados
-    +`<option value="__AREA__">👥 Entrar como ${area}</option>`
+  // Login por área mostra só a opção genérica da própria área — sem listar nomes de outras pessoas.
+  rSel.innerHTML=`<option value="__AREA__">👥 Entrar como ${area}</option>`
     +`<option value="__LEITURA__">🔒 Somente leitura</option>`;
   const precisaSenha=area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab");
   if(sGrp) sGrp.style.display=precisaSenha?"block":"none";
@@ -2573,9 +2573,17 @@ let _calAno=null, _calMes=null;
 const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
 
+let _calEscopo="geral"; // "geral" = todas as áreas · "area" = só a área de quem logou
+function calSetEscopo(esc){
+  _calEscopo=esc;
+  const bg=document.getElementById("btn-cal-geral"), ba=document.getElementById("btn-cal-area");
+  if(bg) bg.classList.toggle("active",esc==="geral");
+  if(ba) ba.classList.toggle("active",esc==="area");
+  renderCalendario();
+}
 function calGetAtvDoUsuario(){
-  // Calendário é uma aba só de VISUALIZAÇÃO cross-área — todo mundo vê todas as áreas aqui,
-  // mesmo quem só pode editar a própria área na aba Atividades.
+  const temAreaPropria=subArea&&subArea!=="__ADMIN__"&&subArea!=="__TRIBUTARIO__";
+  if(_calEscopo==="area"&&temAreaPropria) return dbAtv.filter(a=>a.area===subArea);
   return dbAtv;
 }
 
@@ -2615,7 +2623,14 @@ function renderCalendario(){
   const nomeMes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes];
   document.getElementById("cal-titulo").textContent=`${nomeMes} ${ano}`;
 
-  document.getElementById("cal-scope-label").textContent="👁 Visão: todas as áreas (somente leitura)";
+  // Toggle "só a minha área" só faz sentido pra quem tem uma área própria (não admin/tributário)
+  const temAreaPropria=subArea&&subArea!=="__ADMIN__"&&subArea!=="__TRIBUTARIO__";
+  const wrapEscopo=document.getElementById("cal-escopo-wrap"), btnArea=document.getElementById("btn-cal-area");
+  if(wrapEscopo) wrapEscopo.style.display=temAreaPropria?"flex":"none";
+  if(btnArea) btnArea.textContent=`📂 Só ${subArea}`;
+  if(!temAreaPropria&&_calEscopo==="area") _calEscopo="geral";
+
+  document.getElementById("cal-scope-label").textContent=(_calEscopo==="area"&&temAreaPropria)?`👁 Visão: ${subArea}`:"👁 Visão: todas as áreas (somente leitura)";
 
   const atv=calGetAtvDoUsuario();
 
