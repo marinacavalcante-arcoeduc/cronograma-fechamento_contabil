@@ -905,8 +905,10 @@ function iniciarPresenca(nome){
   esc(); ref.onDisconnect().remove();
   if(window._hb) clearInterval(window._hb);
   window._hb=setInterval(()=>{if(_presId) ref.update({lastSeen:Date.now()});},20000);
-  window.addEventListener("beforeunload",e=>{try{ref.remove();}catch(x){}if(_savePend){e.preventDefault();e.returnValue="⚠️ Salvando...";return e.returnValue;}});
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&_presId) esc();});
+  window.addEventListener("beforeunload",e=>{try{ref.remove();}catch(x){}flushSavesPendentes();if(_savePend){e.preventDefault();e.returnValue="⚠️ Salvando...";return e.returnValue;}});
+  // Ao minimizar/trocar de aba (comum no celular), dispara na hora o que estava no debounce —
+  // evita perder as últimas edições se o app for fechado antes do timer de 500ms/15s.
+  document.addEventListener("visibilitychange",()=>{if(document.hidden){flushSavesPendentes();}else if(_presId) esc();});
   _fbDb.ref("cronograma/presenca").on("value",snap=>{
     const todos=snap.val()||{}, agora=Date.now(), LIMITE=60000, LIMITE_LIMPEZA=90000, ativos=[];
     Object.entries(todos).forEach(([id,v])=>{
@@ -962,6 +964,10 @@ function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});r
 function assumirSessao(){document.getElementById("modal-sessao-ativa").classList.remove("show");if(window._onAssumir){window._onAssumir();window._onAssumir=null;}}
 
 function logAcao(acao){if(!_fbDb||!userAtual||userAtual==="Outra Área") return;const ts=Date.now();_fbDb.ref("cronograma/logs").child("log_"+ts).set({quem:userAtual,acao,ts});const lim=ts-7*24*60*60*1000;_fbDb.ref("cronograma/logs").orderByChild("ts").endAt(lim).once("value",s=>s.forEach(c=>c.ref.remove()));}
+function escapeHtml(s){
+  if(s===null||s===undefined) return "";
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 function _limparUndefined(obj){
   return JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
 }
@@ -981,7 +987,7 @@ function resolverConflito(op){
 }
 
 function saveForcar(payload){
-  if(!_online){_conflitoPend=payload;showToast("⚠️ Sem conexão.");return;}
+  if(!_online){_conflitoPend={..._conflitoPend,...payload};showToast("⚠️ Sem conexão.");return;}
   _savePend=true;
   const el=document.getElementById("ultimo-save");if(el) el.textContent="⏳ Salvando...";
   const ts=Date.now(),pf={...payload,_ts:ts,_savedBy:userAtual||"sistema"};
@@ -1012,50 +1018,63 @@ function backup(atvs){
 }
 
 // ── SAVE ATIVIDADE — por ID, nunca por índice ──
+function _executarSaveAtividade(actId,desc){
+  delete _debAtv[actId];
+  const atv=dbAtv.find(a=>a.id===actId);
+  if(!atv){_savePend=false;return;}
+  const ts=Date.now();
+  backup(dbAtv);
+  const updates={};
+  updates[`atividadesMap/${actId}`]=_limparUndefined(atv);
+  updates["_ts"]=ts;
+  updates["_savedBy"]=userAtual||"sistema";
+  if(!_online){_conflitoPend={..._conflitoPend,...updates};showToast("⚠️ Sem conexão. Será salvo ao reconectar (nada será perdido).");_savePend=false;return;}
+  _fbRef.update(updates)
+    .then(()=>{
+      _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
+      atualizarSave();
+      if(desc) logAcao(desc);
+    })
+    .catch(e=>{
+      _savePend=false;
+      console.error("Erro ao salvar atividade:",e);
+      showToast("⚠️ Erro ao salvar. Tente novamente.");
+    });
+}
 function salvarAtividade(actId,desc){
   if(!_fbDb) return;
   if(_debAtv[actId]) clearTimeout(_debAtv[actId]);
   _savePend=true;
   const el=document.getElementById("ultimo-save");if(el) el.textContent="⏳ Salvando...";
-  _debAtv[actId]=setTimeout(()=>{
-    delete _debAtv[actId];
-    const atv=dbAtv.find(a=>a.id===actId);
-    if(!atv){_savePend=false;return;}
-    const ts=Date.now();
-    backup(dbAtv);
-    const updates={};
-    updates[`atividadesMap/${actId}`]=_limparUndefined(atv);
-    updates["_ts"]=ts;
-    updates["_savedBy"]=userAtual||"sistema";
-    if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão. Será salvo ao reconectar.");_savePend=false;return;}
-    _fbRef.update(updates)
-      .then(()=>{
-        _savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";
-        atualizarSave();
-        if(desc) logAcao(desc);
-      })
-      .catch(e=>{
-        _savePend=false;
-        console.error("Erro ao salvar atividade:",e);
-        showToast("⚠️ Erro ao salvar. Tente novamente.");
-      });
-  },500);
+  _debAtv[actId]=setTimeout(()=>_executarSaveAtividade(actId,desc),500);
+}
+// Dispara imediatamente todos os saves de atividade que ainda estão no debounce
+// (chamado ao esconder/fechar a aba, pra não perder as últimas teclas digitadas)
+function flushSavesPendentes(){
+  Object.keys(_debAtv).forEach(actId=>{
+    clearTimeout(_debAtv[actId]);
+    _executarSaveAtividade(actId);
+  });
+  if(_debDados){clearTimeout(_debDados);_debDados=null;_executarSaveDados();}
 }
 
 // ── SAVE DADOS GERAIS ──
+let _descDadosPend=null;
+function _executarSaveDados(){
+  const ts=Date.now(),updates={"config":comp,"profissionais":PROF,"empresas":EMPS,"areas":AREAS,"_ts":ts,"_savedBy":userAtual||"sistema"};
+  if(dbHist&&Object.keys(dbHist).length) updates["historicos"]=dbHist;
+  if(!_online){_conflitoPend={..._conflitoPend,...updates};showToast("⚠️ Sem conexão. Será salvo ao reconectar (nada será perdido).");_savePend=false;return;}
+  if(_descDadosPend) logAcao(_descDadosPend);
+  _descDadosPend=null;
+  _fbRef.update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
+}
 function salvarDados(desc){
   if(!_fbRef) return;
   _savePend=true;
+  if(desc) _descDadosPend=desc;
   const el=document.getElementById("ultimo-save");if(el) el.textContent="⏳ Salvando...";
   if(_debDados) clearTimeout(_debDados);
-  _debDados=setTimeout(()=>{
-    _debDados=null;
-    const ts=Date.now(),updates={"config":comp,"profissionais":PROF,"empresas":EMPS,"areas":AREAS,"_ts":ts,"_savedBy":userAtual||"sistema"};
-    if(dbHist&&Object.keys(dbHist).length) updates["historicos"]=dbHist;
-    if(!_online){_conflitoPend=updates;showToast("⚠️ Sem conexão.");_savePend=false;return;}
-    if(desc) logAcao(desc);
-    _fbRef.update(updates).then(()=>{_savePend=false;_tsSave=ts;_tsCarregado=ts;_quemSave=userAtual||"";atualizarSave();}).catch(e=>{_savePend=false;console.error(e);showToast("⚠️ Erro ao salvar.");});
-  },500);
+  _debDados=setTimeout(()=>{_debDados=null;_executarSaveDados();},500);
 }
 
 // ── SYNC AO VIVO — ouve cada atividade diretamente por ID ──
@@ -1483,9 +1502,10 @@ function buildCard(act, baseId, cloneId){
   // Busca com highlight
   const busca=($el("search-input")||{}).value?.toLowerCase()||"";
   function hl(txt){
-    if(!busca) return txt;
-    const re=new RegExp("("+busca.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi");
-    return txt.replace(re,'<mark class="hl">$1</mark>');
+    const safe=escapeHtml(txt);
+    if(!busca) return safe;
+    const re=new RegExp("("+busca.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))+")","gi");
+    return safe.replace(re,'<mark class="hl">$1</mark>');
   }
 
   // Mini-barra
@@ -1806,7 +1826,7 @@ function renderAlertas(){
     const badgeCls=isAtras||isHoje?"hoje":"";
     return`<div class="alert-card ${cls}">
       <span style="font-size:15px;flex-shrink:0;">${isAtras?"⚠️":isHoje?"🔴":"🟡"}</span>
-      <span class="alert-text"><strong>${act.atividade}</strong> · ${act.area} · ${pend} empresa${pend>1?"s":""} pendente${pend>1?"s":""}</span>
+      <span class="alert-text"><strong>${escapeHtml(act.atividade)}</strong> · ${escapeHtml(act.area)} · ${pend} empresa${pend>1?"s":""} pendente${pend>1?"s":""}</span>
       <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${lim.toLocaleDateString("pt-BR")}</span>
       <span class="alert-badge ${badgeCls}">${label}</span>
     </div>`;
@@ -1944,7 +1964,7 @@ function renderPIS(){
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
           <span style="font-size:10px;font-weight:700;color:${fg};">${icon} ${s==="OK"?"OK":s==="ATRASADO"?"Atrasado":"Pendente"}</span>
         </div>
-        <div style="font-size:11px;font-weight:600;color:#1e293b;line-height:1.3;margin-bottom:3px;">${a.atividade}</div>
+        <div style="font-size:11px;font-weight:600;color:#1e293b;line-height:1.3;margin-bottom:3px;">${escapeHtml(a.atividade)}</div>
         <div style="font-size:10px;color:#64748b;">${resp}</div>
       </div>`;
     }).join("")+`</div>`:"<span style='font-size:11px;color:var(--muted);'>Nenhuma atividade vinculada.</span>";
@@ -2657,6 +2677,7 @@ function renderCalendario(){
   // Células vazias antes do dia 1
   for(let i=0;i<primeiroDia;i++) html+=`<div></div>`;
 
+  const MAX_NOMES_CEL=3;
   for(let d=1;d<=totalDias;d++){
     const info=porDia[d];
     const n=info?info.total:0;
@@ -2665,11 +2686,28 @@ function renderCalendario(){
     const dt=new Date(ano,mes,d);
     const fimSem=dt.getDay()===0||dt.getDay()===6;
     const temPendencia=info&&(info.pend>0||info.atrasado>0);
-    const badges=info?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:3px;">
+    const badges=info?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin:2px 0 4px;">
         ${info.atrasado?`<span style="font-size:0.64rem;font-weight:800;color:#991b1b;">⚠${info.atrasado}</span>`:""}
         ${info.pend?`<span style="font-size:0.64rem;font-weight:800;color:#92400e;">⏳${info.pend}</span>`:""}
         ${info.ok?`<span style="font-size:0.64rem;font-weight:700;color:#166534;">✓${info.ok}</span>`:""}
       </div>`:"";
+    // Lista os nomes das atividades direto na célula — atrasadas/pendentes primeiro,
+    // pra dar pra ver o que precisa de atenção sem clicar no dia.
+    let listaNomes="";
+    if(info){
+      const ordemSt={ATRASADO:0,PENDENTE:1,OK:2};
+      const ordenadas=[...info.atividades].map(a=>({a,st:statusGeral(a)}))
+        .sort((x,y)=>(ordemSt[x.st]??1)-(ordemSt[y.st]??1)||x.a.atividade.localeCompare(y.a.atividade,"pt-BR"));
+      const visiveis=ordenadas.slice(0,MAX_NOMES_CEL);
+      const resto=ordenadas.length-visiveis.length;
+      listaNomes=`<div style="display:flex;flex-direction:column;gap:2px;text-align:left;">
+        ${visiveis.map(({a,st})=>{
+          const c=calStatusColor(st);
+          return `<div style="font-size:0.62rem;line-height:1.25;color:${c};font-weight:${st==="OK"?"500":"700"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${st==="OK"?"✓":st==="ATRASADO"?"⚠":"•"} ${escapeHtml(a.atividade)}</div>`;
+        }).join("")}
+        ${resto>0?`<div style="font-size:0.6rem;color:var(--text-muted);font-weight:700;">+${resto} mais</div>`:""}
+      </div>`;
+    }
     html+=`<div onclick="${n?`calAbrirDia(${d})`:'void 0'}" style="
       border-radius:8px;padding:8px 6px;min-height:64px;text-align:center;cursor:${n?'pointer':'default'};
       background:${bg};border:${temPendencia?'2.5px':'2px'} solid ${isHoje?'var(--arco-laranja)':border};
@@ -2680,6 +2718,7 @@ function renderCalendario(){
       onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'`:''}">
       <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:2px;">${d}</div>
       ${badges}
+      ${listaNomes}
     </div>`;
   }
   grid.innerHTML=html;
@@ -2719,9 +2758,9 @@ function calAbrirDia(d){
     return `<div style="display:flex;align-items:center;gap:12px;padding:${destaque?'12px 14px':'8px 14px'};border-radius:8px;border:${destaque?'2px':'1px'} solid ${destaque?c:c+'44'};background:${destaque?c+'14':c+'0a'};">
       <div style="width:${destaque?'12px':'8px'};height:${destaque?'12px':'8px'};border-radius:50%;background:${c};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:${destaque?'0.9rem':'0.85rem'};font-weight:${destaque?'700':'500'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.atividade}</div>
+        <div style="font-size:${destaque?'0.9rem':'0.85rem'};font-weight:${destaque?'700':'500'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.atividade)}</div>
         <div style="margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <span style="font-size:0.68rem;font-weight:700;background:#eef2ff;color:var(--blue);padding:1px 8px;border-radius:8px;white-space:nowrap;">📂 ${a.area}</span>
+          <span style="font-size:0.68rem;font-weight:700;background:#eef2ff;color:var(--blue);padding:1px 8px;border-radius:8px;white-space:nowrap;">📂 ${escapeHtml(a.area)}</span>
           <span style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">D.U. ${a.diaUtil} · ${okCount}/${totalEmp} marcas OK</span>
         </div>
       </div>
@@ -2962,7 +3001,7 @@ function resetarStatus(){
 function renderHist(){
   const root=document.getElementById("hist-lista"); if(!root) return;
   const chaves=Object.keys(dbHist);
-  root.innerHTML=chaves.length?chaves.map(k=>`<button class="filter-btn" onclick="verHist('${k}')">📁 ${dbHist[k].label}</button>`).join(""):"<small style='color:var(--muted);'>Sem arquivos.</small>";
+  root.innerHTML=chaves.length?chaves.map(k=>`<button class="filter-btn" onclick="verHist('${k}')">📁 ${escapeHtml(dbHist[k].label)}</button>`).join(""):"<small style='color:var(--muted);'>Sem arquivos.</small>";
 }
 function verHist(key){
   const h=dbHist[key],root=document.getElementById("hist-tabela"); if(!root) return;
@@ -2971,9 +3010,9 @@ function verHist(key){
     const resps=(act.responveisLista||[]).map(r=>`<span style="background:linear-gradient(135deg,#eff6ff,#e0f2fe);color:var(--blue);border:1px solid #c7dbf7;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${abrev(r)}</span>`).join(" ");
     const lines=act.empresas.filter(e=>el.includes(e.nome)).map(e=>{
       const cor=e.status==="OK"?"var(--s-ok)":"var(--muted)", bg=e.status==="OK"?"var(--s-ok-bg)":"#f1f5f9";
-      return`<div style="display:grid;grid-template-columns:1.4fr 0.8fr 1.2fr 2fr;gap:8px;padding:6px 12px;font-size:12px;background:#fff;border-bottom:1px solid #edf2f7;align-items:center;"><div style="font-weight:600;">🔹 ${e.nome}</div><div><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-weight:700;font-size:11px;">${e.status}</span></div><div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);">${e.dataConclusao||"—"}</div><div style="color:var(--muted);font-style:italic;">${e.obs||"—"}</div></div>`;
+      return`<div style="display:grid;grid-template-columns:1.4fr 0.8fr 1.2fr 2fr;gap:8px;padding:6px 12px;font-size:12px;background:#fff;border-bottom:1px solid #edf2f7;align-items:center;"><div style="font-weight:600;">🔹 ${escapeHtml(e.nome)}</div><div><span style="background:${bg};color:${cor};padding:2px 8px;border-radius:8px;font-weight:700;font-size:11px;">${e.status}</span></div><div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);">${e.dataConclusao||"—"}</div><div style="color:var(--muted);font-style:italic;">${escapeHtml(e.obs)||"—"}</div></div>`;
     }).join("");
-    return`<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;"><div style="padding:10px 12px;background:#f1f5f9;"><div style="font-weight:700;margin-bottom:4px;">${act.atividade} <span style="font-size:11px;color:var(--muted);">• ${act.area} • D.U. ${act.diaUtil}</span></div><div style="display:flex;gap:4px;flex-wrap:wrap;">${resps}</div></div><div style="display:grid;grid-template-columns:1.4fr 0.8fr 1.2fr 2fr;gap:8px;padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;background:#fafbfc;border-bottom:1px solid var(--border);"><div>Empresa</div><div>Status</div><div>Data</div><div>Evidência</div></div>${lines}</div>`;
+    return`<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;"><div style="padding:10px 12px;background:#f1f5f9;"><div style="font-weight:700;margin-bottom:4px;">${escapeHtml(act.atividade)} <span style="font-size:11px;color:var(--muted);">• ${escapeHtml(act.area)} • D.U. ${act.diaUtil}</span></div><div style="display:flex;gap:4px;flex-wrap:wrap;">${resps}</div></div><div style="display:grid;grid-template-columns:1.4fr 0.8fr 1.2fr 2fr;gap:8px;padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;background:#fafbfc;border-bottom:1px solid var(--border);"><div>Empresa</div><div>Status</div><div>Data</div><div>Evidência</div></div>${lines}</div>`;
   }).join("");
   document.getElementById("hist-tabela").innerHTML=`<h3 style="color:var(--blue);margin:14px 0 8px;">${h.label}</h3><div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Arquivado em: <b>${h.arquivadoEm||"—"}</b></div>${rows}`;
 }
