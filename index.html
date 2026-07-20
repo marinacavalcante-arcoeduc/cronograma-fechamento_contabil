@@ -783,15 +783,24 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 
   <div id="tab-calendario" class="tab-content">
     <div class="form-card" style="padding:0;overflow:hidden;">
-      <div id="cal-header" style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--bg2);">
+      <div id="cal-header" style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--bg2);flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:12px;">
           <span id="cal-titulo" style="font-size:1.1rem;font-weight:700;color:var(--text);"></span>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="filter-btn" onclick="calNavegar(-1)">‹ Anterior</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px;">
+            <button class="filter-btn active" id="btn-cal-modo-mes" onclick="setCalModo('mes')" style="border:none;">🗓 Mês</button>
+            <button class="filter-btn" id="btn-cal-modo-timeline" onclick="setCalModo('timeline')" style="border:none;">📊 Timeline</button>
+          </div>
+          <button class="filter-btn" onclick="calNavegar(-1)" id="btn-cal-nav-ant">‹ Anterior</button>
           <button class="filter-btn active" onclick="calHoje()">Hoje</button>
-          <button class="filter-btn" onclick="calNavegar(1)">Próximo ›</button>
+          <button class="filter-btn" onclick="calNavegar(1)" id="btn-cal-nav-prox">Próximo ›</button>
         </div>
+      </div>
+      <div id="cal-timeline-filtro" style="display:none;padding:12px 24px 0;gap:6px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-right:2px;">📂 Áreas:</span>
+        <button class="filter-btn" onclick="timelineToggleTodas()" id="btn-tl-todas" style="font-size:0.72rem;padding:4px 10px;">Todas</button>
+        <div id="cal-timeline-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       </div>
       <div id="cal-escopo-wrap" style="display:flex;gap:8px;padding:14px 24px 0;">
         <button class="filter-btn active" id="btn-cal-geral" onclick="calSetEscopo('geral')">🌐 Geral (todas as áreas)</button>
@@ -806,6 +815,11 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       </div>
       <div id="cal-grid-wrap" style="padding:16px 24px 24px;min-height:400px;">
         <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;min-height:300px;">
+          <!-- gerado por JS -->
+        </div>
+      </div>
+      <div id="cal-timeline-wrap" style="display:none;padding:16px 24px 24px;overflow-x:auto;">
+        <div id="cal-timeline-grid" style="min-width:760px;">
           <!-- gerado por JS -->
         </div>
       </div>
@@ -2483,7 +2497,7 @@ function mudarAba(id){
   if(id==="tab-config") renderConfigListas();
   if(id==="tab-pis") renderPIS();
   if(id==="tab-periodo") renderHist();
-  if(id==="tab-calendario") requestAnimationFrame(()=>renderCalendario());
+  if(id==="tab-calendario") requestAnimationFrame(()=>{if(_calModoView==="timeline") renderTimeline(); else renderCalendario();});
 }
 
 
@@ -2586,6 +2600,9 @@ function dispararConfete(){
 // CALENDÁRIO
 // ═══════════════════════════════════════════
 let _calAno=null, _calMes=null;
+let _calModoView="mes"; // "mes" | "timeline"
+let _timelineInicio=null; // Date do primeiro dia (domingo) da semana visível na timeline
+let _timelineAreasSel=null; // Set de áreas selecionadas no filtro (null = todas)
 const _MESES_CAL=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function _calMesIdx(m){ const i=_MESES_CAL.indexOf(m); return i>=0?i:(parseInt(m)||1)-1; }
 
@@ -2739,7 +2756,11 @@ function calAbrirDia(d){
   const ordem={ATRASADO:0,PENDENTE:1,OK:2};
   atvDia.sort((a,b)=>(ordem[a._stCal]??1)-(ordem[b._stCal]??1)||a.atividade.localeCompare(b.atividade,"pt-BR"));
 
-  document.getElementById("cal-detalhe-titulo").textContent=`📅 ${d} de ${nomeMes} de ${ano} — ${atvDia.length} atividade${atvDia.length!==1?'s':''}`;
+  _renderDetalhe(atvDia,`📅 ${d} de ${nomeMes} de ${ano}`);
+}
+
+function _renderDetalhe(atvDia,titulo){
+  document.getElementById("cal-detalhe-titulo").textContent=`${titulo} — ${atvDia.length} atividade${atvDia.length!==1?'s':''}`;
 
   // Contadores por status (nível atividade — mesmo critério da bolinha do card)
   const cnt={ATRASADO:0,PENDENTE:0,OK:0};
@@ -2775,6 +2796,7 @@ function calAbrirDia(d){
 function fecharDetalhe(){ document.getElementById("cal-detalhe").style.display="none"; }
 
 function calNavegar(dir){
+  if(_calModoView==="timeline"){ timelineNavegar(dir); return; }
   _calMes+=dir;
   if(_calMes>11){_calMes=0;_calAno++;}
   if(_calMes<0){_calMes=11;_calAno--;}
@@ -2783,7 +2805,129 @@ function calNavegar(dir){
 function calHoje(){
   const h=new Date();
   _calAno=h.getFullYear(); _calMes=h.getMonth();
-  renderCalendario();
+  _timelineInicio=_domingoDaSemana(h);
+  if(_calModoView==="timeline") renderTimeline(); else renderCalendario();
+}
+
+// ═══════════════════════════════════════════
+// TIMELINE (visão simplificada por área x dia)
+// ═══════════════════════════════════════════
+function _domingoDaSemana(d){
+  const r=new Date(d); r.setHours(0,0,0,0); r.setDate(r.getDate()-r.getDay()); return r;
+}
+function setCalModo(m){
+  _calModoView=m;
+  document.getElementById("btn-cal-modo-mes").classList.toggle("active",m==="mes");
+  document.getElementById("btn-cal-modo-timeline").classList.toggle("active",m==="timeline");
+  document.getElementById("cal-grid-wrap").style.display=m==="mes"?"block":"none";
+  document.getElementById("cal-timeline-wrap").style.display=m==="timeline"?"block":"none";
+  document.getElementById("cal-timeline-filtro").style.display=m==="timeline"?"flex":"none";
+  document.getElementById("cal-escopo-wrap").style.display=m==="mes"?"flex":"none";
+  fecharDetalhe();
+  if(m==="timeline"){
+    if(!_timelineInicio){
+      // Começa na semana do primeiro dia do mês de competência sendo exibido
+      const idxComp=_MESES_CAL.indexOf(comp.mes);
+      const mesData=(idxComp+1)%12;
+      const anoData=idxComp===11?parseInt(comp.ano)+1:parseInt(comp.ano)||new Date().getFullYear();
+      _timelineInicio=_domingoDaSemana(new Date(anoData,mesData,1));
+    }
+    renderTimeline();
+  }else{
+    renderCalendario();
+  }
+}
+function timelineAreasDisponiveis(){
+  return [...new Set(dbAtv.map(a=>normalizarArea(a.area)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+}
+function timelineToggleArea(area){
+  if(!_timelineAreasSel) _timelineAreasSel=new Set(timelineAreasDisponiveis());
+  if(_timelineAreasSel.has(area)) _timelineAreasSel.delete(area); else _timelineAreasSel.add(area);
+  renderTimeline();
+}
+function timelineToggleTodas(){
+  _timelineAreasSel=null; // null = todas selecionadas
+  renderTimeline();
+}
+function timelineNavegar(dir){
+  const d=new Date(_timelineInicio); d.setDate(d.getDate()+dir*7);
+  _timelineInicio=d;
+  renderTimeline();
+}
+function timelineAbrirAtividade(id){
+  const a=dbAtv.find(x=>x.id===id); if(!a) return;
+  _renderDetalhe([{...a,_stCal:statusGeral(a)}],`📌 ${a.atividade}`);
+}
+function renderTimeline(){
+  if(!_timelineInicio) _timelineInicio=_domingoDaSemana(new Date());
+  const todasAreas=timelineAreasDisponiveis();
+  const selecionadas=_timelineAreasSel?[..._timelineAreasSel]:todasAreas;
+
+  // Chips de filtro
+  const chipsEl=document.getElementById("cal-timeline-chips");
+  document.getElementById("btn-tl-todas").classList.toggle("active",!_timelineAreasSel);
+  if(chipsEl) chipsEl.innerHTML=todasAreas.map(ar=>{
+    const ativo=_timelineAreasSel?_timelineAreasSel.has(ar):true;
+    return `<button class="filter-btn${ativo?' active':''}" style="font-size:0.72rem;padding:4px 10px;" onclick="timelineToggleArea('${ar.replace(/'/g,"\\'")}')">${escapeHtml(ar)}</button>`;
+  }).join("");
+
+  const dias=[];
+  for(let i=0;i<7;i++){const d=new Date(_timelineInicio);d.setDate(d.getDate()+i);dias.push(d);}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const nomesDias=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+  const fimSemana=dias[6];
+  document.getElementById("cal-titulo").textContent=`${dias[0].toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})} – ${fimSemana.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})}`;
+
+  // Mapa área → dia → atividades
+  const porAreaDia={};
+  dbAtv.forEach(a=>{
+    const ar=normalizarArea(a.area);
+    if(!selecionadas.includes(ar)) return;
+    const dt=calCalcularData(a); if(!dt) return;
+    dt.setHours(0,0,0,0);
+    const idx=dias.findIndex(d=>d.getTime()===dt.getTime());
+    if(idx<0) return;
+    if(!porAreaDia[ar]) porAreaDia[ar]={};
+    if(!porAreaDia[ar][idx]) porAreaDia[ar][idx]=[];
+    porAreaDia[ar][idx].push(a);
+  });
+
+  const areasLinhas=todasAreas.filter(ar=>selecionadas.includes(ar));
+
+  if(!areasLinhas.length){
+    document.getElementById("cal-timeline-grid").innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-muted);">Nenhuma área selecionada. Escolha ao menos uma área no filtro acima.</div>`;
+    return;
+  }
+
+  const COL_AREA="150px";
+  let html=`<div style="display:grid;grid-template-columns:${COL_AREA} repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">`;
+  // Cabeçalho
+  html+=`<div style="background:var(--bg2);padding:8px 10px;font-size:0.72rem;font-weight:700;color:var(--text-muted);">ÁREA</div>`;
+  dias.forEach(d=>{
+    const isHoje=d.getTime()===hoje.getTime();
+    html+=`<div style="background:${isHoje?'#fff7ed':'var(--bg2)'};padding:8px 6px;text-align:center;">
+      <div style="font-size:0.68rem;font-weight:700;color:${isHoje?'var(--arco-laranja)':'var(--text-muted)'};">${nomesDias[d.getDay()]}</div>
+      <div style="font-size:0.78rem;font-weight:800;color:${isHoje?'var(--arco-laranja)':'var(--text)'};">${d.getDate()}</div>
+    </div>`;
+  });
+  // Linhas por área
+  areasLinhas.forEach(ar=>{
+    html+=`<div style="background:#fff;padding:10px;font-size:0.78rem;font-weight:700;color:var(--text);display:flex;align-items:center;">${escapeHtml(ar)}</div>`;
+    for(let i=0;i<7;i++){
+      const lista=(porAreaDia[ar]&&porAreaDia[ar][i])||[];
+      const isHoje=dias[i].getTime()===hoje.getTime();
+      const pills=lista.map(a=>{
+        const st=statusGeral(a),c=calStatusColor(st);
+        const nome=a.atividade.length>22?a.atividade.slice(0,21)+"…":a.atividade;
+        return `<div onclick="timelineAbrirAtividade('${a.id}')" title="${escapeHtml(a.atividade)}" style="cursor:pointer;font-size:0.66rem;font-weight:600;padding:2px 6px;border-radius:5px;margin-bottom:3px;background:${c}22;color:${c};border-left:3px solid ${c};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(nome)}</div>`;
+      }).join("");
+      html+=`<div style="background:${isHoje?'#fff7ed':'#fff'};padding:6px 5px;min-height:38px;">${pills}</div>`;
+    }
+  });
+  html+=`</div>`;
+  document.getElementById("cal-timeline-grid").innerHTML=html;
+  fecharDetalhe();
 }
 
 // ═══════════════════════════════════════════
