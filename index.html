@@ -1614,11 +1614,7 @@ function renderizarPainel(){
   const ehM=ehMaster();
 
   const ords=[...dbAtv].sort((a,b)=>{
-    // Se tem _ordem definido, usa ele (drag & drop manual)
-    if(a._ordem!==undefined&&b._ordem!==undefined) return a._ordem-b._ordem;
-    if(a._ordem!==undefined) return -1;
-    if(b._ordem!==undefined) return 1;
-    // Fallback: dia útil, depois nome
+    // Ordena sempre por dia útil (do menor/negativo pro maior), depois por nome
     const da=parseInt(a.diaUtil)||0,db2=parseInt(b.diaUtil)||0;
     return da!==db2?da-db2:a.atividade.localeCompare(b.atividade,"pt-BR");
   });
