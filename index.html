@@ -2694,7 +2694,6 @@ function renderCalendario(){
   // Células vazias antes do dia 1
   for(let i=0;i<primeiroDia;i++) html+=`<div></div>`;
 
-  const MAX_NOMES_CEL=3;
   for(let d=1;d<=totalDias;d++){
     const info=porDia[d];
     const n=info?info.total:0;
@@ -2703,28 +2702,11 @@ function renderCalendario(){
     const dt=new Date(ano,mes,d);
     const fimSem=dt.getDay()===0||dt.getDay()===6;
     const temPendencia=info&&(info.pend>0||info.atrasado>0);
-    const badges=info?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin:2px 0 4px;">
+    const badges=info?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:3px;">
         ${info.atrasado?`<span style="font-size:0.64rem;font-weight:800;color:#991b1b;">⚠${info.atrasado}</span>`:""}
         ${info.pend?`<span style="font-size:0.64rem;font-weight:800;color:#92400e;">⏳${info.pend}</span>`:""}
         ${info.ok?`<span style="font-size:0.64rem;font-weight:700;color:#166534;">✓${info.ok}</span>`:""}
       </div>`:"";
-    // Lista os nomes das atividades direto na célula — atrasadas/pendentes primeiro,
-    // pra dar pra ver o que precisa de atenção sem clicar no dia.
-    let listaNomes="";
-    if(info){
-      const ordemSt={ATRASADO:0,PENDENTE:1,OK:2};
-      const ordenadas=[...info.atividades].map(a=>({a,st:statusGeral(a)}))
-        .sort((x,y)=>(ordemSt[x.st]??1)-(ordemSt[y.st]??1)||x.a.atividade.localeCompare(y.a.atividade,"pt-BR"));
-      const visiveis=ordenadas.slice(0,MAX_NOMES_CEL);
-      const resto=ordenadas.length-visiveis.length;
-      listaNomes=`<div style="display:flex;flex-direction:column;gap:2px;text-align:left;">
-        ${visiveis.map(({a,st})=>{
-          const c=calStatusColor(st);
-          return `<div style="font-size:0.62rem;line-height:1.25;color:${c};font-weight:${st==="OK"?"500":"700"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${st==="OK"?"✓":st==="ATRASADO"?"⚠":"•"} ${escapeHtml(a.atividade)}</div>`;
-        }).join("")}
-        ${resto>0?`<div style="font-size:0.6rem;color:var(--text-muted);font-weight:700;">+${resto} mais</div>`:""}
-      </div>`;
-    }
     html+=`<div onclick="${n?`calAbrirDia(${d})`:'void 0'}" style="
       border-radius:8px;padding:8px 6px;min-height:64px;text-align:center;cursor:${n?'pointer':'default'};
       background:${bg};border:${temPendencia?'2.5px':'2px'} solid ${isHoje?'var(--arco-laranja)':border};
@@ -2735,7 +2717,6 @@ function renderCalendario(){
       onmouseout="${n?`this.style.transform='';this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'`:''}">
       <div style="font-size:0.82rem;font-weight:${isHoje?'800':'600'};color:${isHoje?'var(--arco-laranja)':color};margin-bottom:2px;">${d}</div>
       ${badges}
-      ${listaNomes}
     </div>`;
   }
   grid.innerHTML=html;
