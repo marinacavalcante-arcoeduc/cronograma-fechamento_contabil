@@ -1331,9 +1331,12 @@ function popularLogin(){
   _AREAS_FIXAS.forEach(a=>areas.add(a));
 
   sel.disabled=false;
-  const areaOpts=Array.from(areas).sort((a,b)=>a.localeCompare(b,"pt-BR")).map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
+  // Contábil é a área principal — sempre vem primeiro na lista, o resto segue em ordem alfabética
+  const areasOrdenadas=Array.from(areas).filter(a=>a!=="Contábil").sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const areaOpts=areasOrdenadas.map(a=>`<option value="${a}">📂 ${a}</option>`).join("");
 
   sel.innerHTML='<option value="">— Selecione a área —</option>'
+    +(areas.has("Contábil")?'<option value="Contábil">📂 Contábil</option>':'')
     +'<option value="__ADMIN__">🛡 Administrador</option>'
     +'<option value="__TRIBUTARIO__">📊 Liberações PIS e COFINS</option>'
     +areaOpts;
@@ -1365,11 +1368,19 @@ function filtrarRespsLogin(){
   if(area==="__ADMIN__"){rSel.innerHTML=MASTERS.map(m=>`<option value="${m}">👑 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw){mw.style.display="block";_modoLoginAdmin=true;setModoLogin('admin');}return;}
   if(area==="__TRIBUTARIO__"){rSel.innerHTML=TRIBUTARIO_TEAM.map(m=>`<option value="${m}">📊 ${m}</option>`).join("");if(sGrp) sGrp.style.display="block";const mw=document.getElementById("login-modo-wrap");if(mw) mw.style.display="none";return;}
   const mw2=document.getElementById("login-modo-wrap");if(mw2) mw2.style.display="none";
-  // Login por área mostra só a opção genérica da própria área — sem listar nomes de outras pessoas.
+  const ehContabil=area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab");
+  if(ehContabil){
+    // Contábil é a área principal — mostra todos os possíveis responsáveis, nominalmente.
+    const nomes=PROF.filter(p=>p!=="A Atribuir").sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    rSel.innerHTML=nomes.map(m=>`<option value="${m}">👤 ${m}</option>`).join("")
+      +`<option value="__LEITURA__">🔒 Somente leitura</option>`;
+    if(sGrp) sGrp.style.display="block";
+    return;
+  }
+  // Demais áreas: mostra só a opção genérica da própria área — sem listar nomes de outras pessoas.
   rSel.innerHTML=`<option value="__AREA__">👥 Entrar como ${area}</option>`
     +`<option value="__LEITURA__">🔒 Somente leitura</option>`;
-  const precisaSenha=area.toLowerCase().includes("contáb")||area.toLowerCase().includes("contab");
-  if(sGrp) sGrp.style.display=precisaSenha?"block":"none";
+  if(sGrp) sGrp.style.display="none";
 }
 let _modoLoginAdmin=true;
 function setModoLogin(modo){
