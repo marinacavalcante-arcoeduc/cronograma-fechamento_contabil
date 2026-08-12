@@ -3157,13 +3157,34 @@ function verHist(key){
 // EXPORTAÇÃO
 // ═══════════════════════════════════════════
 function exportarExcel(){
-  let csv="Atividade;Area;Grupo;Dia Util;Data Prevista;Previa Receita;Responsaveis;Empresa;Status;Data Conclusao;Evidencia\n";
+  if(typeof XLSX==="undefined"){showToast("⚠️ Biblioteca XLSX não carregada.");return;}
+  const linhas=[];
   dbAtv.forEach(a=>{
     const dp=calcData(a.diaUtil),df=dp?dp.toLocaleDateString("pt-BR"):"";
-    a.empresas.forEach(e=>{if((a.empresasElegiveis||[]).includes(e.nome)) csv+=`"${a.atividade}";"${a.area}";"${a.grupo||""}";"${a.diaUtil}";"${df}";"${a.previaReceita}";"${(a.responveisLista||[]).join(", ")}";"${e.nome}";"${e.status}";"${e.dataConclusao||""}";"${e.obs||""}"\n`;});
+    a.empresas.forEach(e=>{
+      if(!(a.empresasElegiveis||[]).includes(e.nome)) return;
+      const respEmpresa=getRespEmp(a,e.nome); // responsável ESPECÍFICO desta empresa (ex: Isaac numa, Marcelino noutra)
+      linhas.push({
+        "Atividade":a.atividade,
+        "Área":a.area,
+        "Grupo":a.grupo||"",
+        "Dia Útil":a.diaUtil,
+        "Data Prevista":df,
+        "Prévia Receita":a.previaReceita,
+        "Responsável Atribuído":respEmpresa,
+        "Todos Responsáveis da Atividade":(a.responveisLista||[]).join(", "),
+        "Empresa":e.nome,
+        "Status":e.status,
+        "Data Conclusão":e.dataConclusao||"",
+        "Evidência":e.obs||""
+      });
+    });
   });
-  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
-  const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.setAttribute("download",`Fechamento_${comp.mes}_${comp.ano}.csv`);document.body.appendChild(link);link.click();document.body.removeChild(link);
+  const ws=XLSX.utils.json_to_sheet(linhas);
+  ws["!cols"]=[{wch:32},{wch:14},{wch:10},{wch:9},{wch:13},{wch:13},{wch:22},{wch:30},{wch:18},{wch:12},{wch:14},{wch:36}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Fechamento");
+  XLSX.writeFile(wb,`Fechamento_${comp.mes}_${comp.ano}.xlsx`);
 }
 function baixarModelo(){
   let csv="Atividade;Area;Dia Util;Previa Receita (Sim/Não);Responsaveis (separar por |);Marcas (separar por | ou TODAS)\nExemplo;Contábil;3;Não;Leonardo Candido Felix|Mary Nelma Guimaraes;CBE/SAS|SAE\n\n# Responsáveis:;"+PROF.join(" | ")+"\n# Marcas:;"+EMPS.join(" | ")+"\n";
