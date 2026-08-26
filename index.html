@@ -438,6 +438,19 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
 .exp-arrow{font-size:9px;margin-left:4px;color:var(--muted);}
 
 .lib-badge{display:inline-flex;align-items:center;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;white-space:nowrap;}
+/* BLOCOS */
+.bloco-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:16px;}
+.bloco-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s;}
+.bloco-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.06);}
+.bloco-card-title{font-weight:700;font-size:13px;color:var(--blue);margin-bottom:8px;}
+.bloco-prog-bg{height:8px;background:#f1f5f9;border-radius:6px;overflow:hidden;margin-bottom:6px;}
+.bloco-prog-fill{height:100%;border-radius:6px;background:var(--green);transition:width .4s;}
+.bloco-card-sub{font-size:11px;color:var(--muted);}
+.bloco-expand{display:none;margin-top:16px;}
+.bloco-expand.open{display:block;}
+.bloco-atv-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;}
+.bloco-atv-row:last-child{border-bottom:none;}
+.bloco-sel{font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:#f8fafc;}
 .lib-ok{background:#C0DD97;color:#3B6D11;}
 .lib-pend{background:#FAC775;color:#633806;}
 .lib-atras{background:#F5C4B3;color:#993C1D;}
@@ -664,6 +677,7 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
   <div class="tabs-navigation" id="main-tabs">
     <button class="tab-link active" onclick="mudarAba('tab-exec')">📋 Atividades</button>
     <button class="tab-link" onclick="mudarAba('tab-pis')">📊 PIS/COFINS</button>
+    <button class="tab-link" onclick="mudarAba('tab-blocos')">🧩 Blocos</button>
     <button class="tab-link" id="tab-link-calendario" onclick="mudarAba('tab-calendario')">📅 Calendário</button>
     <button class="tab-link" id="tab-link-config" onclick="mudarAba('tab-config')">⚙️ Configurações</button>
     <button class="tab-link" id="tab-link-periodo" onclick="mudarAba('tab-periodo')">🗂 Competência</button>
@@ -721,6 +735,8 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
   </div>
 
   <div id="tab-pis" class="tab-content"><div id="pis-root"></div></div>
+
+  <div id="tab-blocos" class="tab-content"><div id="blocos-root"></div></div>
 
   <div id="tab-config" class="tab-content">
     <div class="form-card">
@@ -879,6 +895,8 @@ const FERIADOS = ["2026-01-01","2026-02-16","2026-02-17","2026-04-03","2026-04-2
 const COLUNAS_PIS = ["Finalização lançamentos - Depósitos Judiciais","Deságio Adiantamento - Repasse","Taxas de boletagem, multa e juros B2C/B2B","Comissão de antecipações de repasse ATECH","Aplicações Financeiras","Empréstimos/Dívidas/Mútuos"];
 const COLS_PIS_ABREV = ["Dep. Judiciais","Deságio / Repasse","Taxas B2C/B2B","Comissão ATECH","Aplicações Fin.","Mútuos/Dívidas"];
 const MAP_PIS_PADRAO = {"atv_17":"Finalização lançamentos - Depósitos Judiciais","atv_29":"Finalização lançamentos - Depósitos Judiciais","atv_62":"Deságio Adiantamento - Repasse","atv_68":"Deságio Adiantamento - Repasse","atv_43":"Taxas de boletagem, multa e juros B2C/B2B","atv_61":"Taxas de boletagem, multa e juros B2C/B2B","atv_38":"Aplicações Financeiras","atv_55":"Aplicações Financeiras","atv_24":"Empréstimos/Dívidas/Mútuos","atv_33":"Empréstimos/Dívidas/Mútuos"};
+const MAP_BLOCO_PADRAO = {"atv_fm_1782320726832_130": "Disponibilidades/Bancos", "atv_fm_1782320726832_144": "Disponibilidades/Bancos", "atv_fm_1782320726832_16": "Disponibilidades/Bancos", "atv_fm_1782320726832_5": "Despesas Antecipadas", "atv_fm_1782320726832_3": "Despesas Antecipadas", "atv_fm_1782320726832_1": "Despesas Antecipadas", "atv_1787752752968": "Despesas Antecipadas", "atv_25": "Faturamento", "atv_11": "Folhas/RV", "atv_1782237692313": "Folhas/RV", "atv_62": "Repasse", "atv_68": "Repasse", "atv_10": "Folhas/RV", "atv_13": "Despesas Antecipadas", "atv_22": "Folhas/RV", "atv_1781012384221": "Folhas/RV", "atv_1781898506155": "Folhas/RV", "atv_54": "B2C", "atv_61": "B2C", "atv_23": "Faturamento", "atv_fm_1782320726832_35": "Disponibilidades/Bancos", "atv_fm_1782320726832_37": "Disponibilidades/Bancos", "atv_fm_1782320726832_128": "Disponibilidades/Bancos", "atv_fm_1782320726832_39": "Disponibilidades/Bancos", "atv_fm_1782320726832_65": "Folhas/RV", "atv_fm_1782320726832_38": "Disponibilidades/Bancos", "atv_24": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_51": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_50": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_28": "Despesas Antecipadas", "atv_fm_1782320726832_10": "Despesas Antecipadas", "atv_28": "Disponibilidades/Bancos", "atv_fm_1782320726832_45": "Disponibilidades/Bancos", "atv_fm_1782320726832_55": "Despesas Antecipadas", "atv_38": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_55": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_46": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_58": "Disponibilidades/Bancos", "atv_fm_1782320726832_60": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_43": "B2C", "atv_fm_1782320726832_48": "Disponibilidades/Bancos", "atv_79": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_52": "B2C", "atv_49": "B2C", "atv_seed_comissao_atech_1780696364962": "Repasse", "atv_33": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_62": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_44": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_67": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_66": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_75": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_14": "Folhas/RV", "atv_15": "Folhas/RV", "atv_16": "Folhas/RV", "atv_26": "Folhas/RV", "atv_fm_1782320726832_77": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_114": "CP", "atv_fm_1782320726832_95": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_71": "B2B", "atv_fm_1782320726832_81": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_108": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_fm_1782320726832_110": "CP", "atv_fm_1782320726832_104": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_1787752752975": "Despesas Antecipadas", "atv_1787752752976": "ICLP", "atv_1787752752977": "Repasse", "atv_1787752752978": "B2C", "atv_1787752752979": "B2B", "atv_1787752752980": "CP", "atv_1787752752981": "Folhas/RV", "atv_1787752752982": "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "atv_1787752752983": "Faturamento", "atv_1787752752984": "Disponibilidades/Bancos", "atv_1787752752985": "Disponibilidades/Bancos"};
+const BLOCOS_PADRAO = ["Repasse", "ICLP", "B2C", "B2B", "CP", "Despesas Antecipadas", "Folhas/RV", "Mútuos, Empréstimos, Dívidas e PL/Investimentos", "Faturamento", "Disponibilidades/Bancos"];
 const MAP_EMP_PIS = {"CBE/SAS":"SAS","ATECH":"Atech","SAE":"SAE","IS":"IS","PSD":"PSD","P2D/COC":"P2D/COC","GEEKIE":"GEEKIE","NAVE":"NAVE","NCC":"NCC","Arco Educação":"Arco Educação"};
 const EMPS_PIS = ["SAS","SAE","IS","Arco Educação","Atech","PSD","P2D/COC","GEEKIE","NAVE","NCC","ActiveSoft","ClassApp","Escolas Exponencias - (EX)","Isaac"];
 const EMAIL_PARA_PADRAO = "emersonnunes@arcoeducacao.com.br, marinacavalcante@arcoeducacao.com.br, natanaelsousa@arcoeducacao.com.br";
@@ -1255,6 +1273,7 @@ async function _carregarDadosEIniciar(){
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
+          bloco:item.bloco||MAP_BLOCO_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
           descritivo:item.descritivo||"",
           obsGeral:item.obsGeral||"",
@@ -1273,6 +1292,7 @@ async function _carregarDadosEIniciar(){
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
           colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
+          bloco:item.bloco||MAP_BLOCO_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
           descritivo:item.descritivo||"",
           obsGeral:item.obsGeral||"",
@@ -1288,7 +1308,7 @@ async function _carregarDadosEIniciar(){
       }
     }
     if(!dbAtv.length) dbAtv=[];
-    dbAtv.forEach(a=>{if(!a.colunaPIS&&MAP_PIS_PADRAO[a.id]) a.colunaPIS=MAP_PIS_PADRAO[a.id]; if(!a.responsaveisPorEmpresa) a.responsaveisPorEmpresa={};});
+    dbAtv.forEach(a=>{if(!a.colunaPIS&&MAP_PIS_PADRAO[a.id]) a.colunaPIS=MAP_PIS_PADRAO[a.id]; if(!a.bloco&&MAP_BLOCO_PADRAO[a.id]) a.bloco=MAP_BLOCO_PADRAO[a.id]; if(!a.responsaveisPorEmpresa) a.responsaveisPorEmpresa={};});
     // Consolida áreas duplicadas (CR→Financeiro-AR, Tributário→Fiscal) e persiste no Firebase silenciosamente
     const _areasOriginais=[...AREAS];
     const areasSet=new Set([...AREAS.map(normalizarArea),...dbAtv.map(a=>a.area).filter(Boolean)]);
@@ -1919,6 +1939,75 @@ function salvarObs(actId,idx,txt){const atv=dbAtv.find(a=>a.id===actId);if(!atv)
 function kpisRapido(){ _atualizarKpisRapido(); }
 
 // ═══════════════════════════════════════════
+// BLOCOS (agrupamento por tema, ex: Repasse, B2C, Faturamento)
+// ═══════════════════════════════════════════
+function _blocoStatusAtv(a){
+  // Status agregado da atividade considerando só as empresas elegíveis
+  const el=a.empresasElegiveis||[];
+  const emps=(a.empresas||[]).filter(e=>el.includes(e.nome));
+  if(!emps.length) return "pend";
+  if(emps.every(e=>e.status==="OK"||e.status==="N/A")) return "ok";
+  const lim=calcData(a.diaUtil), hoje=new Date(); hoje.setHours(0,0,0,0);
+  if(lim&&hoje>lim) return "atras";
+  return "pend";
+}
+function blocoSelHtml(act){
+  const cur=act.bloco||"";
+  const opts=`<option value="">— Nenhum —</option>`+BLOCOS_PADRAO.map(b=>`<option value="${b}" ${b===cur?"selected":""}>${b}</option>`).join("");
+  return`<select class="bloco-sel" onchange="atualizarBloco('${act.id}',this.value)">${opts}</select>`;
+}
+function atualizarBloco(actId,bloco){
+  const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
+  atv.bloco=bloco||"";
+  salvarAtividade(actId,`Mapeou "${atv.atividade}" → Bloco: ${bloco||"Nenhum"}`);
+  if(document.getElementById("tab-blocos")?.classList.contains("active")) renderBlocos();
+  showToast(bloco?"✓ Vinculado ao bloco":"Vínculo removido");
+}
+function toggleBlocoExp(id){
+  const el=document.getElementById(id); if(!el) return;
+  el.classList.toggle("open");
+}
+function renderBlocos(){
+  const root=document.getElementById("blocos-root"); if(!root) return;
+
+  const cards=BLOCOS_PADRAO.map((bloco,bi)=>{
+    const atvs=dbAtv.filter(a=>a.bloco===bloco);
+    const total=atvs.length;
+    const ok=atvs.filter(a=>_blocoStatusAtv(a)==="ok").length;
+    const atras=atvs.filter(a=>_blocoStatusAtv(a)==="atras").length;
+    const pct=total?Math.round(ok/total*100):0;
+    const rowId="bloco-exp-"+bi;
+    const rows=atvs.length?atvs.map(a=>{
+      const st=_blocoStatusAtv(a);
+      const icon=st==="ok"?"✓":st==="atras"?"⚠":"⏳";
+      const cor=st==="ok"?"var(--green)":st==="atras"?"var(--s-atras)":"var(--muted)";
+      const resp=(a.responveisLista||[]).map(r=>abreviarNome(r)).join(", ")||"—";
+      return`<div class="bloco-atv-row">
+        <span style="color:${cor};font-weight:700;min-width:16px;">${icon}</span>
+        <span style="flex:1;">${escapeHtml(a.atividade)}<div style="font-size:10px;color:var(--muted);">${resp} · D.U. ${a.diaUtil}</div></span>
+        ${ehMaster()?blocoSelHtml(a):""}
+      </div>`;
+    }).join(""):`<div style="font-size:11px;color:var(--muted);padding:6px 0;">Nenhuma atividade vinculada a este bloco ainda.</div>`;
+    return`<div class="bloco-card" onclick="toggleBlocoExp('${rowId}')">
+      <div class="bloco-card-title">${bloco}</div>
+      <div class="bloco-prog-bg"><div class="bloco-prog-fill" style="width:${pct}%;background:${atras?"var(--s-atras)":"var(--green)"};"></div></div>
+      <div class="bloco-card-sub">${ok}/${total} concluídas (${pct}%)${atras?` · ⚠ ${atras} atrasada(s)`:""}</div>
+    </div>
+    <div id="${rowId}" class="bloco-expand full" style="grid-column:1/-1;background:#fafbfc;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-top:-8px;margin-bottom:8px;">${rows}</div>`;
+  }).join("");
+
+  // Atividades sem bloco vinculado (para facilitar a atribuição manual)
+  const semBloco=dbAtv.filter(a=>!a.bloco);
+  const semBlocoHtml=ehMaster()&&semBloco.length?`
+    <h3 style="margin:18px 0 8px;color:var(--blue);font-size:14px;">Atividades sem bloco (${semBloco.length})</h3>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">
+      ${semBloco.map(a=>`<div class="bloco-atv-row"><span style="flex:1;">${escapeHtml(a.atividade)}<div style="font-size:10px;color:var(--muted);">${escapeHtml(a.area)}</div></span>${blocoSelHtml(a)}</div>`).join("")}
+    </div>`:"";
+
+  root.innerHTML=`<div class="bloco-grid">${cards}</div>${semBlocoHtml}`;
+}
+
+// ═══════════════════════════════════════════
 // PIS/COFINS
 // ═══════════════════════════════════════════
 function calcPisStatus(empPis,col){
@@ -2507,6 +2596,7 @@ function mudarAba(id){
   document.querySelector(`[onclick="mudarAba('${id}')"]`)?.classList.add("active");
   if(id==="tab-config") renderConfigListas();
   if(id==="tab-pis") renderPIS();
+  if(id==="tab-blocos") renderBlocos();
   if(id==="tab-periodo") renderHist();
   if(id==="tab-calendario") requestAnimationFrame(()=>{if(_calModoView==="timeline") renderTimeline(); else renderCalendario();});
 }
