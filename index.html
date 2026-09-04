@@ -491,6 +491,10 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     <h3 style="color:var(--blue);font-weight:700;font-size:15px;">Alterar Responsáveis</h3>
     <p id="modal-edit-title" style="font-size:13px;font-weight:700;background:#f1f5f9;border-left:3px solid var(--blue);padding:7px 12px;border-radius:0 8px 8px 0;margin:8px 0;"></p>
     <input type="hidden" id="modal-edit-act-id">
+    <div style="display:flex;gap:8px;margin-bottom:2px;">
+      <button type="button" class="filter-btn" style="font-size:11px;padding:4px 10px;" onclick="marcarTodosGrid('modal-users-grid-root',true)">☑ Selecionar tudo</button>
+      <button type="button" class="filter-btn" style="font-size:11px;padding:4px 10px;" onclick="marcarTodosGrid('modal-users-grid-root',false)">☐ Limpar seleção</button>
+    </div>
     <div class="premium-users-grid" id="modal-users-grid-root"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
       <button class="filter-btn" onclick="fecharModalResp()">Cancelar</button>
@@ -504,6 +508,10 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
     <h3 style="color:var(--blue);font-weight:700;font-size:15px;">Vincular Marcas</h3>
     <p id="modal-comp-title" style="font-size:13px;font-weight:700;background:#f1f5f9;border-left:3px solid var(--blue);padding:7px 12px;border-radius:0 8px 8px 0;margin:8px 0;"></p>
     <input type="hidden" id="modal-comp-act-id">
+    <div style="display:flex;gap:8px;margin-bottom:2px;">
+      <button type="button" class="filter-btn" style="font-size:11px;padding:4px 10px;" onclick="marcarTodosGrid('modal-companies-grid-root',true)">☑ Selecionar tudo</button>
+      <button type="button" class="filter-btn" style="font-size:11px;padding:4px 10px;" onclick="marcarTodosGrid('modal-companies-grid-root',false)">☐ Limpar seleção</button>
+    </div>
     <div class="premium-users-grid" id="modal-companies-grid-root"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
       <button class="filter-btn" onclick="fecharModalEmps()">Cancelar</button>
@@ -655,12 +663,12 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
       <div class="form-group"><label>Grupo</label><select class="form-input" id="add-grupo"><option value="Pedagogico">🎓 Pedagógico</option><option value="FM">💼 F&M</option></select></div>
       <div class="form-group"><label>Impacta Prévia?</label><select class="form-input" id="add-previa"><option value="Não">Não</option><option value="Sim">Sim</option></select></div>
       <div class="form-group"><label>Marcas Vinculadas</label>
-        <div class="cdd-wrap"><button type="button" class="cdd-toggle" id="cdd-emp-toggle" onclick="toggleCdd('emp',event)">Selecionar marcas...</button><div class="cdd-panel" id="cdd-emp-panel"></div></div>
+        <div class="cdd-wrap"><button type="button" class="cdd-toggle" id="cdd-emp-toggle" onclick="toggleCdd('emp',event)">Selecionar marcas...</button><div class="cdd-panel" id="cdd-emp-panel"><div class="cdd-selall" style="display:flex;gap:6px;padding:4px 9px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;"><button type="button" class="filter-btn" style="font-size:10px;padding:2px 8px;" onclick="event.stopPropagation();marcarTodosCdd('emp',true)">☑ Tudo</button><button type="button" class="filter-btn" style="font-size:10px;padding:2px 8px;" onclick="event.stopPropagation();marcarTodosCdd('emp',false)">☐ Nenhum</button></div><div id="cdd-emp-opts"></div></div></div>
         <div class="cdd-chips" id="cdd-emp-chips"></div>
       </div>
     </div>
     <div class="form-group"><label>Responsáveis</label>
-      <div class="cdd-wrap"><button type="button" class="cdd-toggle" id="cdd-resp-toggle" onclick="toggleCdd('resp',event)">Selecionar responsáveis...</button><div class="cdd-panel" id="cdd-resp-panel"></div></div>
+      <div class="cdd-wrap"><button type="button" class="cdd-toggle" id="cdd-resp-toggle" onclick="toggleCdd('resp',event)">Selecionar responsáveis...</button><div class="cdd-panel" id="cdd-resp-panel"><div class="cdd-selall" style="display:flex;gap:6px;padding:4px 9px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;"><button type="button" class="filter-btn" style="font-size:10px;padding:2px 8px;" onclick="event.stopPropagation();marcarTodosCdd('resp',true)">☑ Tudo</button><button type="button" class="filter-btn" style="font-size:10px;padding:2px 8px;" onclick="event.stopPropagation();marcarTodosCdd('resp',false)">☐ Nenhum</button></div><div id="cdd-resp-opts"></div></div></div>
       <div class="cdd-chips" id="cdd-resp-chips"></div>
       <div class="hint-mini">💡 Vazio = "A Atribuir"</div>
     </div>
@@ -762,6 +770,11 @@ header{background:var(--blue);padding:0 32px;height:72px;display:flex;align-item
           <option value="OK">✓ OK</option>
           <option value="PENDENTE">⏳ Pendentes</option>
           <option value="ATRASADO">⚠ Atrasadas</option>
+        </select>
+        <select id="edit-filter-pis" class="filter-select" onchange="renderizarPainel()" title="Filtrar por impacto em PIS/COFINS">
+          <option value="todos">📊 PIS/COFINS — Todas</option>
+          <option value="Sim">📊 Impacta PIS/COFINS</option>
+          <option value="Não">📊 Não impacta PIS/COFINS</option>
         </select>
         <button class="filter-btn" onclick="limparFiltrosConfig()" style="height:34px;padding:0 12px;font-size:11px;">✕ Limpar</button>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
@@ -983,7 +996,7 @@ function verificarSessao(nome,cb){
   const ref=_fbDb.ref("cronograma/_sessaoAtiva");
   _sessToken="tok_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
   ref.once("value",snap=>{
-    const a=snap.val(),agora=Date.now(),ativa=a&&a.token&&(agora-(a.ts||0))<120000;
+    const a=snap.val(),agora=Date.now(),ativa=a&&a.token&&(agora-(a.ts||0))<25000;
     if(ativa&&a.token!==_sessToken){
       const el=document.getElementById("modal-sessao-msg");
       if(el) el.textContent=`"${a.nome}" editando desde ${new Date(a.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}. Assumir encerrará a outra sessão.`;
@@ -992,7 +1005,7 @@ function verificarSessao(nome,cb){
     }else{gravarSessao(ref,nome);cb();}
   });
 }
-function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});ref.onDisconnect().remove();if(window._hbSessao) clearInterval(window._hbSessao);window._hbSessao=setInterval(()=>{if(_sessToken) ref.update({ts:Date.now()});},30000);}
+function gravarSessao(ref,nome){ref.set({token:_sessToken,nome,ts:Date.now()});ref.onDisconnect().remove();if(window._hbSessao) clearInterval(window._hbSessao);window._hbSessao=setInterval(()=>{if(_sessToken) ref.update({ts:Date.now()});},8000);}
 function assumirSessao(){document.getElementById("modal-sessao-ativa").classList.remove("show");if(window._onAssumir){window._onAssumir();window._onAssumir=null;}}
 
 function logAcao(acao){if(!_fbDb||!userAtual||userAtual==="Outra Área") return;const ts=Date.now();_fbDb.ref("cronograma/logs").child("log_"+ts).set({quem:userAtual,acao,ts});const lim=ts-7*24*60*60*1000;_fbDb.ref("cronograma/logs").orderByChild("ts").endAt(lim).once("value",s=>s.forEach(c=>c.ref.remove()));}
@@ -1272,7 +1285,7 @@ async function _carregarDadosEIniciar(){
           empresasElegiveis:item.empresasElegiveis||item.emps||[...EMPS],
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
-          colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
+          colunaPIS:item.colunaPIS!==undefined?item.colunaPIS:(MAP_PIS_PADRAO[item.id]||""),
           bloco:item.bloco||MAP_BLOCO_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
           descritivo:item.descritivo||"",
@@ -1291,7 +1304,7 @@ async function _carregarDadosEIniciar(){
           empresasElegiveis:item.empresasElegiveis||item.emps||[...EMPS],
           responsaveisPorEmpresa:item.responsaveisPorEmpresa||{},
           empresas:item.empresas||EMPS.map(e=>({nome:e,status:"PENDENTE",dataConclusao:"",obs:""})),
-          colunaPIS:item.colunaPIS||MAP_PIS_PADRAO[item.id]||"",
+          colunaPIS:item.colunaPIS!==undefined?item.colunaPIS:(MAP_PIS_PADRAO[item.id]||""),
           bloco:item.bloco||MAP_BLOCO_PADRAO[item.id]||"",
           grupo:item.grupo||"Pedagogico",
           descritivo:item.descritivo||"",
@@ -1308,7 +1321,7 @@ async function _carregarDadosEIniciar(){
       }
     }
     if(!dbAtv.length) dbAtv=[];
-    dbAtv.forEach(a=>{if(!a.colunaPIS&&MAP_PIS_PADRAO[a.id]) a.colunaPIS=MAP_PIS_PADRAO[a.id]; if(!a.bloco&&MAP_BLOCO_PADRAO[a.id]) a.bloco=MAP_BLOCO_PADRAO[a.id]; if(!a.responsaveisPorEmpresa) a.responsaveisPorEmpresa={};});
+    dbAtv.forEach(a=>{if(!a.bloco&&MAP_BLOCO_PADRAO[a.id]) a.bloco=MAP_BLOCO_PADRAO[a.id]; if(!a.responsaveisPorEmpresa) a.responsaveisPorEmpresa={};});
     // Consolida áreas duplicadas (CR→Financeiro-AR, Tributário→Fiscal) e persiste no Firebase silenciosamente
     const _areasOriginais=[...AREAS];
     const areasSet=new Set([...AREAS.map(normalizarArea),...dbAtv.map(a=>a.area).filter(Boolean)]);
@@ -1725,7 +1738,7 @@ function renderizarPainel(){
     // Tabela config
     if(ehM&&fragT){
       const eEmp=$val("edit-filter-emp"), eGrupo=$val("edit-filter-grupo");
-        const ePrevia=$val("edit-filter-previa"), eStatus=$val("edit-filter-status");
+        const ePrevia=$val("edit-filter-previa"), eStatus=$val("edit-filter-status"), ePis=$val("edit-filter-pis");
         const sgAtv=statusGeral(act);
         const pe=(!eNome||act.atividade.toLowerCase().includes(eNome))
           &&(eResp==="todos"||act.responveisLista.includes(eResp))
@@ -1733,7 +1746,8 @@ function renderizarPainel(){
           &&(eEmp==="todos"||(act.empresasElegiveis||[]).includes(eEmp))
           &&(eGrupo==="todos"||(act.grupo||"Pedagogico")===eGrupo)
           &&(ePrevia==="todos"||(act.previaReceita||"Não")===ePrevia)
-          &&(eStatus==="todos"||sgAtv===eStatus);
+          &&(eStatus==="todos"||sgAtv===eStatus)
+          &&(ePis==="todos"||(ePis==="Sim"?!!act.colunaPIS:!act.colunaPIS));
       if(pe){
         const tr=document.createElement("tr");
         const tags=(act.empresasElegiveis||[]).map(s=>`<span class="comp-tag">${s.substring(0,4)}</span>`).join("");
@@ -2437,6 +2451,9 @@ function excluirAtv(id,e){
 // ═══════════════════════════════════════════
 // MODAIS
 // ═══════════════════════════════════════════
+function marcarTodosGrid(rootId,marcar){
+  document.querySelectorAll(`#${rootId} .user-select-card`).forEach(c=>c.classList.toggle("selected",marcar));
+}
 function abrirModalResp(actId){
   const atv=dbAtv.find(a=>a.id===actId); if(!atv) return;
   document.getElementById("modal-edit-act-id").value=actId;
@@ -2554,10 +2571,15 @@ document.addEventListener("click",e=>{
     document.querySelectorAll(".cdd-toggle").forEach(t=>t.classList.remove("open"));
   }
 });
-function popCddResp(){const p=document.getElementById("cdd-resp-panel");if(!p) return;p.innerHTML=PROF.map(r=>`<label class="cdd-opt" onclick="event.stopPropagation()"><input type="checkbox" value="${r}" ${cddResps.includes(r)?"checked":""} onchange="updCdd('resp')"> ${r}</label>`).join("");updCdd("resp");}
-function popCddEmp(){const p=document.getElementById("cdd-emp-panel");if(!p) return;if(!cddEmps.length) cddEmps=[...EMPS];p.innerHTML=EMPS.map(e=>`<label class="cdd-opt" onclick="event.stopPropagation()"><input type="checkbox" value="${e}" ${cddEmps.includes(e)?"checked":""} onchange="updCdd('emp')"> ${e}</label>`).join("");updCdd("emp");}
+function popCddResp(){const p=document.getElementById("cdd-resp-opts");if(!p) return;p.innerHTML=PROF.map(r=>`<label class="cdd-opt" onclick="event.stopPropagation()"><input type="checkbox" value="${r}" ${cddResps.includes(r)?"checked":""} onchange="updCdd('resp')"> ${r}</label>`).join("");updCdd("resp");}
+function popCddEmp(){const p=document.getElementById("cdd-emp-opts");if(!p) return;if(!cddEmps.length) cddEmps=[...EMPS];p.innerHTML=EMPS.map(e=>`<label class="cdd-opt" onclick="event.stopPropagation()"><input type="checkbox" value="${e}" ${cddEmps.includes(e)?"checked":""} onchange="updCdd('emp')"> ${e}</label>`).join("");updCdd("emp");}
+function marcarTodosCdd(tipo,marcar){
+  const p=document.getElementById(`cdd-${tipo}-opts`); if(!p) return;
+  p.querySelectorAll("input[type=checkbox]").forEach(i=>i.checked=marcar);
+  updCdd(tipo);
+}
 function updCdd(tipo){
-  const p=document.getElementById(`cdd-${tipo}-panel`), sel=Array.from(p.querySelectorAll("input:checked")).map(i=>i.value);
+  const p=document.getElementById(`cdd-${tipo}-opts`)||document.getElementById(`cdd-${tipo}-panel`), sel=Array.from(p.querySelectorAll("input:checked")).map(i=>i.value);
   if(tipo==="resp") cddResps=sel; else cddEmps=sel;
   const chips=document.getElementById(`cdd-${tipo}-chips`); chips.innerHTML=sel.map(v=>`<span class="cdd-chip">${tipo==="resp"?abrev(v):v}</span>`).join("");
   const t=document.getElementById(`cdd-${tipo}-toggle`); t.textContent=sel.length?`${sel.length} selecionado(s)`:(tipo==="resp"?"Selecionar responsáveis...":"Selecionar marcas...");
@@ -3145,7 +3167,7 @@ function importarCSVFM(event){ importarFM(event); }
 
 function limparFiltrosConfig(){
   ["edit-filter-nome","edit-filter-resp","edit-filter-area","edit-filter-emp",
-   "edit-filter-grupo","edit-filter-previa","edit-filter-status"].forEach(id=>{
+   "edit-filter-grupo","edit-filter-previa","edit-filter-status","edit-filter-pis"].forEach(id=>{
     const el=$el(id); if(!el) return;
     el.tagName==="INPUT"?el.value="":el.selectedIndex=0;
   });
